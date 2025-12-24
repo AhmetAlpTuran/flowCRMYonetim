@@ -1,21 +1,28 @@
-<<<<<<< HEAD
-"# Flow CRM Yönetim" 
-"WhatsApp tabanlı müşteri ilişkileri yönetimi (CRM) mobil uygulaması.\n\nBu proje, 2025-2026 Güz Dönemi Mobile Programming dersi kapsamında geliştirilmiştir." 
-=======
-# wpapp
+﻿# Flow CRM Yönetim
+WhatsApp tabanlı müşteri ilişkileri yönetimi (CRM) mobil uygulaması.
 
-A new Flutter project.
+Bu proje, 2025-2026 Güz Dönemi Mobile Programming dersi kapsamında geliştirilmiştir.
 
-## Getting Started
+## Gereksinimler
+- Flutter SDK (>= 3.3.0)
+- Dart SDK (Flutter ile gelir)
+- Android Studio / Xcode / Windows ve gerekli emulator veya cihaz
 
-This project is a starting point for a Flutter application.
+## Bagimliliklar
+- flutter_riverpod: ^2.5.1
 
-A few resources to get you started if this is your first Flutter project:
+## Kurulum
+1) Repo dizinine girin.
+2) Bagimliliklari yukleyin:
+```
+flutter pub get
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Calistirma
+```
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
->>>>>>> 129642f (Prototip geliştirilmesi yapıldı , prototip UI geliştirildi)
+## Notlar
+- Platform klasorleri (android/ios/windows/linux/macos/web) mevcut oldugu icin dogrudan calistirabilirsiniz.
+- Flutter surum uyumsuzlugu yasarsaniz `flutter --version` ile kontrol edin.
