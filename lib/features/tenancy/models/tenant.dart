@@ -7,6 +7,8 @@ enum TenantFeature {
   inbox,
   handoff,
   custom,
+  campaigns,
+  templates,
 }
 
 class Tenant {

@@ -61,7 +61,7 @@ class _InboxListScreenState extends ConsumerState<InboxListScreen> {
             ),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                 itemBuilder: (context, index) {
                   final conversation = filtered[index];
                   return _ConversationTile(
@@ -74,7 +74,7 @@ class _InboxListScreenState extends ConsumerState<InboxListScreen> {
                     },
                   );
                 },
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, __) => const Divider(height: 1),
                 itemCount: filtered.length,
               ),
             ),
@@ -235,100 +235,121 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final time = _formatTime(conversation.updatedAt, context);
+    final hasUnread = conversation.unreadCount > 0;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(conversation: conversation),
+          ),
+        );
+      },
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(
-                    _initials(conversation.title),
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: const Color(0xFF25D366),
+              child: Text(
+                _initials(conversation.title),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conversation.title,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    conversation.title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                _StatusPill(status: conversation.status),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              conversation.lastMessage,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tag in conversation.tags)
-                  InputChip(
-                    label: Text(tag),
-                    onDeleted: () {
-                      final updated = List<String>.from(conversation.tags)
-                        ..remove(tag);
-                      onTagChanged(updated);
-                    },
-                  ),
-                ActionChip(
-                  label: const Text('Etiket duzenle'),
-                  avatar: const Icon(Icons.edit, size: 18),
-                  onPressed: () => _openTagEditor(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  _formatTime(conversation.updatedAt, context),
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-                const Spacer(),
-                if (conversation.unreadCount > 0)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${conversation.unreadCount} yeni',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(color: Colors.white),
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                FilledButton.tonal(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ChatScreen(conversation: conversation),
                       ),
-                    );
-                  },
-                  child: const Text('Sohbeti ac'),
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      Text(
+                        time,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: hasUnread
+                                  ? const Color(0xFF25D366)
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conversation.lastMessage,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                      if (hasUnread) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF25D366),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            conversation.unreadCount.toString(),
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _StatusPill(status: conversation.status),
+                      for (final tag in conversation.tags)
+                        InputChip(
+                          label: Text(tag),
+                          onDeleted: () {
+                            final updated = List<String>.from(conversation.tags)
+                              ..remove(tag);
+                            onTagChanged(updated);
+                          },
+                        ),
+                      ActionChip(
+                        label: const Text('Etiket duzenle'),
+                        avatar: const Icon(Icons.edit, size: 18),
+                        onPressed: () => _openTagEditor(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -377,10 +398,10 @@ class _StatusPill extends StatelessWidget {
     final labelColor = _statusLabelColor(status, colorScheme);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 180),

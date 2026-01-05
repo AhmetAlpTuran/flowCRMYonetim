@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/user_role.dart';
 import '../bot/screens/bot_screen.dart';
+import '../campaigns/screens/campaigns_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../handoff/screens/handoff_screen.dart';
 import '../inbox/screens/inbox_list_screen.dart';
@@ -10,6 +11,7 @@ import '../knowledge/screens/knowledge_screen.dart';
 import '../tenancy/models/tenant.dart';
 import '../tenancy/providers/tenant_providers.dart';
 import '../tenancy/screens/custom_feature_screen.dart';
+import '../templates/screens/templates_screen.dart';
 import 'shell_providers.dart';
 
 class AppShell extends ConsumerWidget {
@@ -285,6 +287,22 @@ List<_ShellDestination> _destinationsFor(
       selectedIcon: Icons.headset_mic,
       screen: HandoffScreen(),
       feature: TenantFeature.handoff,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.campaigns,
+      label: 'Kampanyalar',
+      icon: Icons.campaign_outlined,
+      selectedIcon: Icons.campaign,
+      screen: CampaignsScreen(),
+      feature: TenantFeature.campaigns,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.templates,
+      label: 'Sablonlar',
+      icon: Icons.article_outlined,
+      selectedIcon: Icons.article,
+      screen: TemplatesScreen(),
+      feature: TenantFeature.templates,
     ),
     const _ShellDestination(
       id: ShellDestinationId.custom,
