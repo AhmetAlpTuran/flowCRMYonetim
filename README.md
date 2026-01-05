@@ -10,6 +10,7 @@ Bu proje, 2025-2026 Güz Dönemi Mobile Programming dersi kapsamında geliştiri
 
 ## Bagimliliklar
 - flutter_riverpod: ^2.5.1
+- shared_preferences: ^2.2.3
 
 ## Kurulum
 1) Repo dizinine girin.

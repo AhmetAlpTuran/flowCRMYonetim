@@ -1,14 +1,18 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../shell/app_shell.dart';
+import '../tenancy/providers/tenant_providers.dart';
+import '../tenancy/screens/app_entry.dart';
 
-class App extends StatelessWidget {
+class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tenant = ref.watch(selectedTenantProvider);
+    final seedColor = tenant?.brandColor ?? const Color(0xFF1F4B99);
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF1F4B99),
+      seedColor: seedColor,
       secondary: const Color(0xFF00A896),
       tertiary: const Color(0xFFF2A541),
       brightness: Brightness.light,
@@ -78,7 +82,7 @@ class App extends StatelessWidget {
           ),
         ),
       ),
-      home: const AppShell(),
+      home: const AppEntry(),
     );
   }
 }

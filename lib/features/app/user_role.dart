@@ -1,4 +1,4 @@
 ﻿enum UserRole {
   admin,
-  agent,
+  user,
 }

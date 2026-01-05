@@ -1,13 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../app/role_provider.dart';
 import '../app/user_role.dart';
 import '../bot/screens/bot_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../handoff/screens/handoff_screen.dart';
 import '../inbox/screens/inbox_list_screen.dart';
 import '../knowledge/screens/knowledge_screen.dart';
+import '../tenancy/models/tenant.dart';
+import '../tenancy/providers/tenant_providers.dart';
+import '../tenancy/screens/custom_feature_screen.dart';
 import 'shell_providers.dart';
 
 class AppShell extends ConsumerWidget {
@@ -15,15 +17,25 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(userRoleProvider);
-    final destinations = _destinationsFor(role);
+    final auth = ref.watch(authControllerProvider).value;
+    final role = auth?.role ?? UserRole.user;
+    final tenant = ref.watch(selectedTenantProvider);
+    final features = tenant?.features ?? <TenantFeature>{};
+    final destinations = _destinationsFor(role, features);
     final selected = ref.watch(shellDestinationProvider);
     final currentIndex = destinations.indexWhere((item) => item.id == selected);
     final resolvedIndex = currentIndex >= 0 ? currentIndex : 0;
-    final destination = destinations[resolvedIndex];
     final width = MediaQuery.of(context).size.width;
     final useRail = width >= 840;
     final extendRail = width >= 1100;
+
+    if (destinations.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final destination = destinations[resolvedIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -37,23 +49,7 @@ class AppShell extends ConsumerWidget {
                 ),
               ),
         actions: [
-          PopupMenuButton<UserRole>(
-            icon: const Icon(Icons.switch_account),
-            onSelected: (value) {
-              ref.read(userRoleProvider.notifier).state = value;
-              _syncDestination(ref, value);
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: UserRole.admin,
-                child: Text('Yonetici'),
-              ),
-              PopupMenuItem(
-                value: UserRole.agent,
-                child: Text('Temsilci'),
-              ),
-            ],
-          ),
+          _TenantSwitcher(tenant: tenant),
         ],
       ),
       drawer: useRail
@@ -97,13 +93,6 @@ class AppShell extends ConsumerWidget {
     );
   }
 
-  void _syncDestination(WidgetRef ref, UserRole role) {
-    final allowed = _destinationsFor(role).map((e) => e.id).toList();
-    final current = ref.read(shellDestinationProvider);
-    if (!allowed.contains(current)) {
-      ref.read(shellDestinationProvider.notifier).state = allowed.first;
-    }
-  }
 }
 
 class _DrawerContent extends StatelessWidget {
@@ -169,6 +158,7 @@ class _ShellDestination {
     required this.icon,
     required this.selectedIcon,
     required this.screen,
+    required this.feature,
   });
 
   final ShellDestinationId id;
@@ -176,56 +166,141 @@ class _ShellDestination {
   final IconData icon;
   final IconData selectedIcon;
   final Widget screen;
+  final TenantFeature feature;
 }
 
-List<_ShellDestination> _destinationsFor(UserRole role) {
-  if (role == UserRole.agent) {
-    return const [
-      _ShellDestination(
-        id: ShellDestinationId.inbox,
-        label: 'Gelen Kutusu',
-        icon: Icons.inbox_outlined,
-        selectedIcon: Icons.inbox,
-        screen: InboxListScreen(),
-      ),
-    ];
-  }
+class _TenantSwitcher extends ConsumerWidget {
+  const _TenantSwitcher({required this.tenant});
 
-  return const [
-    _ShellDestination(
+  final Tenant? tenant;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tenants = ref.watch(accessibleTenantsProvider);
+    final role = ref.watch(authControllerProvider).value?.role ?? UserRole.user;
+
+    return tenants.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final current = tenant ?? items.first;
+        return PopupMenuButton<Tenant>(
+          tooltip: 'Tenant degistir',
+          onSelected: (value) {
+            ref
+                .read(selectedTenantIdProvider.notifier)
+                .setSelectedTenantId(value.id);
+            final allowed =
+                _destinationsFor(role, value.features).map((e) => e.id).toList();
+            final currentDest = ref.read(shellDestinationProvider);
+            if (!allowed.contains(currentDest)) {
+              ref.read(shellDestinationProvider.notifier).state = allowed.first;
+            }
+          },
+          itemBuilder: (context) => [
+            for (final item in items)
+              PopupMenuItem(
+                value: item,
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 10,
+                      backgroundColor: item.brandColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(item.name),
+                  ],
+                ),
+              ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 10,
+                  backgroundColor: current.brandColor,
+                ),
+                const SizedBox(width: 8),
+                Text(current.name),
+                const SizedBox(width: 6),
+                const Icon(Icons.expand_more, size: 18),
+              ],
+            ),
+          ),
+        );
+      },
+      error: (_, __) => const SizedBox.shrink(),
+      loading: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+List<_ShellDestination> _destinationsFor(
+  UserRole role,
+  Set<TenantFeature> features,
+) {
+  final all = <_ShellDestination>[
+    const _ShellDestination(
       id: ShellDestinationId.dashboard,
       label: 'Panel',
       icon: Icons.dashboard_outlined,
       selectedIcon: Icons.dashboard,
       screen: DashboardScreen(),
+      feature: TenantFeature.dashboard,
     ),
-    _ShellDestination(
+    const _ShellDestination(
       id: ShellDestinationId.bot,
       label: 'Bot',
       icon: Icons.smart_toy_outlined,
       selectedIcon: Icons.smart_toy,
       screen: BotScreen(),
+      feature: TenantFeature.bot,
     ),
-    _ShellDestination(
+    const _ShellDestination(
       id: ShellDestinationId.knowledge,
       label: 'Bilgi',
       icon: Icons.menu_book_outlined,
       selectedIcon: Icons.menu_book,
       screen: KnowledgeScreen(),
+      feature: TenantFeature.knowledge,
     ),
-    _ShellDestination(
+    const _ShellDestination(
       id: ShellDestinationId.inbox,
       label: 'Gelen Kutusu',
       icon: Icons.inbox_outlined,
       selectedIcon: Icons.inbox,
       screen: InboxListScreen(),
+      feature: TenantFeature.inbox,
     ),
-    _ShellDestination(
+    const _ShellDestination(
       id: ShellDestinationId.handoff,
       label: 'Müşteri Temsilcisine Yönlendir',
       icon: Icons.headset_mic_outlined,
       selectedIcon: Icons.headset_mic,
       screen: HandoffScreen(),
+      feature: TenantFeature.handoff,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.custom,
+      label: 'Özel Modüller',
+      icon: Icons.auto_awesome_outlined,
+      selectedIcon: Icons.auto_awesome,
+      screen: CustomFeatureScreen(),
+      feature: TenantFeature.custom,
     ),
   ];
+
+  final allowed = all.where((item) => features.contains(item.feature)).toList();
+
+  if (role == UserRole.user) {
+    return allowed.where((item) => item.id == ShellDestinationId.inbox).toList();
+  }
+
+  return allowed;
 }

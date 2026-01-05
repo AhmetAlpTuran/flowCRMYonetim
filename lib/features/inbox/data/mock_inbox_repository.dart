@@ -104,7 +104,7 @@ class MockInboxRepository {
       Message(
         id: 'm6',
         conversationId: 'c3',
-        sender: 'Sam (Agent)',
+        sender: 'Sam (Temsilci)',
         text: 'Satis ekibini dahil ediyorum.',
         sentAt: DateTime(2024, 6, 11, 17, 32),
         isFromCustomer: false,
@@ -122,7 +122,7 @@ class MockInboxRepository {
       Message(
         id: 'm8',
         conversationId: 'c4',
-        sender: 'Liam (Agent)',
+        sender: 'Liam (Temsilci)',
         text: 'Tesekkurler! Politika bilgisini kontrol ediyorum.',
         sentAt: DateTime(2024, 6, 11, 14, 21),
         isFromCustomer: false,

@@ -6,6 +6,7 @@ enum ShellDestinationId {
   knowledge,
   inbox,
   handoff,
+  custom,
 }
 
 final shellDestinationProvider = StateProvider<ShellDestinationId>(
