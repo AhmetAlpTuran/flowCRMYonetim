@@ -56,15 +56,13 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'Kampanya Olustur',
-          style: Theme.of(context).textTheme.headlineSmall,
+        _HeaderSection(
+          title: 'Kampanya Yoneticisi',
+          subtitle: 'Hedef kitleyi secin, sablonu belirleyin ve gonderimi baslatin.',
+          icon: Icons.campaign_outlined,
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Kitleyi filtreleyin ve WhatsApp sablonu secin.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        const SizedBox(height: 16),
+        _StatsRow(),
         const SizedBox(height: 16),
         Card(
           child: Padding(
@@ -72,19 +70,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.filter_alt_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Kitle Filtresi',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-                ),
+                _SectionTitle(icon: Icons.filter_alt_outlined, title: 'Kitle Filtresi'),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _selectedFilter,
@@ -129,71 +115,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card(
-                        color:
-                            Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tahmini erisim',
-                                style: Theme.of(context).textTheme.labelMedium,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '4.820 kisi',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Card(
-                        color:
-                            Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Ortalama acilma',
-                                style: Theme.of(context).textTheme.labelMedium,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '%63',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.tune,
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Ozel filtreler',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-                ),
+                _SectionTitle(icon: Icons.tune, title: 'Ozel filtreler'),
                 const SizedBox(height: 8),
                 for (final filter in _customFilters)
                   _CustomFilterRow(
@@ -234,19 +156,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.article_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Sablon Secimi',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-                ),
+                _SectionTitle(icon: Icons.article_outlined, title: 'Sablon Secimi'),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<MessageTemplate>(
                   value: _selectedTemplate,
@@ -337,6 +247,133 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
   }
 }
 
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 4),
+              Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            title: 'Tahmini erisim',
+            value: '4.820 kisi',
+            icon: Icons.people_alt_outlined,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            title: 'Ortalama acilma',
+            value: '%63',
+            icon: Icons.insights_outlined,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            title: 'Butce kullanimi',
+            value: '%42',
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.labelMedium),
+                  const SizedBox(height: 6),
+                  Text(value, style: Theme.of(context).textTheme.titleLarge),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+      ],
+    );
+  }
+}
+
 class _CustomFilter {
   _CustomFilter({
     required this.field,
@@ -385,7 +422,10 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                 DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
                 DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
                 DropdownMenuItem(value: 'Ulke', child: Text('Ulke')),
-                DropdownMenuItem(value: 'Siparis adedi', child: Text('Siparis adedi')),
+                DropdownMenuItem(
+                  value: 'Siparis adedi',
+                  child: Text('Siparis adedi'),
+                ),
               ],
               onChanged: (value) {
                 if (value != null) {

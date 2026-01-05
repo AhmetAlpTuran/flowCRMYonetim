@@ -12,6 +12,7 @@ Bu proje, 2025-2026 Güz Dönemi Mobile Programming dersi kapsamında geliştiri
 - flutter_riverpod: ^2.5.1
 - shared_preferences: ^2.2.3
 - file_picker: ^8.0.5
+- google_fonts: ^6.2.1
 
 ## Kurulum
 1) Repo dizinine girin.

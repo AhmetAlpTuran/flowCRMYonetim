@@ -53,14 +53,10 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'WhatsApp Sablonlari',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Cloud API sablon yapisina gore yeni mesajlar olusturun.',
-          style: Theme.of(context).textTheme.bodyMedium,
+        _HeaderSection(
+          title: 'WhatsApp Sablonlari',
+          subtitle: 'Cloud API sablon yapisina gore yeni mesajlar olusturun.',
+          icon: Icons.article_outlined,
         ),
         const SizedBox(height: 16),
         Card(
@@ -464,6 +460,42 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
       }
     }
     return null;
+  }
+}
+
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 4),
+              Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

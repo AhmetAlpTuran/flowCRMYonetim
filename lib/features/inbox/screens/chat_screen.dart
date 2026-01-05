@@ -14,24 +14,40 @@ class ChatScreen extends ConsumerWidget {
     final messages = ref.watch(messagesProvider(conversation.id));
 
     return Scaffold(
+      backgroundColor: const Color(0xFFECE5DD),
       appBar: AppBar(
-        title: Text(conversation.title),
+        backgroundColor: const Color(0xFF075E54),
+        foregroundColor: Colors.white,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFF25D366),
+              child: Text(
+                _initials(conversation.title),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                conversation.title,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        actions: const [
+          Icon(Icons.videocam),
+          SizedBox(width: 12),
+          Icon(Icons.call),
+          SizedBox(width: 12),
+          Icon(Icons.more_vert),
+          SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            color: Theme.of(context).colorScheme.surface,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tag in conversation.tags)
-                  Chip(label: Text(tag)),
-              ],
-            ),
-          ),
           Expanded(
             child: messages.when(
               data: (items) => ListView.builder(
@@ -41,33 +57,46 @@ class ChatScreen extends ConsumerWidget {
                   final isCustomer = message.isFromCustomer;
                   final alignment =
                       isCustomer ? Alignment.centerLeft : Alignment.centerRight;
-                  final color = isCustomer
-                      ? Theme.of(context).colorScheme.surfaceContainerHighest
-                      : Theme.of(context).colorScheme.primaryContainer;
+                  final bubbleColor =
+                      isCustomer ? Colors.white : const Color(0xFFDCF8C6);
 
                   return Align(
                     alignment: alignment,
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.all(12),
-                      constraints: const BoxConstraints(maxWidth: 360),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      constraints: const BoxConstraints(maxWidth: 320),
                       decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(16),
+                        color: bubbleColor,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Column(
-                        crossAxisAlignment: isCustomer
-                            ? CrossAxisAlignment.start
-                            : CrossAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             message.text,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            _formatTimestamp(message.sentAt, context),
-                            style: Theme.of(context).textTheme.labelSmall,
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: Text(
+                              _formatTimestamp(message.sentAt, context),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: Colors.black54),
+                            ),
                           ),
                         ],
                       ),
@@ -83,21 +112,41 @@ class ChatScreen extends ConsumerWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            color: Theme.of(context).colorScheme.surface,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            color: const Color(0xFFF0F0F0),
             child: Row(
               children: [
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.emoji_emotions_outlined),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.attach_file),
+                ),
                 Expanded(
                   child: TextField(
                     decoration: const InputDecoration(
-                      hintText: 'Musteriye yanit yaz...',
+                      hintText: 'Mesaj yaz...',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                FilledButton(
-                  onPressed: () {},
-                  child: const Text('Gonder'),
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: const Color(0xFF25D366),
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.send, color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -110,5 +159,15 @@ class ChatScreen extends ConsumerWidget {
   String _formatTimestamp(DateTime date, BuildContext context) {
     final time = TimeOfDay.fromDateTime(date);
     return time.format(context);
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty) {
+      return '';
+    }
+    final first = parts.first.isNotEmpty ? parts.first[0] : '';
+    final last = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
+    return (first + last).toUpperCase();
   }
 }

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../tenancy/providers/tenant_providers.dart';
 import '../tenancy/screens/app_entry.dart';
@@ -18,12 +19,21 @@ class App extends ConsumerWidget {
       brightness: Brightness.light,
     );
 
+    final baseTextTheme = GoogleFonts.interTextTheme();
+    final headlineTextTheme = GoogleFonts.manropeTextTheme();
+
     return MaterialApp(
       title: 'WPapp',
       theme: ThemeData(
         colorScheme: colorScheme,
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF4F6FA),
+        textTheme: baseTextTheme.copyWith(
+          headlineSmall: headlineTextTheme.headlineSmall,
+          headlineMedium: headlineTextTheme.headlineMedium,
+          titleLarge: headlineTextTheme.titleLarge,
+          titleMedium: headlineTextTheme.titleMedium,
+        ),
         appBarTheme: AppBarTheme(
           backgroundColor: colorScheme.surface,
           foregroundColor: colorScheme.onSurface,
