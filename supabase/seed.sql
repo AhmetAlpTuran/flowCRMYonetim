@@ -1,9 +1,9 @@
 -- Seed tenants
-insert into public.tenants (id, name, brand_color, features)
+insert into public.tenants (id, name, brand_color, features, is_public)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Flow CRM', '#1F4B99', array['dashboard','bot','knowledge','inbox','handoff','custom','campaigns','templates']),
-  ('22222222-2222-2222-2222-222222222222', 'Atlas Destek', '#00A896', array['dashboard','inbox','handoff','campaigns','templates']),
-  ('33333333-3333-3333-3333-333333333333', 'Nimbus Support', '#F2A541', array['dashboard','bot','inbox','campaigns','templates']);
+  ('11111111-1111-1111-1111-111111111111', 'Flow CRM', '#1F4B99', array['dashboard','bot','knowledge','inbox','handoff','custom','campaigns','templates'], true),
+  ('22222222-2222-2222-2222-222222222222', 'Atlas Destek', '#00A896', array['dashboard','inbox','handoff','campaigns','templates'], true),
+  ('33333333-3333-3333-3333-333333333333', 'Nimbus Support', '#F2A541', array['dashboard','bot','inbox','campaigns','templates'], true);
 
 -- Seed contacts (for Flow CRM)
 insert into public.contacts (tenant_id, full_name, phone, email, tags, last_contacted_at)

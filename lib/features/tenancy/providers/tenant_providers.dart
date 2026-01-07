@@ -81,14 +81,23 @@ final selectedTenantIdProvider =
 );
 
 final accessibleTenantsProvider = FutureProvider<List<Tenant>>((ref) async {
+  final auth = await ref.watch(authControllerProvider.future);
+  if (auth == null) {
+    return [];
+  }
   final client = Supabase.instance.client;
-  final response = await client.from('tenants').select();
+  final response = await client
+      .from('tenant_memberships')
+      .select('tenant:tenants(id, name, brand_color, features)')
+      .eq('user_id', auth.userId);
+
   return response.map<Tenant>((row) {
+    final tenant = row['tenant'] as Map<String, dynamic>;
     return Tenant(
-      id: row['id'] as String,
-      name: row['name'] as String,
-      brandColor: _parseColor(row['brand_color'] as String),
-      features: _parseFeatures(row['features'] as List<dynamic>),
+      id: tenant['id'] as String,
+      name: tenant['name'] as String,
+      brandColor: _parseColor(tenant['brand_color'] as String),
+      features: _parseFeatures(tenant['features'] as List<dynamic>),
       allowedDomains: const [],
     );
   }).toList();
@@ -136,31 +145,6 @@ final currentRoleProvider = FutureProvider<UserRole>((ref) async {
   }
   return UserRole.user;
 });
-
-Future<void> ensureMembership({
-  required String tenantId,
-  required UserRole role,
-}) async {
-  final client = Supabase.instance.client;
-  final user = client.auth.currentUser;
-  if (user == null) {
-    return;
-  }
-  final existing = await client
-      .from('tenant_memberships')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-  if (existing != null) {
-    return;
-  }
-  await client.from('tenant_memberships').insert({
-    'tenant_id': tenantId,
-    'user_id': user.id,
-    'role': role == UserRole.admin ? 'admin' : 'user',
-  });
-}
 
 Color _parseColor(String value) {
   final normalized = value.replaceAll('#', '');

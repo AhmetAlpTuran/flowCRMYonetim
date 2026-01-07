@@ -2,7 +2,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../app/user_role.dart';
 import '../providers/tenant_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -15,9 +14,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  UserRole _role = UserRole.admin;
   String? _error;
-  String? _selectedTenantId;
   bool _loading = false;
 
   @override
@@ -29,8 +26,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tenantsAsync = ref.watch(accessibleTenantsProvider);
-
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
@@ -48,12 +43,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Tenant Girisi',
+                    'Hesap Girisi',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'E-posta ve sifre ile giris yapin, tenant secin.',
+                    'E-posta ve sifre ile giris yapin. Tenant ve rol atamasi yonetici tarafindan yapilir.',
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -74,56 +69,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       labelText: 'Sifre',
                       prefixIcon: Icon(Icons.lock_outline),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  tenantsAsync.when(
-                    data: (items) {
-                      _selectedTenantId ??= items.isNotEmpty ? items.first.id : null;
-                      return DropdownButtonFormField<String>(
-                        value: _selectedTenantId,
-                        decoration: const InputDecoration(
-                          labelText: 'Tenant',
-                        ),
-                        items: [
-                          for (final tenant in items)
-                            DropdownMenuItem(
-                              value: tenant.id,
-                              child: Text(tenant.name),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedTenantId = value;
-                          });
-                        },
-                      );
-                    },
-                    error: (_, __) => const SizedBox.shrink(),
-                    loading: () => const CircularProgressIndicator(),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<UserRole>(
-                    value: _role,
-                    decoration: const InputDecoration(
-                      labelText: 'Rol',
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: UserRole.admin,
-                        child: Text('Yonetici'),
-                      ),
-                      DropdownMenuItem(
-                        value: UserRole.user,
-                        child: Text('Kullanici'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _role = value;
-                        });
-                      }
-                    },
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
@@ -173,7 +118,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
-      await _ensureMembership();
     });
   }
 
@@ -183,19 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
-      await _ensureMembership();
     });
-  }
-
-  Future<void> _ensureMembership() async {
-    final tenantId = _selectedTenantId;
-    if (tenantId == null) {
-      throw AuthException('Tenant secin.');
-    }
-    await ensureMembership(tenantId: tenantId, role: _role);
-    await ref
-        .read(selectedTenantIdProvider.notifier)
-        .setSelectedTenantId(tenantId);
   }
 
   Future<void> _runAuthAction(Future<void> Function() action) async {
