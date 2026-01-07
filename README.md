@@ -13,6 +13,8 @@ Bu proje, 2025-2026 Güz Dönemi Mobile Programming dersi kapsamında geliştiri
 - shared_preferences: ^2.2.3
 - file_picker: ^8.0.5
 - google_fonts: ^6.2.1
+- supabase_flutter: ^2.6.1
+- http: ^1.2.2
 
 ## Kurulum
 1) Repo dizinine girin.

@@ -1,17 +1,36 @@
-﻿import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+
+import '../../../config/app_server_config.dart';
+import '../../tenancy/providers/tenant_providers.dart';
 import '../models/conversation.dart';
 import '../providers/inbox_providers.dart';
 
-class ChatScreen extends ConsumerWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversation});
 
   final Conversation conversation;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final messages = ref.watch(messagesProvider(conversation.id));
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends ConsumerState<ChatScreen> {
+  final TextEditingController _controller = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = ref.watch(messagesProvider(widget.conversation.id));
 
     return Scaffold(
       backgroundColor: const Color(0xFFECE5DD),
@@ -24,14 +43,14 @@ class ChatScreen extends ConsumerWidget {
               radius: 16,
               backgroundColor: const Color(0xFF25D366),
               child: Text(
-                _initials(conversation.title),
+                _initials(widget.conversation.title),
                 style: const TextStyle(color: Colors.white),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                conversation.title,
+                widget.conversation.title,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -126,6 +145,7 @@ class ChatScreen extends ConsumerWidget {
                 ),
                 Expanded(
                   child: TextField(
+                    controller: _controller,
                     decoration: const InputDecoration(
                       hintText: 'Mesaj yaz...',
                       filled: true,
@@ -144,8 +164,17 @@ class ChatScreen extends ConsumerWidget {
                   radius: 22,
                   backgroundColor: const Color(0xFF25D366),
                   child: IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: _sending ? null : _sendMessage,
+                    icon: _sending
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.send, color: Colors.white),
                   ),
                 ),
               ],
@@ -154,6 +183,44 @@ class ChatScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
+    setState(() {
+      _sending = true;
+    });
+    try {
+      await http.post(
+        Uri.parse('${AppServerConfig.baseUrl}/messages/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AppServerConfig.apiKey,
+        },
+        body: jsonEncode({
+          'tenant_id': tenant.id,
+          'conversation_id': widget.conversation.id,
+          'sender': 'Temsilci',
+          'body': text,
+        }),
+      );
+      _controller.clear();
+      ref.invalidate(messagesProvider(widget.conversation.id));
+      ref.invalidate(conversationsProvider);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+        });
+      }
+    }
   }
 
   String _formatTimestamp(DateTime date, BuildContext context) {

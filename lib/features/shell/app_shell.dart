@@ -20,7 +20,10 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider).value;
-    final role = auth?.role ?? UserRole.user;
+    final role = ref.watch(currentRoleProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => UserRole.user,
+        );
     final tenant = ref.watch(selectedTenantProvider);
     final features = tenant?.features ?? <TenantFeature>{};
     final destinations = _destinationsFor(role, features);
@@ -94,7 +97,6 @@ class AppShell extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class _DrawerContent extends StatelessWidget {
@@ -117,8 +119,7 @@ class _DrawerContent extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor:
-                    Theme.of(context).colorScheme.primaryContainer,
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                 child: Icon(
                   Icons.support_agent,
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -179,7 +180,10 @@ class _TenantSwitcher extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tenants = ref.watch(accessibleTenantsProvider);
-    final role = ref.watch(authControllerProvider).value?.role ?? UserRole.user;
+    final role = ref.watch(currentRoleProvider).maybeWhen(
+          data: (value) => value,
+          orElse: () => UserRole.user,
+        );
 
     return tenants.when(
       data: (items) {

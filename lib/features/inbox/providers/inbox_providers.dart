@@ -1,23 +1,37 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../data/mock_inbox_repository.dart';
+import '../../tenancy/providers/tenant_providers.dart';
+import '../data/supabase_inbox_repository.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 
-final inboxRepositoryProvider = Provider<MockInboxRepository>((ref) {
-  return MockInboxRepository();
+final inboxRepositoryProvider = Provider<SupabaseInboxRepository>((ref) {
+  return SupabaseInboxRepository(Supabase.instance.client);
 });
 
 class ConversationsNotifier extends AsyncNotifier<List<Conversation>> {
   @override
   Future<List<Conversation>> build() async {
+    final tenant = ref.watch(selectedTenantProvider);
+    if (tenant == null) {
+      return [];
+    }
     final repository = ref.watch(inboxRepositoryProvider);
-    return repository.fetchConversations();
+    return repository.fetchConversations(tenantId: tenant.id);
   }
 
   Future<void> updateTags(String conversationId, List<String> tags) async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
     final repository = ref.read(inboxRepositoryProvider);
-    final updated = await repository.updateTags(conversationId, tags);
+    final updated = await repository.updateTags(
+      tenantId: tenant.id,
+      conversationId: conversationId,
+      tags: tags,
+    );
     state = AsyncValue.data(updated);
   }
 }
