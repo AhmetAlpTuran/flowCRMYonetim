@@ -37,3 +37,15 @@ values
 insert into public.campaigns (tenant_id, name, audience_filter, template_id, status)
 values
   ('11111111-1111-1111-1111-111111111111', 'Yaz Indirimi', '{"segment":"VIP","last_contacted":"7d"}', (select id from public.templates where name = 'Kampanya Duyurusu' limit 1), 'draft');
+
+-- Seed bot settings
+insert into public.bot_settings (tenant_id, name, tone, language, system_prompt, model, temperature, memory_hours, max_history_messages, is_active)
+values
+  ('11111111-1111-1111-1111-111111111111', 'Ava', 'Profesyonel ve net', 'Turkce', 'Kisa, profesyonel bir musteri temsilcisi gibi yanit ver.', 'gpt-4o-mini', 0.3, 6, 12, true);
+
+-- Seed knowledge base
+insert into public.knowledge_base (tenant_id, title, content, tags)
+values
+  ('11111111-1111-1111-1111-111111111111', 'Faturalama Guncelleme', 'Fatura bilgilerini guncellemek icin destek@flowcrm.com adresine e-posta gonderin.', array['Faturalama']),
+  ('11111111-1111-1111-1111-111111111111', 'Iade Politikasi', 'Iade talepleri 14 gun icinde kabul edilir. Onay icin siparis numarasini isteyin.', array['Iade','VIP']),
+  ('11111111-1111-1111-1111-111111111111', 'Teknik Destek', 'Teknik sorunlarda ekran goruntusu ve kullanici bilgisi isteyin.', array['Hata','Acil']);

@@ -1,0 +1,1787 @@
+{
+	"info": {
+		"_postman_id": "6da4508c-c36d-4e4c-bf74-a6fb41755c26",
+		"name": "Embedded Signup",
+		"description": "Embedded Signup is an embeddable onboarding flow that makes it easy for Solution Partners, Tech Providers, and Tech Partners to onboard business customers to [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api), hosted by Meta, or [WhatsApp On-Premises API](https://developers.facebook.com/docs/whatsapp/on-premises/).\n\nThis collection contains common queries that can — and in some cases , must — be used to complete the onboarding process.\n\nSee our [Embedded Signup](https://developers.facebook.com/docs/whatsapp/embedded-signup) documentation for implementation instructions and additional details.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38490181",
+		"_collection_link": "https://www.postman.com/meta/whatsapp-business-platform/collection/du6gzjv/embedded-signup?action=share&source=collection_link&creator=38490181"
+	},
+	"item": [
+		{
+			"name": "Get Started",
+			"item": [
+				{
+					"name": "Step 1: Embed the Signup Flow",
+					"item": [],
+					"description": "Set up the Facebook JavaScript SDK and Facebook Login to embed the signup flow into your website or client portal. Feel free to embed the flow in multiple webpages or portals that you own. The instructions to do this are located at [Embed the Signup Flow](https://developers.facebook.com/docs/whatsapp/embedded-signup/embed-the-flow)."
+				},
+				{
+					"name": "Step 2: Integrate with Required Endpoints",
+					"item": [
+						{
+							"name": "Fetch Assigned Users of WhatsApp Business Account",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/assigned_users?business={{Business-ID}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"assigned_users"
+									],
+									"query": [
+										{
+											"key": "business",
+											"value": "{{Business-ID}}"
+										}
+									]
+								},
+								"description": "Use this call to verify that a system user has been added to a WABA."
+							},
+							"response": []
+						},
+						{
+							"name": "Add System User to WABA",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{Admin-System-User-Access-Token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/assigned_users?user={{User-ID}}&tasks=['<PERMISSIONS>']",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"assigned_users"
+									],
+									"query": [
+										{
+											"key": "user",
+											"value": "{{User-ID}}",
+											"description": "System user ID"
+										},
+										{
+											"key": "tasks",
+											"value": "['<PERMISSIONS>']",
+											"description": "MANAGE or DEVELOP"
+										}
+									]
+								},
+								"description": "For full descriptions on each permission option, see [Manage System Users, Permissions](https://developers.facebook.com/docs/whatsapp/embedded-signup/manage-system-users#permissions)."
+							},
+							"response": []
+						},
+						{
+							"name": "Get IDs for the BSP's System Users",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/system_users",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Business-ID}}",
+										"system_users"
+									]
+								},
+								"description": "You need a system user's ID to be able to add it to a WhatsApp Business Account (WABA)."
+							},
+							"response": []
+						},
+						{
+							"name": "Subscribe App to WhatsApp Business Account",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"subscribed_apps"
+									]
+								},
+								"description": "Before you can subscribe to get updates on a specific WABA, you need to set up the webhooks product for your Facebook app. See [Webhooks, Subscribe to a WhatsApp Business Account for information](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#get-all-subscriptions-for-a-waba).\n\nOnce you have access to webhooks, you can make the request listed below."
+							},
+							"response": []
+						}
+					],
+					"description": "After embedding the signup flow, integrate with the API endpoints needed to complete the integration process. To move to the next step, you need to be able to:\n\n* [Fetch shared WABA IDs](https://developers.facebook.com/docs/whatsapp/embedded-signup/manage-accounts#get-shared-waba-id-with-accesstoken)\n* [Add system users to a WABA](https://developers.facebook.com/docs/whatsapp/embedded-signup/manage-system-users#add-system-users-to-a-whatsapp-business-account)\n* [Register a phone number](https://developers.facebook.com/docs/whatsapp/embedded-signup/manage-phone-numbers#register-phone-numbers)\n* [Share your credit line with the client business](https://developers.facebook.com/docs/whatsapp/embedded-signup/share-and-revoke-credit-lines#share-your-credit-line-with-a-whatsapp-business-account)\n\nOnce registration is complete, use the **`message_templates`** endpoint to get [pre-approved message templates](https://www.facebook.com/business/help/722393685250070) and namespaces so businesses can start sending messages.\n\n\n> You must use a secured endpoint (HTTPS). For more information, see [Login Security](https://developers.facebook.com/docs/facebook-login/security#https)."
+				},
+				{
+					"name": "Step 3: Share Line of Credit with a Client’s WABA",
+					"item": [
+						{
+							"name": "Get the ID for your Business' Line of Credit",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/extendedcredits?fields=id,legal_entity_name",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Business-ID}}",
+										"extendedcredits"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "id,legal_entity_name"
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Get the ID for your Business' Line of Credit",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/extendedcredits?fields=id,legal_entity_name",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Business-ID}}",
+												"extendedcredits"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "id,legal_entity_name"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n  \"data\": [\n    {\n      \"id\": \"1972385232742146\",    \n      \"legal_entity_name\": \"Your Legal Entity\"\n    }\n  ]\n}"
+								}
+							]
+						},
+						{
+							"name": "Attach Your Credit Line to the client's WABA",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Credit-Line-ID}}/whatsapp_credit_sharing_and_attach?waba_id={{Assigned-WABA-ID}}&waba_currency={{WABA-Currency}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Credit-Line-ID}}",
+										"whatsapp_credit_sharing_and_attach"
+									],
+									"query": [
+										{
+											"key": "waba_id",
+											"value": "{{Assigned-WABA-ID}}",
+											"description": "ID for the client's WhatsApp Business Account."
+										},
+										{
+											"key": "waba_currency",
+											"value": "{{WABA-Currency}}",
+											"description": "See supported currencies [here](https://www.facebook.com/business/help/1684730811624773)."
+										}
+									]
+								},
+								"description": "Share the credit line with your client’s business and attach it to the client’s WhatsApp business account."
+							},
+							"response": [
+								{
+									"name": "Attach Your Credit Line to a WhatsApp Business Account",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Credit-Line-ID}}/whatsapp_credit_sharing_and_attach?waba_id={{Assigned-WABA-ID}}&waba_currency={{WABA-Currency}}",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Credit-Line-ID}}",
+												"whatsapp_credit_sharing_and_attach"
+											],
+											"query": [
+												{
+													"key": "waba_id",
+													"value": "{{Assigned-WABA-ID}}",
+													"description": "ID for the client's WhatsApp Business Account."
+												},
+												{
+													"key": "waba_currency",
+													"value": "{{WABA-Currency}}",
+													"description": "See supported currencies [here](https://www.facebook.com/business/help/1684730811624773)."
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n  \"allocation_config_id\": \"1972385232742147\",\n  \"waba_id\": \"1972385232742141\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Verify that the Line of Credit was Shared Correctly",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Allocation-Config-ID}}?fields=receiving_credential{id}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Allocation-Config-ID}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "receiving_credential{id}"
+										}
+									]
+								},
+								"description": "This is an optional step, but it helps with validation. In the API call, replace `allocation-config-id` with the ID returned from the previous API call (Attach Your Credit Line to the client's WABA)."
+							},
+							"response": [
+								{
+									"name": "Verify that the Line of Credit was Shared Correctly",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Allocation-Config-ID}}?fields=receiving_credential{id}",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Allocation-Config-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "receiving_credential{id}"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"id\": \"1972385232742141\",\n    \"primary_funding_id\": \"1972385232742148\"\n}"
+								}
+							]
+						}
+					],
+					"description": "Businesses that sign up through the Embedded Signup flow request access to your line of credit with Facebook to pay for WhatsApp Business API access —you can grant access to your line of credit with the API calls listed on this folder. This means that businesses pay you, and you receive an aggregated invoice to pay Facebook. See [Billing & Payment](https://developers.facebook.com/docs/whatsapp/embedded-signup/billing-and-payment) for more information."
+				}
+			],
+			"description": "To be released, your Meta app must go through [App Review](https://developers.facebook.com/docs/whatsapp/embedded-signup/app-review) and request Advanced Access to the **`business_management`** and **`whatsapp_business_management`** permissions. We recommend starting this process as soon as possible. **You don't need to wait for embedded signup to be fully implemented to start this process**."
+		},
+		{
+			"name": "API Reference",
+			"item": [
+				{
+					"name": "WABAs",
+					"item": [
+						{
+							"name": "Debug Token",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/debug_token?input_token={{OAuth-User-Token}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"debug_token"
+									],
+									"query": [
+										{
+											"key": "input_token",
+											"value": "{{OAuth-User-Token}}",
+											"description": "Token returned once the business finished going through the embedded signup flow. "
+										}
+									]
+								},
+								"description": "After a business finishes the embedded signup flow, you can fetch the shared WhatsApp business account ID using the returned accessToken with the Debug-Token endpoint."
+							},
+							"response": [
+								{
+									"name": "Use Access Token to Fetch Shared WABA ID",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/debug_token?input_token={{OAuth-User-Token}}",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"debug_token"
+											],
+											"query": [
+												{
+													"key": "input_token",
+													"value": "{{OAuth-User-Token}}",
+													"description": "Token returned once the business finished going through the embedded signup flow. "
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n    \"data\": {\n        \"app_id\": \"facebook-app-id\",\n        \"type\": \"USER\",\n        \"application\": \"app-name\",\n        \"data_access_expires_at\": 1600000000,\n        \"expires_at\": 1600000000,\n        \"is_valid\": true,\n        \"scopes\": [\n            \"whatsapp_business_management\",\n            \"public_profile\"\n        ],\n        \"granular_scopes\": [\n            {\n                \"scope\": \"whatsapp_business_management\",\n                \"target_ids\": [\n                    \"111111111111111\",\n                    \"222222222222222\",\n                    \"333333333333333\"\n                ]\n            }\n        ],\n        \"user_id\": \"XXXXXXXXXXXXXXX\"\n    }\n}"
+								}
+							]
+						},
+						{
+							"name": "Shared WABAs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/client_whatsapp_business_accounts",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Business-ID}}",
+										"client_whatsapp_business_accounts"
+									]
+								},
+								"description": "This endpoint retrieves a list of all the WhatsApp business accounts assigned to/shared with your Business Manager account once the embedded signup flow is completed. See [Understanding Shared WABAs](https://developers.facebook.com/docs/whatsapp/embedded-signup/manage-accounts#get-shared-waba-id-with-accesstoken) for more information."
+							},
+							"response": [
+								{
+									"name": "Fetch List of Shared WABAs",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/client_whatsapp_business_accounts",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Business-ID}}",
+												"client_whatsapp_business_accounts"
+											]
+										}
+									},
+									"status": "Created",
+									"code": 201,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{ \n    \"data\": [\n        {\n            \"id\": 1906385232743451, \n            \"name\": \"My WhatsApp Business Account\", \n            \"currency\": \"USD\", \n            \"timezone_id\": \"1\", \n            \"message_template_namespace\": \"abcdefghijk_12lmnop\" \n        },\n       {\n            \"id\": 1972385232742141, \n            \"name\": \"My Regional Account\", \n            \"currency\": \"INR\", \n            \"timezone_id\": \"5\", \n            \"message_template_namespace\": \"12abcdefghijk_34lmnop\" \n        },\n\n    ],\n    \"paging\": {\n\t\"cursors\": {\n\t\t\"before\": \"abcdefghij\",\n\t\t\"after\": \"klmnopqr\"\n\t}\n   }\n}"
+								}
+							]
+						},
+						{
+							"name": "WABA ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}"
+									]
+								},
+								"description": "Use this endpoint to get information about a specific WhatsApp Business Account (WABA).\n\n## Parameters\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`account_review_status`**   | Used to fetch the WhatsApp Business Account review status. This field can have one of the following values: `PENDING`, `APPROVED`, and `REJECTED`.|\n| **`id`**   | ID for this WABA.|\n| **`name`**   |WABA's name.|\n| **`message_template_namespace`**   | Namespace string for the message templates that belong to the WABA.|\n| **`currency`**   | WABA's currency.|\n| **`on_behalf_of_business_info`**   | Information about On Behalf Of relationships this account is part of.|\n| **`primary_funding_id`**   | A WABA's payment method ID. |\n| **`purchase_order_number`**   | Purchase order number supplied by the business. Used for payment management purposes. |\n| **`timezone_id`**   | Timezone ID for this WABA.|\n| **`owner_business_info`**   | Get the ID for the business that owns this WABA. Use this field to fetch a client's business ID.|\n\n## Examples\nUnder **Example Request** on the right-side panel, you can switch between examples of the following API calls:\n- Fetch a WABA’s Payment Method ID\n- Get WABA Review Status\n- Get WABA Information\n- Get WABA's Owner ID"
+							},
+							"response": [
+								{
+									"name": "Fetch WABA’s Payment Method ID",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}?fields=primary_funding_id",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "primary_funding_id"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n    \"id\": \"1972385232742141\",\n    \"primary_funding_id\": \"1972385232742148\"\n}"
+								},
+								{
+									"name": "Get WABA Review Status",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}?fields=account_review_status",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "account_review_status"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n    \"account_review_status\": \"APPROVED\",\n    \"id\": \"1111111111111\"\n}"
+								},
+								{
+									"name": "Get WABA Information",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}?fields=id,name,message_template_namespace,currency,on_behalf_of_business_info,primary_funding_id,purchase_order_number,timezone_id",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "id,name,message_template_namespace,currency,on_behalf_of_business_info,primary_funding_id,purchase_order_number,timezone_id"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n   \"id\": \"21312312312\",\n   \"name\": \"Test\",\n   \"message_template_namespace\": \"43bb0e6c9b\",\n   \"on_behalf_of_business_info\": {\n       \"name\": \"Test BM\",\n       \"id\": \"1231231231\",\n       \"status\": \"APPROVED\",\n       \"type\": \"SELF\"\n   },\n   \"timezone_id\": \"1\"\n}"
+								},
+								{
+									"name": "Get WABA's Owner ID",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}?fields=owner_business_info",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "owner_business_info"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{ \n  \"owner_business_info\": { \n    \"name\": \"Client Business Name\", \n    \"id\": \"1972385232742147\" \n  }, \n}\n"
+								}
+							]
+						},
+						{
+							"name": "Owned  and Client WABAs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/owned_whatsapp_business_accounts",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Business-ID}}",
+										"owned_whatsapp_business_accounts"
+									]
+								},
+								"description": "Use this API call to get a list of owned WhatsApp Business Accounts (WABAs). You can also filter and sort the results —see the available parameters below.\n\n## Parameters\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`filtering`**   | Used to  filter client and owned WhatsApp business accounts. See `filtering` object for more options. |\n| **`sort`**   | Used to sort shared and owned WhatsApp business accounts. Currently, you can sort WABAs based on their creation time. The two supported sorting categories are `creation_time_ascending` and `creation_time_descending`.|\n\nThe `filtering` object\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`field`**   | Contains the field being used for filtering. Currently, you can use the `creation_time` for filtering.|\n| **`operator`**   | Contains how you want to filter the accounts. Supported values: `LESS_THAN`, `GREATER_THAN`. |\n| **`value`**   | A timestamp to be used in the filtering. |\n\n## Examples\n\nUnder **Example Request** on the right-side panel, you can switch between examples of the following API calls:\n- Fetch list of owned and client WABAs\n- Filter list of owned and client WABAs\n- Sort list of owned and client WABAs"
+							},
+							"response": [
+								{
+									"name": "Fetch Owned and Client WABAs",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/owned_whatsapp_business_accounts",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Business-ID}}",
+												"owned_whatsapp_business_accounts"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{ \n    \"data\": [\n        {\n            \"id\": 1906385232711451, \n            \"name\": \"My WhatsApp Business Account\", \n            \"currency\": \"USD\", \n            \"timezone_id\": \"1\", \n            \"message_template_namespace\": \"abcdefghijk_12lmnop\" \n        },\n       {\n            \"id\": 1972385232711141, \n            \"name\": \"My Regional Account\", \n            \"currency\": \"INR\", \n            \"timezone_id\": \"5\", \n            \"message_template_namespace\": \"12abcdefghijk_34lmnop\" \n        },\n\n    ],\n    \"paging\": {\n\t\"cursors\": {\n\t\t\"before\": \"abcdefghij\",\n\t\t\"after\": \"klmnopqr\"\n\t}\n   }\n}"
+								},
+								{
+									"name": "Filter Owned and Client WABAs",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/owned_whatsapp_business_accounts?filtering=[{\"field\":\"creation_time\",\"operator\":\"GREATER_THAN\",\"value\":\"1604962813\"}]",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Business-ID}}",
+												"owned_whatsapp_business_accounts"
+											],
+											"query": [
+												{
+													"key": "filtering",
+													"value": "[{\"field\":\"creation_time\",\"operator\":\"GREATER_THAN\",\"value\":\"1604962813\"}]",
+													"description": "field:  creation_time\noperator: LESS_THAN / GREATER_THAN \nvalue : Unix timestamp"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n  \"data\": [\n    {\n      \"id\": \"1972385232742141\",    \n      \"display_phone_number\": \"+1 631-555-1111\",\n      \"verified_name\": \"John’s Cake Shop\",\n      \"quality_rating\": \"UNKNOWN\"\n    }\n  ],\n  \"paging\": {\n\t\"cursors\": {\n\t\t\"before\": \"abcdefghij\",\n\t\t\"after\": \"klmnopqr\"\n\t}\n   }\n}"
+								},
+								{
+									"name": "Sort Owned and Client WABAs",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/owned_whatsapp_business_accounts?sort=creation_time_ascending",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Business-ID}}",
+												"owned_whatsapp_business_accounts"
+											],
+											"query": [
+												{
+													"key": "sort",
+													"value": "creation_time_ascending"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{ \n    \"data\": [\n        {\n            \"id\": 1906385232743451, \n            \"name\": \"My WhatsApp Business Account\", \n            \"currency\": \"USD\", \n            \"timezone_id\": \"1\", \n            \"message_template_namespace\": \"abcdefghijk_12lmnop\" \n        },\n       {\n            \"id\": 1972385232742141, \n            \"name\": \"My Regional Account\", \n            \"currency\": \"INR\", \n            \"timezone_id\": \"5\", \n            \"message_template_namespace\": \"12abcdefghijk_34lmnop\" \n        },\n\n    ],\n    \"paging\": {\n\t\"cursors\": {\n\t\t\"before\": \"abcdefghij\",\n\t\t\"after\": \"klmnopqr\"\n\t}\n   }\n}"
+								}
+							]
+						}
+					],
+					"description": "This folder contains actions you may need to perform to manage WhatsApp Business Accounts (WABAs)."
+				},
+				{
+					"name": "Message Templates",
+					"item": [
+						{
+							"name": "Fetch Message Templates",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"message_templates"
+									]
+								},
+								"description": "Use this API request to fetch the pre-approved message templates for a specific WABA."
+							},
+							"response": [
+								{
+									"name": "Fetch Message Templates",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/message_templates",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}",
+												"message_templates"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "[\n    {\n        \"name\": \"hello_world\",\n        \"components\": [\n            {\n                \"type\": \"BODY\",\n                \"text\": \"Hello, {{1}}\"\n            }\n        ],\n        \"language\": \"en_US\",\n        \"status\": \"APPROVED\",\n        \"category\": \"ISSUE_RESOLUTION\",\n        \"id\": \"409119052980796\"\n    },\n    {\n        \"name\": \"case_opened\",\n        \"components\": [\n            {\n                \"type\": \"BODY\",\n                \"text\": \"Seu caso {{1}} foi aberto. Entraremos em contato em breve.\"\n            }\n        ],\n        \"language\": \"pt_BR\",\n        \"status\": \"APPROVED\",\n        \"category\": \"TICKET_UPDATE\",\n        \"id\": \"718173718589371\"\n    },\n    {\n        \"name\": \"case_opened\",\n        \"components\": [\n            {\n                \"type\": \"BODY\",\n                \"text\": \"Your case {{1}} was opened. We will get in touch soon.\"\n            }\n        ],\n        \"language\": \"en_US\",\n        \"status\": \"APPROVED\",\n        \"category\": \"TICKET_UPDATE\",\n        \"id\": \"755551981307120\"\n    }\n]"
+								}
+							]
+						},
+						{
+							"name": "Fetch Message Template Namespace",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}?fields=message_template_namespace",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "message_template_namespace",
+											"description": "Namespace string for the message templates that belong to the WABA."
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Fetch Message Templates Namespace",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}?fields=message_template_namespace",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "message_template_namespace"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n    \"id\": \"1972385232742141\",\n    \"message_template_namespace\": \"12abcdefghijk_34lmnop\"\n}"
+								}
+							]
+						}
+					],
+					"description": "This folder contains actions you may need to perform to manage message templates belonging to a specific WABA."
+				},
+				{
+					"name": "Lines of Credit",
+					"item": [
+						{
+							"name": "Extended Credits",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/extendedcredits",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Business-ID}}",
+										"extendedcredits"
+									]
+								},
+								"description": "Use the extended credits endpoint to retrieve your credit line ID.\n\n## Fields\n\nYou can request the following fields:\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`id`**   | Your line of credit ID. |\n| **`legal_entity_name`**   | Your entity's legal name. |"
+							},
+							"response": [
+								{
+									"name": "Fetch Credit Line ID",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Business-ID}}/extendedcredits?fields=id,legal_entity_name",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Business-ID}}",
+												"extendedcredits"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "id,legal_entity_name"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n  \"data\": [\n    {\n      \"id\": \"1972385232742146\",    \n      \"legal_entity_name\": \"Your Legal Entity\"\n    }\n  ]\n}\n"
+								}
+							]
+						},
+						{
+							"name": "Credit Line ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Credit-Line-ID}}/owning_credit_allocation_configs",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Credit-Line-ID}}",
+										"owning_credit_allocation_configs"
+									]
+								},
+								"description": "Use this endpoint to get an ID for the credit sharing record between your line of credit and an end client's business."
+							},
+							"response": [
+								{
+									"name": "Fetch ID for Credit Sharing Record",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Credit-Line-ID}}/owning_credit_allocation_configs?receiving_business_id=business-id&fields=id,receiving_business",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Credit-Line-ID}}",
+												"owning_credit_allocation_configs"
+											],
+											"query": [
+												{
+													"key": "receiving_business_id",
+													"value": "business-id",
+													"description": "ID for the end client's business."
+												},
+												{
+													"key": "fields",
+													"value": "id,receiving_business"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n  \"id\": \"1972385232742140\", // Allocation config (i.e., credit sharing) id\n  \"receiving_business\": {\n    \"name\": \"Client Business Name\",\n    \"id\": \"1972385232742147\"\n  }\n}"
+								}
+							]
+						},
+						{
+							"name": "Credit Sharing Record ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Allocation-Config-ID}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Allocation-Config-ID}}"
+									]
+								},
+								"description": "Use this API call to get a credit sharing record ID. This is the ID that represents the credit sharing between you and an end business.\n\n## Fields\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`receiving_business`**   | This is the ID for the business with which the credit line has been shared . |\n| **`request_status`**   | Status of your credit sharing. If this says `DELETED`, it means the access to that credit line has been revoked.|"
+							},
+							"response": [
+								{
+									"name": "Get Status for Credit Sharing Record ID",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Allocation-Config-ID}}?fields=receiving_business,request_status",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Allocation-Config-ID}}"
+											],
+											"query": [
+												{
+													"key": "fields",
+													"value": "receiving_business,request_status"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n  \"receiving_business\": {\n    \"name\": \"Client Business Name\",\n    \"id\": \"1972385232742147\"\n  },\n  \"request_status\": \"DELETED\" // Credit sharing has been revoked.\n}\n"
+								}
+							]
+						},
+						{
+							"name": "Credit Sharing Record ID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Allocation-Config-ID}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Allocation-Config-ID}}"
+									]
+								},
+								"description": "Use this API call to revoke a credit sharing record ID. This is the ID that represents the credit sharing between you and an end business."
+							},
+							"response": [
+								{
+									"name": "Revoke Credit Sharing",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{System-User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Allocation-Config-ID}}",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Allocation-Config-ID}}"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": null,
+									"cookie": [],
+									"body": "{\n  \"success\": true\n}"
+								}
+							]
+						}
+					],
+					"description": "This folder contains actions you may need to perform to manage lines of credit."
+				},
+				{
+					"name": "WABA Subscriptions",
+					"item": [
+						{
+							"name": "Subscribe to a WABA",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"subscribed_apps"
+									]
+								},
+								"description": "Subscribe an app to a WhatsApp Business Account. For more information about subscribing to a WhatsApp Business Account, see [Subscribe to a WhatsApp Business Account](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#subscribe-to-a-whatsapp-business-account)."
+							},
+							"response": [
+								{
+									"name": "Subscribe to a WABA",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}",
+												"subscribed_apps"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"success\": true\n}"
+								}
+							]
+						},
+						{
+							"name": "Get All Subscriptions for a WABA",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{User-Access-Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"subscribed_apps"
+									]
+								},
+								"description": "To get a list of apps subscribed to Webhooks for a WABA, send a **GET** request to the **`subscribed_apps`** endpoint on the WABA:"
+							},
+							"response": [
+								{
+									"name": "Get All Subscriptions for a WABA",
+									"originalRequest": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{User-Access-Token}}",
+												"type": "text"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"name": "Content-Type",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}",
+												"subscribed_apps"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"data\": [\n        {\n            \"whatsapp_business_api_data\": {\n                \"link\": \"<APP1_LINK>\",\n                \"name\": \"<APP1_NAME>\",\n                \"id\": \"7234002551525653\"\n            }\n        },\n        {\n            \"whatsapp_business_api_data\": {\n                \"link\": \"<APP2_LINK>\",\n                \"name\": \"<APP2_LINK>\",\n                \"id\": \"3736565603394103\"\n            }\n        }\n    ]\n}\n"
+								}
+							]
+						},
+						{
+							"name": "Unsubscribe from a WABA",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{User-Access-Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"subscribed_apps"
+									]
+								},
+								"description": "To unsubscribe your app from webhooks for a WhatsApp Business Account, send a **DELETE** request to the `/subscribed_apps/` endpoint on the WABA."
+							},
+							"response": [
+								{
+									"name": "Unsubscribe from a WABA",
+									"originalRequest": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{User-Access-Token}}",
+												"type": "text"
+											}
+										],
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}",
+												"subscribed_apps"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"success\": true\n}"
+								}
+							]
+						},
+						{
+							"name": "Override Callback URL",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{User-Access-Token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"override_callback_uri\": \"<ALTERNATE_WEBHOOK_ENDPOINT_URL>\",\n  \"verify_token\": \"<ALTERNATE_WEBOOK_ENDPOINT_VERIFICATION_TOKEN>\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"subscribed_apps"
+									]
+								},
+								"description": "If you want to subscribe to Webhooks for multiple WhatsApp Business Accounts but want messages field Webhooks notifications to be sent to different callback URLs for each WABA, you can override the callback URL when subscribing to Webhooks for each WABA.\n\nTo do this, first verify that the alternate Webhook endpoint can receive and process Webhooks notifications. Then, subscribe to Webhooks for the WABA as your normally would, but include the alternate endpoint's callback URL along with its verification token as a JSON payload:\n\n\nFor more information, see [Overriding the Callback URL](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#overriding-the-callback-url).\n\n## Response\nTo verify that the app is subscribed to webhooks for the WABA with an alternate callback URL, [get all subscriptions on the WABA](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#get-all-subscriptions-for-a-waba) as you normally would. The response should include an **`override_callback_uri`** property and value.\n\nTo remove an alternate callback URL, [subscribe to webhooks for the WABA](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#subscribe) as you normally would. This will remove the alternate endpoint's callback URL and messages field webhooks for the WABA will once again be sent to the callback URL set in the App Dashboard."
+							},
+							"response": [
+								{
+									"name": "Override Callback URL",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"value": "Bearer {{User-Access-Token}}",
+												"type": "text"
+											},
+											{
+												"key": "Content-Type",
+												"value": "application/json",
+												"name": "Content-Type",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"override_callback_uri\": \"https://alternate-endpoint-callback.com/webhook\",\n    \"verify_token\": \"myvoiceismypassport?\"\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/subscribed_apps",
+											"protocol": "https",
+											"host": [
+												"graph",
+												"facebook",
+												"com"
+											],
+											"path": [
+												"{{Version}}",
+												"{{Assigned-WABA-ID}}",
+												"subscribed_apps"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Content-Type",
+											"value": "application/json",
+											"description": "",
+											"type": "text"
+										}
+									],
+									"cookie": [],
+									"body": "{\n  \"data\" : [\n    {\n      \"override_callback_uri\" : \"https://alternate-endpoint-callback.com/webhook\",\n      \"whatsapp_business_api_data\" : {\n        \"id\" : \"670843887433847\",\n        \"link\" : \"https://www.facebook.com/games/?app_id=67084...\",\n        \"name\" : \"Jaspers Market\"\n      }\n    }\n  ]\n}"
+								}
+							]
+						}
+					],
+					"description": "To get Webhook events for a specific WABA, you need to explicitly subscribe to that WABA. You only need to subscribe to a WABA once and then you receive all Webhook events for phone numbers under that WABA. You don’t need to subscribe for every phone number. \n<br><br>\n\n## Reminders\n- To use these endpoints, you need to authenticate yourself with a [System User Access Token](https://developers.facebook.com/docs/facebook-login/access-tokens#usertokens) with the **`whatsapp_business_management`** permission.\n- WhatsApp Business Account ID (WABA ID). If you need to find your WABA ID see [Get WABA ID](#b7f6e513-f4e4-4b62-b4a2-d18dc5e6249c).\n- You need to set up Webhooks server in your application to receive Webhooks events. To learn how to set up Webhooks, see [Webhooks](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks)."
+				},
+				{
+					"name": "Phone Numbers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/phone_numbers",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{Version}}",
+								"{{Assigned-WABA-ID}}",
+								"phone_numbers"
+							]
+						},
+						"description": "Use this endpoint to get the phone numbers associated with a WhatsApp Business Account (WABA).\n\n## Parameters\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`display_phone_number`**   | Phone number. |\n| **`name_status`**   | The review status of the current display name request. Available status options are: `APPROVED`, `DECLINED`, `EXPIRED`, `PENDING_REVIEW`, and `NONE`|\n| **`certificate`**   |Returns the current certificate for that phone number.|\n| **`new_certificate`**   | The certificate of a new display name, after a display name change has been approved. This field returns data only if a display name change request was approved and is available until the phone number has been registered with the new certificate.|\n| **`new_name_status`**   | The review status of a display name change request. This field returns data only if a display name change was requested.|\n| **`filtering`**   | Used to filter phone numbers. See `filtering` object for details.|\n\n### The `filtering` Object\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`field`**   | Contains the field being used for filtering. Currently, the supported value is `account_mode`. |\n| **`operator`**   | Contains how you want to filter the accounts. Currently, the supported value is `EQUAL`.|\n| **`value`**   |Contains what account mode you are looking for. Supported Values: `SANDBOX`, `LIVE`|\n\n## Examples\nUnder **Example Request** on the right-side panel, you can switch between examples of the following API calls:\n- Fetch phone number status and certificate\n- Filter phone numbers by `account_mode`"
+					},
+					"response": [
+						{
+							"name": "Fetch Status and Certificate",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{System-User-Access-Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/phone_numbers?fields=display_phone_number,certificate,name_status,new_certificate,new_name_status",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"phone_numbers"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "display_phone_number,certificate,name_status,new_certificate,new_name_status"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n  \"data\": [\n    {\n      \"id\": \"1972385232742141\",    \n      \"display_phone_number\": \"+1 631-555-1111\",\n      \"certificate\": \"AbCdEfGhIjKlMnOpQrStUvWxYz\",\n      \"new_certificate\": \"123AbCdEfGhIjKlMnOpQrStUvWxYz\",\n      \"name_status\": \"APPROVED\",\n      \"new_name_status\": \"APPROVED\"\n    }\n  ]\n}"
+						},
+						{
+							"name": "Filter Phone Numbers",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{System-User-Access-Token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{Assigned-WABA-ID}}/phone_numbers?filtering=[{\"field\":\"account_mode\",\"operator\":\"EQUAL\",\"value\":\"LIVE\"}] ",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{Assigned-WABA-ID}}",
+										"phone_numbers"
+									],
+									"query": [
+										{
+											"key": "filtering",
+											"value": "[{\"field\":\"account_mode\",\"operator\":\"EQUAL\",\"value\":\"LIVE\"}] ",
+											"description": "EQUAL value can be either LIVE or SANDBOX"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": null,
+							"cookie": [],
+							"body": "{\n  \"data\": [\n    {\n      \"id\": \"1972385232742141\",    \n      \"display_phone_number\": \"+1 631-555-1111\",\n      \"verified_name\": \"John’s Cake Shop\",\n      \"quality_rating\": \"UNKNOWN\"\n    }\n  ],\n  \"paging\": {\n\t\"cursors\": {\n\t\t\"before\": \"abcdefghij\",\n\t\t\"after\": \"klmnopqr\"\n\t}\n   }\n}"
+						}
+					]
+				}
+			],
+			"description": "Explore the full list of API endpoints for the embedded signup flow."
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "Components",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"description": "You get webhooks notifications in the following general format:\n\n    {\n     \"object\": \"whatsapp_business_account\",\n      \"entry\": [\n        { // entry object, containing changes\n          \"changes\": [\n        { // changes object, containing value\n          \"value\": {\n            // value object\n          }\n        }\n       ]\n      }\n     ]\n    }\n\n### Parameters\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`object`**   | This is the object that was subscribed to. For embedded signup, this is always `whatsapp_business_account`.|\n| **`entry`**   | This object contains the details of the change that triggered the webhooks call —see `entry` object below. |\n\n#### The `entry` Object\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`id`**   | ID of Whatsapp Business Accounts this webhook belongs to.|\n| **`time`**   | Time for the entry. |\n| **`changes`**   | Changes that triggered the webhooks call —see `changes` object below. |\n\n#### The `changes` Object\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`field`**   | Contains the type of notification you are getting on that webhook. For embedded signup, the options are: `phone_number_name_update`, `phone_number_quality_update`, `account_update`, `account_review_update`, and `message_template_status_update`.|\n| **`value`**   | Contains details of the changes related to the specified field —see `value` object below. |\n\n#### The `value` Object\n\n| Name          | Description   |\n| ------------- | ------------- |\n| **`display_phone_number`**   | Display phone number of the business account account that triggered this notification.|\n| **`decision`**   | Used if a decision has been made. Options are: `APPROVED` and `REJECTED`. |\n| **`requested_verified_name`**   | This field displays the name that was sent to be verified. |\n| **`rejection_reason`**   | If a request was rejected, this field displays the reason for that rejection. |\n| **`event`**   | Used when an event happened in a specific WhatsApp Business Account. The event field can be used in 3 cases: WABA updates (`DISABLED_UPDATE` and `VERIFIED_ACCOUNT`,phone number quality updates (`ONBOARDING`, `UPGRADE`, `DOWNGRADE`, `FLAGGED`, and `UNFLAGGED`), and template status update (`APPROVED`, `IN_APPEAL`, `PENDING`, `REJECTED`, `PENDING_DELETION`, `DELETED`, `DISABLED`, `FLAGGED`, and `REINSTATED`).|\n| **`current_limit`**   | Contains the current tier limit where this account is. Supported values are: `TIER_1K`, `TIER_10K`, and `TIER_100K`.|\n| **`ban_info`**   | Used when an account has been banned. This object has two properties: `waba_ban_state` (`FLAGGED`, `DISABLE`, and `REINSTATE`) and `waba_ban_date`. |"
+					},
+					"response": []
+				},
+				{
+					"name": "Phone Number Name Update Received",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"object\": \"whatsapp_business_account\",\n    \"entry\": [\n        {\n            \"id\": \"whatsapp-business-account-id\",\n            \"time\": 1608243053,\n            \"changes\": [\n                {\n                    \"field\": \"phone_number_name_update\",\n                    \"value\": {\n                        \"display_phone_number\": \"16505551111\",\n                        \"decision\": \"APPROVED\",\n                        \"requested_verified_name\": \"WhatsApp\",\n                        \"rejection_reason\": null\n                    }\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Phone Number Quality Update Received",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"object\": \"whatsapp_business_account\",\n    \"entry\": [\n        {\n            \"id\": \"0\",\n            \"time\": 1608243062,\n            \"changes\": [\n                {\n                    \"field\": \"phone_number_quality_update\",\n                    \"value\": {\n                        \"display_phone_number\": \"16505551111\",\n                        \"event\": \"FLAGGED\",\n                        \"current_limit\": \"TIER_10K\"\n                    }\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sandbox number upgraded to Verified Account",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"object\": \"whatsapp_business_account\",\n    \"entry\": [\n        {\n            \"id\": \"whatsapp-business-account-id\",\n            \"time\": 1604703058,\n            \"changes\": [\n                {\n                    \"field\": \"account_update\",\n                    \"value\": {\n                        \"phone_number\": \"16505551111\",\n                        \"event\": \"VERIFIED_ACCOUNT\"\n                    }\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Banned WABA",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"object\": \"whatsapp_business_account\",\n    \"entry\": [\n        {\n            \"id\": \"whatsapp-business-account-id\",\n            \"time\": 1604703058,\n            \"changes\": [\n                {\n                    \"field\": \"account_update\",\n                    \"value\": {\n                        \"event\": \"DISABLED_UPDATE\",\n                        \"ban_info\": {\n                            \"waba_ban_state\": \"FLAGGED\",\n                            \"waba_ban_date\": \"January 31, 2021\"\n                        }\n                    }\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WABA Review Completed",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"object\": \"whatsapp_business_account\",\n    \"entry\": [\n        {\n            \"id\": \"whatsapp-business-account-id\",\n            \"time\": 1604703141,\n            \"changes\": [\n                {\n                    \"field\": \"account_review_update\",\n                    \"value\": {\n                        \"decision\": \"APPROVED\"\n                    }\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Message Template Approved",
+					"request": {
+						"method": "VIEW",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"object\": \"whatsapp_business_account\",\n    \"entry\": [\n        {\n            \"id\": \"<WHATSAPP-BUSINESS-ACCOUNT-ID>\",\n            \"time\": \"<TIMESTAMP>\",\n            \"changes\": [\n                {\n                    \"field\": \"message_template_status_update\",\n                    \"value\": {\n                        \"event\": \"APPROVED\",\n                        \"message_template_id\": \"<TEMPLATE_ID>\",\n                        \"message_template_name\": \"My message template\",\n                        \"message_template_language\": \"en-US\",\n                        \"reason\": null\n                    }\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Webhooks are user-defined HTTP callbacks that are triggered by specific events. Whenever that trigger event occurs, the WhatsApp Business API client sees the event, collects the data, and immediately sends a notification (HTTPs request) to the Webhook URL configured in the webhooks setup step.\n\n## Before You Start\n\nFirst, you need to set up the Webhooks product for your Meta App. See [Webhooks, Subscribe to a WhatsApp Business Account](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#subscribe-to-a-whatsapp-business-account) for help with that.\n\n## Set up Notifications\n\nFor information about setting up notifications and available subscription fields, see [Set Up Notifications](https://developers.facebook.com/docs/whatsapp/embedded-signup/webhooks#available-subscription-fields)."
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{System-User-Access-Token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({",
+					"    key: 'User-Agent',",
+					"    value: 'Postman/WhatsAppEmbeddedSignupCollection'",
+					"});"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

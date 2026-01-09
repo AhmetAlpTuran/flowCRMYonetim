@@ -1,7 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../app/user_role.dart';
 import '../bot/screens/bot_screen.dart';
 import '../campaigns/screens/campaigns_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
@@ -19,14 +18,15 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authControllerProvider).value;
-    final role = ref.watch(currentRoleProvider).maybeWhen(
+    final membership = ref.watch(currentMembershipProvider).maybeWhen(
           data: (value) => value,
-          orElse: () => UserRole.user,
+          orElse: () => null,
         );
+    final isAdmin = membership?.isAdmin ?? false;
+    final permissions = membership?.permissions ?? <String>{};
     final tenant = ref.watch(selectedTenantProvider);
     final features = tenant?.features ?? <TenantFeature>{};
-    final destinations = _destinationsFor(role, features);
+    final destinations = _destinationsFor(isAdmin, permissions, features);
     final selected = ref.watch(shellDestinationProvider);
     final currentIndex = destinations.indexWhere((item) => item.id == selected);
     final resolvedIndex = currentIndex >= 0 ? currentIndex : 0;
@@ -180,10 +180,12 @@ class _TenantSwitcher extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tenants = ref.watch(accessibleTenantsProvider);
-    final role = ref.watch(currentRoleProvider).maybeWhen(
+    final membership = ref.watch(currentMembershipProvider).maybeWhen(
           data: (value) => value,
-          orElse: () => UserRole.user,
+          orElse: () => null,
         );
+    final isAdmin = membership?.isAdmin ?? false;
+    final permissions = membership?.permissions ?? <String>{};
 
     return tenants.when(
       data: (items) {
@@ -198,10 +200,9 @@ class _TenantSwitcher extends ConsumerWidget {
                 .read(selectedTenantIdProvider.notifier)
                 .setSelectedTenantId(value.id);
             final allowed =
-                _destinationsFor(role, value.features).map((e) => e.id).toList();
-            final currentDest = ref.read(shellDestinationProvider);
-            if (!allowed.contains(currentDest)) {
-              ref.read(shellDestinationProvider.notifier).state = allowed.first;
+                _destinationsFor(isAdmin, permissions, value.features);
+            if (allowed.isNotEmpty) {
+              ref.read(shellDestinationProvider.notifier).state = allowed.first.id;
             }
           },
           itemBuilder: (context) => [
@@ -248,7 +249,8 @@ class _TenantSwitcher extends ConsumerWidget {
 }
 
 List<_ShellDestination> _destinationsFor(
-  UserRole role,
+  bool isAdmin,
+  Set<String> permissions,
   Set<TenantFeature> features,
 ) {
   final all = <_ShellDestination>[
@@ -318,11 +320,14 @@ List<_ShellDestination> _destinationsFor(
     ),
   ];
 
-  final allowed = all.where((item) => features.contains(item.feature)).toList();
-
-  if (role == UserRole.user) {
-    return allowed.where((item) => item.id == ShellDestinationId.inbox).toList();
-  }
+  final allowed = all.where((item) => features.contains(item.feature)).where(
+    (item) {
+      if (isAdmin) {
+        return true;
+      }
+      return permissions.contains(item.feature.permissionKey);
+    },
+  ).toList();
 
   return allowed;
 }

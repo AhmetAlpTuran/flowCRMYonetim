@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/user_role.dart';
+import '../models/tenant_membership.dart';
 import '../models/tenant.dart';
 
 class AuthState {
@@ -126,21 +127,35 @@ final selectedTenantProvider = Provider<Tenant?>((ref) {
   );
 });
 
-final currentRoleProvider = FutureProvider<UserRole>((ref) async {
+final currentMembershipProvider = FutureProvider<TenantMembership?>((ref) async {
   final auth = await ref.watch(authControllerProvider.future);
   final tenant = ref.watch(selectedTenantProvider);
   if (auth == null || tenant == null) {
-    return UserRole.user;
+    return null;
   }
   final client = Supabase.instance.client;
   final response = await client
       .from('tenant_memberships')
-      .select('role')
+      .select('role, permissions')
       .eq('tenant_id', tenant.id)
       .eq('user_id', auth.userId)
       .maybeSingle();
-  final role = response?['role'] as String?;
-  if (role == 'admin') {
+
+  if (response == null) {
+    return null;
+  }
+
+  final permissions = (response['permissions'] as List<dynamic>? ?? [])
+      .map((item) => item.toString())
+      .toSet();
+  final role = response['role'] as String? ?? 'user';
+
+  return TenantMembership(role: role, permissions: permissions);
+});
+
+final currentRoleProvider = FutureProvider<UserRole>((ref) async {
+  final membership = await ref.watch(currentMembershipProvider.future);
+  if (membership != null && membership.isAdmin) {
     return UserRole.admin;
   }
   return UserRole.user;

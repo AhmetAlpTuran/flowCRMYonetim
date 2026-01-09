@@ -1,11 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/mock_inbox_repository.dart';
 import '../models/conversation.dart';
 import '../providers/inbox_providers.dart';
 import '../widgets/tag_editor_sheet.dart';
 import 'chat_screen.dart';
+import '../../tenancy/providers/tenant_providers.dart';
 
 class InboxListScreen extends ConsumerStatefulWidget {
   const InboxListScreen({super.key});
@@ -16,6 +18,8 @@ class InboxListScreen extends ConsumerStatefulWidget {
 
 class _InboxListScreenState extends ConsumerState<InboxListScreen> {
   late final TextEditingController _searchController;
+  RealtimeChannel? _channel;
+  String? _currentTenantId;
 
   @override
   void initState() {
@@ -27,11 +31,17 @@ class _InboxListScreenState extends ConsumerState<InboxListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _channel?.unsubscribe();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final tenant = ref.watch(selectedTenantProvider);
+    if (_currentTenantId != tenant?.id) {
+      _subscribeRealtime(tenant?.id);
+    }
+
     final conversations = ref.watch(conversationsProvider);
     final filters = ref.watch(inboxFiltersProvider);
 
@@ -86,6 +96,30 @@ class _InboxListScreenState extends ConsumerState<InboxListScreen> {
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
     );
+  }
+
+  void _subscribeRealtime(String? tenantId) {
+    _channel?.unsubscribe();
+    _currentTenantId = tenantId;
+    if (tenantId == null) {
+      return;
+    }
+    _channel = Supabase.instance.client
+        .channel('conversations:$tenantId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'conversations',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'tenant_id',
+            value: tenantId,
+          ),
+          callback: (_) {
+            ref.invalidate(conversationsProvider);
+          },
+        )
+        .subscribe();
   }
 
   List<String> _collectTags(List<Conversation> items) {
@@ -284,7 +318,9 @@ class _ConversationTile extends StatelessWidget {
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: hasUnread
                                   ? const Color(0xFF25D366)
-                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                             ),
                       ),
                     ],

@@ -11,6 +11,29 @@ enum TenantFeature {
   templates,
 }
 
+extension TenantFeaturePermission on TenantFeature {
+  String get permissionKey {
+    switch (this) {
+      case TenantFeature.dashboard:
+        return 'dashboard';
+      case TenantFeature.bot:
+        return 'bot';
+      case TenantFeature.knowledge:
+        return 'knowledge';
+      case TenantFeature.inbox:
+        return 'inbox';
+      case TenantFeature.handoff:
+        return 'handoff';
+      case TenantFeature.custom:
+        return 'custom';
+      case TenantFeature.campaigns:
+        return 'campaigns';
+      case TenantFeature.templates:
+        return 'templates';
+    }
+  }
+}
+
 class Tenant {
   const Tenant({
     required this.id,

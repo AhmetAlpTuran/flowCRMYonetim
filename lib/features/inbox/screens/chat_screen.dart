@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../config/app_server_config.dart';
 import '../../tenancy/providers/tenant_providers.dart';
@@ -21,10 +22,18 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _sending = false;
+  RealtimeChannel? _channel;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeRealtime();
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _channel?.unsubscribe();
     super.dispose();
   }
 
@@ -185,6 +194,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  void _subscribeRealtime() {
+    _channel = Supabase.instance.client
+        .channel('messages:${widget.conversation.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'conversation_id',
+            value: widget.conversation.id,
+          ),
+          callback: (_) {
+            ref.invalidate(messagesProvider(widget.conversation.id));
+            ref.invalidate(conversationsProvider);
+          },
+        )
+        .subscribe();
+  }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) {
@@ -198,19 +227,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _sending = true;
     });
     try {
-      await http.post(
-        Uri.parse('${AppServerConfig.baseUrl}/messages/send'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': AppServerConfig.apiKey,
-        },
-        body: jsonEncode({
-          'tenant_id': tenant.id,
-          'conversation_id': widget.conversation.id,
-          'sender': 'Temsilci',
-          'body': text,
-        }),
-      );
+      if (AppServerConfig.useEdgeFunctions) {
+        await Supabase.instance.client.functions.invoke(
+          'send-message',
+          body: {
+            'tenant_id': tenant.id,
+            'conversation_id': widget.conversation.id,
+            'sender': 'Temsilci',
+            'body': text,
+          },
+        );
+      } else {
+        await http.post(
+          Uri.parse('${AppServerConfig.baseUrl}/messages/send'),
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': AppServerConfig.apiKey,
+          },
+          body: jsonEncode({
+            'tenant_id': tenant.id,
+            'conversation_id': widget.conversation.id,
+            'sender': 'Temsilci',
+            'body': text,
+          }),
+        );
+      }
       _controller.clear();
       ref.invalidate(messagesProvider(widget.conversation.id));
       ref.invalidate(conversationsProvider);

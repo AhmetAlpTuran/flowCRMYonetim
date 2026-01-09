@@ -1,0 +1,5344 @@
+{
+	"info": {
+		"_postman_id": "2fd9b32d-f63c-4056-873e-4c398dde9d6d",
+		"name": "WhatsApp Business Management API",
+		"description": "This public collection contains common queries, sample responses, and links to supporting documentation for the [Business Management API](https://developers.facebook.com/docs/whatsapp/business-management-api).\n\n## Requirements\n\nTo use this collection you must have a Meta **business portfolio**, a **WhatsApp Business Account (WABA)**, and a **business phone number**. If you complete the steps in the Cloud API [Get Started](https://developers.facebook.com/docs/whatsapp/cloud-api/get-started) guide, all of these will be created for you.\n\n## Environment\n\nThis collection has a corresponding **Business Management API** Postman [environment](https://learning.postman.com/docs/sending-requests/managing-environments/) which you must select when using the collection. Set **current values** for the variables defined in this environment if you wish to perform the queries in the collection.\n\nYou can find most of these values in the [WhatsApp Manager](https://business.facebook.com/wa/manage/home/) or the **WhatsApp** > **Getting Started** panel in the [app dashboard](https://developers.facebook.com/apps), but if you have an **access token** and your **business portfolio ID**, you can use the collection to get the remaining values.\n\n### Access tokens\n\nThe API supports both user and system user access tokens. You can get a user access token by loading your app in the [app dashboard](https://developers.facebook.com/apps) and navigating to the **WhatsApp** > **Getting Started** panel. Alternatively you can use the [Graph API Explorer](https://developers.facebook.com/tools/explorer/) to generate one.\n\nSince user access tokens expire after 24 hours, you'll likely want to generate a system user access token, which lasts up to 60 days (or permanently, if you wish). See [System Users](https://developers.facebook.com/docs/whatsapp/business-management-api/get-started#system-users) to learn how to create a system user and system user access token.\n\nOnce you have your token, save it as a **current value** in the environment.\n\n## Business portfolio ID\n\nYou can get your business portfolio ID by signing into the [Meta Business Suite](https://business.facebook.com). The ID appears in the URL as **business_id**. Once you save this as a **current value** in the environment, go to the **WhatsApp Business Account (WABA)** folder and run the **Get all owned WABAs** query. This will return your WABA ID, which you can save to your environment and then use to determine your business phone number ID.\n\n## Permissions\n\nThe API technically only relies on two permissions, but since you're likely going to be using the API to generate assets in order to send messages using our other APIs, we recommend that you grant your these three permissions:\n\n- business_management\n- whatsapp_business_management\n- whatsapp_business_messaging\n    \n\nNote that if you get a user access token from the app dashboard, it automatically grants your app all three of these permissions.\n\n## Access token debugger\n\nYou can paste your token into the [access token debugger](https://developers.facebook.com/tools/debug/accesstoken/) to see what type of token it is and what permission you have granted to your app.\n\n## Pagination\n\nEndpoints that return lists/collections may [paginate results](https://developers.facebook.com/docs/graph-api/results) (you'll see **previous** and **next** properties in the response). Use the URLs from these properties to get the previous or next set of results. Note that if you click one of these links in Postman, it will open a new query in a new tab which you must save before running (otherwise it can't read your environment variables), so you may wish to cut and paste the URL and run the query in the same tab in which it was returned.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38490181",
+		"_collection_link": "https://www.postman.com/meta/whatsapp-business-platform/collection/3kru5r6/whatsapp-business-management-api?action=share&source=collection_link&creator=38490181"
+	},
+	"item": [
+		{
+			"name": "Analytics",
+			"item": [
+				{
+					"name": "Get analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}?fields=analytics.start(1680503760).end(1680564980).granularity(DAY).phone_numbers([]).country_codes([\"US\", \"BR\"])",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "analytics.start(1680503760).end(1680564980).granularity(DAY).phone_numbers([]).country_codes([\"US\", \"BR\"])"
+								}
+							]
+						},
+						"description": "- Guide: [Analytics](https://developers.facebook.com/docs/whatsapp/business-management-api/analytics)\n- Endpoint reference: [WhatsApp Business Account > Analytics](https://developers.facebook.com/docs/graph-api/reference/waba-analytics/)"
+					},
+					"response": [
+						{
+							"name": "Example reponse",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{System-User-Token}}"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{WABA-ID}}?fields=analytics.start(1543543200).end(1544148000).granularity(DAY).phone_numbers([]).country_codes([\"US\", \"BR\"])",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{WABA-ID}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "analytics.start(1543543200).end(1544148000).granularity(DAY).phone_numbers([]).country_codes([\"US\", \"BR\"])"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"analytics\": {\n        \"phone_numbers\": [\n            \"16505550111\",\n            \"16505550112\",\n            \"16505550113\"\n        ],\n        \"country_codes\": [\n            \"US\",\n            \"BR\"\n        ],\n        \"granularity\": \"DAY\",\n        \"data_points\": [\n            {\n                \"start\": 1543543200,\n                \"end\": 1543629600,\n                \"sent\": 196093,\n                \"delivered\": 179715\n            },\n            {\n                \"start\": 1543629600,\n                \"end\": 1543716000,\n                \"sent\": 147649,\n                \"delivered\": 139032\n            },\n            {\n                \"start\": 1543716000,\n                \"end\": 1543802400,\n                \"sent\": 61988,\n                \"delivered\": 58830\n            },\n            {\n                \"start\": 1543802400,\n                \"end\": 1543888800,\n                \"sent\": 132465,\n                \"delivered\": 124392\n            },\n            {\n                \"start\": 1543888800,\n                \"end\": 1543975200,\n                \"sent\": 181002,\n                \"delivered\": 167335\n            },\n            {\n                \"start\": 1543975200,\n                \"end\": 1544061600,\n                \"sent\": 168687,\n                \"delivered\": 157838\n            },\n            {\n                \"start\": 1544061600,\n                \"end\": 1544148000,\n                \"sent\": 161832,\n                \"delivered\": 152383\n            }\n        ]\n    },\n    \"id\": \"952305634918047\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get conversation analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}?fields=conversation_analytics.start(1656661480).end(1674859480).granularity(MONTHLY).conversation_directions([\"business_initiated\"]).dimensions([\"conversation_type\", \"conversation_direction\"])",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "conversation_analytics.start(1656661480).end(1674859480).granularity(MONTHLY).conversation_directions([\"business_initiated\"]).dimensions([\"conversation_type\", \"conversation_direction\"])"
+								}
+							]
+						},
+						"description": "- Guide: [Analytics](https://developers.facebook.com/docs/whatsapp/business-management-api/analytics)\n- Endpoint reference: [WhatsApp Business Account > Analytics](https://developers.facebook.com/docs/graph-api/reference/waba-analytics/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{System-User-Token}}"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{WABA-ID}}?fields=analytics.start(1543543200).end(1544148000).granularity(DAY).phone_numbers([]).country_codes([\"US\", \"BR\"])",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{WABA-ID}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "analytics.start(1543543200).end(1544148000).granularity(DAY).phone_numbers([]).country_codes([\"US\", \"BR\"])"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": ""
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"analytics\": {\n        \"phone_numbers\": [\n            \"16505550111\",\n            \"16505550112\",\n            \"16505550113\"\n        ],\n        \"country_codes\": [\n            \"US\",\n            \"BR\"\n        ],\n        \"granularity\": \"DAY\",\n        \"data_points\": [\n            {\n                \"start\": 1543543200,\n                \"end\": 1543629600,\n                \"sent\": 196093,\n                \"delivered\": 179715\n            },\n            {\n                \"start\": 1543629600,\n                \"end\": 1543716000,\n                \"sent\": 147649,\n                \"delivered\": 139032\n            },\n            {\n                \"start\": 1543716000,\n                \"end\": 1543802400,\n                \"sent\": 61988,\n                \"delivered\": 58830\n            },\n            {\n                \"start\": 1543802400,\n                \"end\": 1543888800,\n                \"sent\": 132465,\n                \"delivered\": 124392\n            },\n            {\n                \"start\": 1543888800,\n                \"end\": 1543975200,\n                \"sent\": 181002,\n                \"delivered\": 167335\n            },\n            {\n                \"start\": 1543975200,\n                \"end\": 1544061600,\n                \"sent\": 168687,\n                \"delivered\": 157838\n            },\n            {\n                \"start\": 1544061600,\n                \"end\": 1544148000,\n                \"sent\": 161832,\n                \"delivered\": 152383\n            }\n        ]\n    },\n    \"id\": \"952305634918047\"\n}"
+						}
+					]
+				}
+			],
+			"description": "- Guide: [Analytics](https://developers.facebook.com/docs/whatsapp/business-management-api/analytics)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Billing",
+			"item": [
+				{
+					"name": "Get credit lines",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-account-id}}/extendedcredits",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-account-id}}",
+								"extendedcredits"
+							]
+						},
+						"description": "- Endpoint reference: [Business > Extendedcredits](https://developers.facebook.com/docs/marketing-api/reference/extended-credit/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{System-User-Access-Token}}"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{Version}}/{{business-account-id}}/extendedcredits?fields=id,legal_entity_name",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{Version}}",
+										"{{business-account-id}}",
+										"extendedcredits"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "id,legal_entity_name"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"data\": [\n    {\n      \"id\": \"1972385232742146\",    \n      \"legal_entity_name\": \"Lucky Shrub\"\n    }\n  ]\n}\n"
+						}
+					]
+				}
+			],
+			"description": "- Help Center Article: [About billing for your WhatsApp Business Account](https://www.facebook.com/business/help/2225184664363779)"
+		},
+		{
+			"name": "Business accounts",
+			"item": [
+				{
+					"name": "Get business account (specific fields)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-account-id}}?fields=id,name,timezone_id",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-account-id}}"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "id,name,timezone_id"
+								}
+							]
+						},
+						"description": "Endpoint reference: [Business](https://developers.facebook.com/docs/marketing-api/reference/business/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-account-id}}?fields=id,name,timezone_id",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-account-id}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "id,name,timezone_id"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"e9b6e9b51bf22b6dc50325d79593daee64a9438e\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "cross-origin-resource-policy",
+									"value": "cross-origin"
+								},
+								{
+									"key": "x-app-usage",
+									"value": "{\"call_count\":0,\"total_cputime\":0,\"total_time\":0}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ASXeY7n8KxE4s2WPsejsx5T"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "BpUU8ro+Qyc"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007266633"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "sXZ8RdzMc/GncoPer8191i4EFUEuQglfsee5vTMgumeA8DW0ab23QsdikhTpEoo+1UXoQXkvr7fOAv5/EC6nIA=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 04:40:39 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "65"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"506914307656634\",\n    \"name\": \"Lucky Shrub\",\n    \"timezone_id\": 0\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Commerce",
+			"item": [
+				{
+					"name": "Get commerce settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/whatsapp_commerce_settings",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"whatsapp_commerce_settings"
+							]
+						},
+						"description": "- Guide: [Sell Products & Services](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/sell-products-and-services) (Cloud API)\n- Guide: [Sell Products & Services](https://developers.facebook.com/docs/whatsapp/on-premises/guides/commerce-guides) (On-Premises API)\n- Endpoint reference: [WhatsApp Business Phone Number > WhatsApp Commerce Settings](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/whatsapp_commerce_settings)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/whatsapp_commerce_settings",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"whatsapp_commerce_settings"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"be665e167cf848b6b62159f1d6828c494dc47008\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ATqienUCgZnGDTAHjSt_s1u"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "BZ2vk4sqqeh"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "N/Bc7wjn7wzoGQzxpah+q29b3kn3Cu3Q5Vexydxna3Nq00SaWCkxw7wXuyFyLggvngmTAGNe60aQ2TTFzvT2hQ=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 20:02:54 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "84"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"is_cart_enabled\": true,\n            \"is_catalog_visible\": true,\n            \"id\": \"527759822865714\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Set or update commerce settings",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=true",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"whatsapp_commerce_settings"
+							],
+							"query": [
+								{
+									"key": "is_cart_enabled",
+									"value": "true"
+								},
+								{
+									"key": "is_catalog_visible",
+									"value": "true"
+								}
+							]
+						},
+						"description": "- Guide: [Sell Products & Services](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/sell-products-and-services) (Cloud API)\n- Guide: [Sell Products & Services](https://developers.facebook.com/docs/whatsapp/on-premises/guides/commerce-guides) (On-Premises API)\n- Endpoint reference: [WhatsApp Business Phone Number > WhatsApp Commerce Settings](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/whatsapp_commerce_settings)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/whatsapp_commerce_settings?is_cart_enabled=false&is_catalog_visible=false",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"whatsapp_commerce_settings"
+									],
+									"query": [
+										{
+											"key": "is_cart_enabled",
+											"value": "false"
+										},
+										{
+											"key": "is_catalog_visible",
+											"value": "false"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "cross-origin-resource-policy",
+									"value": "cross-origin"
+								},
+								{
+									"key": "x-app-usage",
+									"value": "{\"call_count\":0,\"total_cputime\":0,\"total_time\":0}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AB0EvD-U5WkosUqnPBMwXhB"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "A5pEgwxfemZ"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "03bVIwTYJnh6qJe3sqWWNGapvvRoU/yKE+3nC45djcuaeV41y+6Z4SgWhK/SRB+WUUBEKWInR4hxFzHnKZ1+7Q=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 20:01:14 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				}
+			],
+			"description": "- Guide: [Sell Products & Services](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/sell-products-and-services) (Cloud API)\n- Guide: [Sell Products & Services](https://developers.facebook.com/docs/whatsapp/on-premises/guides/commerce-guides) (On-Premises API)"
+		},
+		{
+			"name": "Media",
+			"item": [
+				{
+					"name": "Upload media (Step 1 of 2): Create session",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{app-id}}/uploads?file_length=<FILE_SIZE>&file_type=<MIME_TYPE>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{app-id}}",
+								"uploads"
+							],
+							"query": [
+								{
+									"key": "file_length",
+									"value": "<FILE_SIZE>",
+									"description": "File size, in bytes"
+								},
+								{
+									"key": "file_type",
+									"value": "<MIME_TYPE>",
+									"description": "File MIME type (e.g. image/jpg)"
+								}
+							]
+						},
+						"description": "- Guide: [Resumable Upload API](https://developers.facebook.com/docs/graph-api/guides/upload)\n- Endpoint reference: [Application > Uploads](https://developers.facebook.com/docs/graph-api/reference/application/uploads/)"
+					},
+					"response": [
+						{
+							"name": "Step 1 example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{app-id}}/uploads?file_length=2189951&file_type=image/jpg",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{app-id}}",
+										"uploads"
+									],
+									"query": [
+										{
+											"key": "file_length",
+											"value": "2189951",
+											"description": "File size, in bytes"
+										},
+										{
+											"key": "file_type",
+											"value": "image/jpg",
+											"description": "File MIME type"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "cross-origin-resource-policy",
+									"value": "cross-origin"
+								},
+								{
+									"key": "x-app-usage",
+									"value": "{\"call_count\":0,\"total_cputime\":0,\"total_time\":0}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AvI4pN7SAHEXqFAUxyuREbv"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "BZX/AtSddwT"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007242444"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "oSo4fVztXWCoPpG/L1MMhComdBS5YVtVMCa+HiraWcr92ku66L9tmARCDAXuiFQ2H555z4aOdSVdTKMAdMpRQA=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 00:30:48 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "164"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"upload:MTphdHRhY2htZW50OjU5Nzc0MDgzLWRhNzgtNGEzMS1iYmRhLTVkNzEyOGEyYjFhZD9maWxlX2xlbmd0aD0yMTg5OTUxJmZpbGVfdHlwZT1pbWFnZSUyRmpwZw==?sig=ARazXSD9mAc-wPYJffA\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Upload media (Step 2 of 2): Initiate upload",
+					"request": {
+						"auth": {
+							"type": "oauth2",
+							"oauth2": [
+								{
+									"key": "headerPrefix",
+									"value": "OAuth",
+									"type": "string"
+								},
+								{
+									"key": "addTokenTo",
+									"value": "header",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "file_offset",
+								"value": "0"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "2Ksi_tgAh/comcast-receipt-2021-07-18.pdf"
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/<SESSION_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"<SESSION_ID>"
+							]
+						},
+						"description": "- Guide: [Resumable Upload API](https://developers.facebook.com/docs/graph-api/guides/upload)"
+					},
+					"response": [
+						{
+							"name": "Step 2 example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "file_offset",
+										"value": "0"
+									}
+								],
+								"body": {
+									"mode": "file",
+									"file": {
+										"src": "PSoiBVCC6/boxed-water-.jpg"
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/upload:MTphdHRhY2htZW50OjU5Nzc0MDgzLWRhNzgtNGEzMS1iYmRhLTVkNzEyOGEyYjFhZD9maWxlX2xlbmd0aD0yMTg5OTUxJmZpbGVfdHlwZT1pbWFnZSUyRmpwZw==?sig=ARazXSD9mAc-wPYJffA",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"upload:MTphdHRhY2htZW50OjU5Nzc0MDgzLWRhNzgtNGEzMS1iYmRhLTVkNzEyOGEyYjFhZD9maWxlX2xlbmd0aD0yMTg5OTUxJmZpbGVfdHlwZT1pbWFnZSUyRmpwZw=="
+									],
+									"query": [
+										{
+											"key": "sig",
+											"value": "ARazXSD9mAc-wPYJffA"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 00:34:01 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "585"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"h\": \"4::aW1hZ2UvanBn:ARYytyb0kLp5htbBB8vWlclG5M9gMBxiEyt4FNCvrueWBOmFmRAztEuNtPGUnEC22Etc_SAAVU0YJOk3B7A-JuR1241_nq7gfITFxXKdDGnfvw:e:1681000441:634974688087057:100089620928913:ARbB4l0IPRncfMF-1sE\\n4::aW1hZ2UvanBn:ARZewDmbZuoq3rGUO1WgXjJEYcI1Tt7jr_Z6o2-oD5rg4--AQarBV_S1BYEcR8INJkctK0lNJmQ5v7PsBo-vqB-N0DSTe2-G6jHOlxKc12KSSg:e:1681000441:634974688087057:100089620928913:ARZQmT7tfO0sW--3oLo\\n4::aW1hZ2UvanBn:ARZkcJXFoEMa0YMMd2WQT8aVMJFaUPlSYW9xXshyh1bP-Pd6JP4t2VbrZezqGOEfC-acYkRZA5Q31FX7dEE_hQ9a-0i-b-RaueQrWO6vWk-7bQ:e:1681000441:634974688087057:100089620928913:ARYlgv7ErOQGsZYClfs\"\n}"
+						}
+					]
+				}
+			],
+			"description": "- Guide: [Resumable Upload API](https://developers.facebook.com/docs/graph-api/guides/upload)"
+		},
+		{
+			"name": "Phone numbers",
+			"item": [
+				{
+					"name": "Get business phone number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}"
+							]
+						},
+						"description": "- Guide: [Retrieve Phone Numbers](https://developers.facebook.com/docs/whatsapp/business-management-api/manage-phone-numbers)\n- Endpoint reference: [WhatsApp Business Phone Number](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"cc62ffadf6b5ffdec9c371bfa06743621adb4308\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v15.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AhifZCvZIHN1WWO-4FYpLOs"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "DNOZ76wuSjD"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007236122"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "HJqqzPB+S87F7YancJWjfnYz2NaKov85bcWsSrmdHzDUj2bh1+N+iNh1MRhjbIxe9hRwlTzQkgOiL4WUg5GL+A=="
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 04 Apr 2023 00:00:52 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "160"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"verified_name\": \"Lucky Shrub\",\n    \"code_verification_status\": \"VERIFIED\",\n    \"display_phone_number\": \"15550783881\",\n    \"quality_rating\": \"GREEN\",\n    \"id\": \"106540352242922\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get business phone number display name status (beta)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}?fields=id,display_phone_number,name_status",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "id,display_phone_number,name_status"
+								}
+							]
+						},
+						"description": "- Guide: [Get Display Name Status (Beta)](https://developers.facebook.com/docs/whatsapp/business-management-api/manage-phone-numbers#get-display-name-status--beta-)\n- Endpoint reference: [WhatsApp Business Phone Number](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}?fields=id,display_phone_number,name_status",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "id,display_phone_number,name_status"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"69d326e1ecfc32a4cebd7ab02f7d9192169ca7a7\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AjsNW3UO1ABERR1dS4ReHmk"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "C9umUEXWGPR"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007242444"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "Vl1617iTU10dJM7u10Oiabg4vJ1JEe2sVlEBq+Ht3mqJRalakB9RUWz+Q2Mp7Re35xoGuGQ4U/cefxhosJaRUQ=="
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 04 Apr 2023 23:48:20 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "86"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"106540352242922\",\n    \"display_phone_number\": \"15550783881\",\n    \"name_status\": \"APPROVED\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get all business phone numbers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/phone_numbers",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"phone_numbers"
+							]
+						},
+						"description": "- Guide: [Phone Numbers](https://developers.facebook.com/docs/whatsapp/phone-numbers)\n- Guide: [Retrieve Phone Numbers](https://developers.facebook.com/docs/whatsapp/business-management-api/manage-phone-numbers)\n- Endpoint reference: [WhatsApp Business Account > Phone Numbers](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/phone_numbers/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{System-User-Access-Token}}"
+									}
+								],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/phone_numbers",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"phone_numbers"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"verified_name\": \"Lucky Shrub\",\n        \"display_phone_number\": \"15550783881\",\n        \"id\": \"1906385232743451\",\n        \"quality_rating\": \"GREEN\"\n    },\n    {\n        \"verified_name\": \"Lucky Shrub Support\",\n        \"display_phone_number\": \"15550785556\",\n        \"id\": \"1913623884432103\",\n        \"quality_rating\": \"GREEN\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get all business phone numbers w/ filtering (beta)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/phone_numbers?fields=id,is_official_business_account,display_phone_number,verified_name&filtering=[{'field':'account_mode','operator':'EQUAL','value':'SANDBOX'}]",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"phone_numbers"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "id,is_official_business_account,display_phone_number,verified_name"
+								},
+								{
+									"key": "filtering",
+									"value": "[{'field':'account_mode','operator':'EQUAL','value':'SANDBOX'}]"
+								}
+							]
+						},
+						"description": "- Guide: [Filter Phone Numbers](https://developers.facebook.com/docs/whatsapp/business-management-api/manage-phone-numbers#filter-phone-numbers)\n- Endpoint reference: [WhatsApp Business Account > Phone Numbers](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/phone_numbers/)"
+					},
+					"response": []
+				}
+			],
+			"description": "- Guide: [Phone Numbers](https://developers.facebook.com/docs/whatsapp/phone-numbers)\n- Guide: [Retrieve Phone Numbers](https://developers.facebook.com/docs/whatsapp/business-management-api/manage-phone-numbers)"
+		},
+		{
+			"name": "QR codes",
+			"item": [
+				{
+					"name": "Get QR code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls/<QR_CODE_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls",
+								"<QR_CODE_ID>"
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls/ANED2T5QRU7HG1",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls",
+										"ANED2T5QRU7HG1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"eb11a43a8f1e633acc57540de90158ed9ede1eb6\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v17.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AI30jPlFHq76adVh0j6NI6M"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Ckwb7R007I8"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007849776"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "xwYqFVM/CgvMFBdr72b1SoodwzNgzEfQ9SDpiIPeb3wE0n/sie2xgK6jFXjwpEQROxdgbLqDvJdWTH20Xbwu4Q=="
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 17 Jul 2023 17:31:52 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "145"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"code\": \"ANED2T5QRU7HG1\",\n            \"prefilled_message\": \"Show me Cyber Monday deals!\",\n            \"deep_link_url\": \"https://wa.me/message/ANED2T5QRU7HG1\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get all QR codes (default fields)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls"
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"87b838b487862bbd93840a39909a27424a1e8f31\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v17.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ApTtyoBD0N_UK-CnCHdfKhC"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "C6BI7RgADgF"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007849776"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "jYPjPwQxjEjunci3gPMbyYk1E92KQBB4ySVOiXjgqbAwghc5jpY5g9DOQT5WN5JkztCQc9zv2Orxf+WZJHyEJw=="
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 17 Jul 2023 17:30:25 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "247"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"code\": \"5QBPAD2DC6L5A1\",\n            \"prefilled_message\": \"Show me Cyber Tuesday deals!\",\n            \"deep_link_url\": \"https://wa.me/message/5QBPAD2DC6L5A1\"\n        },\n        {\n            \"code\": \"ANED2T5QRU7HG1\",\n            \"prefilled_message\": \"Show me Cyber Monday deals!\",\n            \"deep_link_url\": \"https://wa.me/message/ANED2T5QRU7HG1\"\n        },\n        {\n            \"code\": \"WOMVT6TJ2BP7A1\",\n            \"prefilled_message\": \"Tell me more about your production workshop\",\n            \"deep_link_url\": \"https://wa.me/message/WOMVT6TJ2BP7A1\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get all QR codes (specific fields)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls?fields=code,prefilled_message,qr_image_url.format(SVG)",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "code,prefilled_message,qr_image_url.format(SVG)",
+									"description": ".format can be SVG or PNG"
+								}
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls?fields=code,prefilled_message,qr_image_url.format(SVG)",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "code,prefilled_message,qr_image_url.format(SVG)",
+											"description": ".format can be SVG or PNG"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"84d2588d672322f90621f50c9cd8a3b23e089a14\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v17.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AJKapmjTPh6pdfa788IJdi0"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Es9NJJI/zlf"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007848995"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "9AMjB0CoJKzCX5kSQf4RODPU2InGnibVJeqo4go1GBn6JToViVnC1f8+dpozejxHbzXcaO1Mx1r/tW7GWNAKAg=="
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 17 Jul 2023 17:32:57 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1062"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"code\": \"5QBPAD2DC6L5A1\",\n            \"prefilled_message\": \"Show me Cyber Tuesday deals!\",\n            \"qr_image_url\": \"https://scontent-iad3-2.xx.fbcdn.net/m1/v/t6/An_CaBAHoMypun-kUZsZ88eIZjmnyD0deR9jzkE0BAIjUN_irRtfWqrwFo1fj6uZCbVss_DmlCPf121K_Ik8k-r-Mc9tEaWnD2nNX4YcrVPXW97-EtSR4ISGmaYNjNg0s5n08DtkYwh5?ccb=10-5&oh=00_AfCr-w29t9Qfe66xM5H9dJu2SKKBVJmXfC2WatMB_m1FNQ&oe=64DCF088&_nc_sid=5a413f\"\n        },\n        {\n            \"code\": \"ANED2T5QRU7HG1\",\n            \"prefilled_message\": \"Show me Cyber Monday deals!\",\n            \"qr_image_url\": \"https://scontent-iad3-2.xx.fbcdn.net/m1/v/t6/An-psFmLBls2NFXnhhkSVqwIHEqCTQoNKTLxxlOeci0Wbsukd2RLiwZalHrXwqT5RTFSzOhyw6OLvJJO0itaQtJI1BS2WkNcV67wR3GNx7ZX1tFSNCbpo1e6KPptKF1GbVGzmUfkgSPX?ccb=10-5&oh=00_AfD8UP3gI1a7r0swztpJJ9zcIoVDwX1m888-f-9MPMVTFA&oe=64DD0736&_nc_sid=5a413f\"\n        },\n        {\n            \"code\": \"WOMVT6TJ2BP7A1\",\n            \"prefilled_message\": \"Tell me more about your production workshop\",\n            \"qr_image_url\": \"https://scontent-iad3-2.xx.fbcdn.net/m1/v/t6/An9kdIj-mOc6-m33Q103wyA8zeTsGizIhQ1Xg-rVaKzSIUUnz2azOlTNj2bjqhzomkdvN92Hz2yp4kgWrWhgUBFlT5aHLpc7mB9fu8MlD1QIxnQNE0Oby2L1yBO2TGmQy7i-wjhk_NwC?ccb=10-5&oh=00_AfAyxB3EVjmtOmnuizSVDTmr78SNAxxCJqn7MVEgkZ5dUQ&oe=64DCF966&_nc_sid=5a413f\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get QR code SVG image URL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls?fields=prefilled_message,deep_link_url,qr_image_url.format(SVG)&code=<QR_CODE_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "prefilled_message,deep_link_url,qr_image_url.format(SVG)"
+								},
+								{
+									"key": "code",
+									"value": "<QR_CODE_ID>"
+								}
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls?fields=prefilled_message,deep_link_url,qr_image_url.format(SVG)&code=FO7JXE4BG3RFG1",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "prefilled_message,deep_link_url,qr_image_url.format(SVG)"
+										},
+										{
+											"key": "code",
+											"value": "FO7JXE4BG3RFG1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"6bb9bb199ae09827badab937f0098a769c5300a5\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AhEUORFmwVBVr8wWHAPEvJ_"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "GpMs++NzaER"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007250199"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "MGgEGMCHCz1WPNrThsZE/2TgpMdMzkbtnKHBbAKLcZdmCdcxFdIbYzoy3PBZ84G9cGCfAML2vBfDArqzT1dRzw=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 17:13:43 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "354"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"prefilled_message\": \"Tell me more about your event planning packages\",\n            \"deep_link_url\": \"https://wa.me/message/FO7JXE4BG3RFG1\",\n            \"qr_image_url\": \"https://scontent-iad3-1.xx.fbcdn.net/m1/v/t6/An_tlxnbh51qOQehAUw8o0lv9rIJm0PwPYsk4HCQkovoSsA_FT8WA56FVpe-lzURBxjngRUxWsHyMzvFb35K6DVrJGNqTsuWvjgL7G8K2SmHDsnnBiWqqm3GPmXlLWs9Ct_ok4tQM3YR?ccb=10-5&oh=00_AfBNcOAJ7gT1uXGqBfZFOv-wppQjBZFJAOJU59Ybe-V4sQ&oe=6455097A&_nc_sid=f36290\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get QR code PNG image URL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls?fields=prefilled_message,deep_link_url,qr_image_url.format(PNG)&code=<QR_CODE_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "prefilled_message,deep_link_url,qr_image_url.format(PNG)"
+								},
+								{
+									"key": "code",
+									"value": "<QR_CODE_ID>"
+								}
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls?fields=prefilled_message,deep_link_url,qr_image_url.format(PNG)&code=FO7JXE4BG3RFG1",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "prefilled_message,deep_link_url,qr_image_url.format(PNG)"
+										},
+										{
+											"key": "code",
+											"value": "FO7JXE4BG3RFG1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"9f26cc417d27b958c462b202a8d4aa4f1e6d9f20\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ARQVLBnydt3HxForUiKGvlR"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "E2gR87OM4ab"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007250199"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "Zey14boRCKNY0lC6Q0kFbQP8pdJgrQl4cwbJpCkJx29aYh0OZO1+ieLkNzbKRMDOQr4dbrCXufjpV1fYe8w+fA=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 17:19:14 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "354"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"prefilled_message\": \"Tell me more about your event planning packages\",\n            \"deep_link_url\": \"https://wa.me/message/FO7JXE4BG3RFG1\",\n            \"qr_image_url\": \"https://scontent-iad3-1.xx.fbcdn.net/m1/v/t6/An-H7T8OyTqO07lcRGHlKteuPMKDnx07nua3dGb4i560bVxDscweOV4KoKD_4wCDFoHR_C5LyVjxQISKPxwora1bbFhUEo2nA19ZPLBUVoQSmV12l1x-nuu312jKty-5rmojmde_a0g?ccb=10-5&oh=00_AfASq_vjojFza_9A-HDeRgHM3wZ8yjNprpYBjNKOn8RkSg&oe=64550A9E&_nc_sid=f36290\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Create QR code",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"prefilled_message\": \"<PREFILLED_MESSAGE>\",\n    \"generate_qr_image\": \"<GENERATE_QR_IMAGE>\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls"
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"prefilled_message\": \"Show me Cyber Monday deals!\",\n    \"generate_qr_image\": \"SVG\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "cross-origin-resource-policy",
+									"value": "cross-origin"
+								},
+								{
+									"key": "x-app-usage",
+									"value": "{\"call_count\":2,\"total_cputime\":0,\"total_time\":4}"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v17.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AmoOQGTJFcmUuZO8YUS3OKd"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "EItwrXJiz+3"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007848995"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "Ksgfum34ZCdBYgGDNUidde6xFR+1D4pD7Vr6IQji0TjOJT5QejgxGt7iyBbo0fEdKNZXB0QdimJ3Qv4mkvKyLw=="
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 17 Jul 2023 17:27:29 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "347"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"code\": \"ANED2T5QRU7HG1\",\n    \"prefilled_message\": \"Show me Cyber Monday deals!\",\n    \"deep_link_url\": \"https://wa.me/message/ANED2T5QRU7HG1\",\n    \"qr_image_url\": \"https://scontent-iad3-2.xx.fbcdn.net/m1/v/t6/An-psFmLBls2NFXnhhkSVqwIHEqCTQoNKTLxxlOeci0Wbsukd2RLiwZalHrXwqT5RTFSzOhyw6OLvJJO0itaQtJI1BS2WkNcV67wR3GNx7ZX1tFSNCbpo1e6KPptKF1GbVGzmUfkgSPX?ccb=10-5&oh=00_AfAOAr6oRA2OKV_Ur3GUh4em57sACxUkfhXHsObiFrxOsA&oe=64DCCEF6&_nc_sid=5a413f\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Message QR Code.",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"prefilled_message\": \"<PREFILLED_MESSAGE>\",\n    \"code\": \"<CODE>\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls"
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"prefilled_message\": \"Tell me about your new workshops\",\n    \"code\": \"WOMVT6TJ2BP7A1\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "cross-origin-resource-policy",
+									"value": "cross-origin"
+								},
+								{
+									"key": "x-app-usage",
+									"value": "{\"call_count\":2,\"total_cputime\":0,\"total_time\":7}"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v17.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ANM3JhD_nX6mId4j7RIjBgX"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "HFFijzWIcMZ"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007849776"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "zLJyZblKlLxBMqXnKHoVQeJglRBHI6oY7Pk8haMG9WkE3IVZVe5bv1wlXzAulmmkiwgzz3RFT/ds12C/i6y8Gg=="
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 17 Jul 2023 17:36:41 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "139"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"code\": \"WOMVT6TJ2BP7A1\",\n    \"prefilled_message\": \"Tell me about your new workshops\",\n    \"deep_link_url\": \"https://wa.me/message/WOMVT6TJ2BP7A1\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete QR code",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls/<QR_CODE_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-phone-number-id}}",
+								"message_qrdls",
+								"<QR_CODE_ID>"
+							]
+						},
+						"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)\n- Endpoint reference: [WhatsApp Business Phone Number > Message Qrdls](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account-to-number-current-status/message_qrdls/)"
+					},
+					"response": [
+						{
+							"name": "Example Response",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-phone-number-id}}/message_qrdls/AWHPX5O6XYVUM1",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-phone-number-id}}",
+										"message_qrdls",
+										"AWHPX5O6XYVUM1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "cross-origin-resource-policy",
+									"value": "cross-origin"
+								},
+								{
+									"key": "x-app-usage",
+									"value": "{\"call_count\":0,\"total_cputime\":0,\"total_time\":0}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AhAUBojpK310cV-2jph-xzV"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "AUimp6F3rsO"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007250199"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "7f+8MRyeBctLPWkPXoiwsf5fFghwJJ+g6XLnjpZpiF68Srv60WTH2pbvbeuJPhLWMqlzCWulba1OhzJPls4pUA=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 18:18:08 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				}
+			],
+			"description": "- Guide: [QR Codes](https://developers.facebook.com/docs/whatsapp/business-management-api/qr-codes)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Templates",
+			"item": [
+				{
+					"name": "Get template by ID (default fields)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/<TEMPLATE_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"<TEMPLATE_ID>"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Message Template](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-hsm/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/920070352646140",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"920070352646140"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"e5d8c11dc8393ffe82fb32bea775f609f0efcc87\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AQShOun0F8Erf0hMbGBGLmQ"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Hvd7hnyFd49"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007251231"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "svLARzFgDoUSQya1fv6vGYZoY4BkzPQToXrpR3W6k/OOk8NYFcZVvLhceUdli74kBn9gG8AobKUZdAljEF4NFw=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 18:49:23 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "362"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"name\": \"2023_april_promo\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"TEXT\",\n            \"text\": \"Fall Sale\"\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Hi {{1}}, our Fall Sale is on! Use promo code {{2}} Get an extra 25% off every order above $350!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"Mark\",\n                        \"FALL25\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"Not interested in any of our sales? Tap Stop Promotions\"\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"QUICK_REPLY\",\n                    \"text\": \"Stop promotions\"\n                }\n            ]\n        }\n    ],\n    \"language\": \"en_US\",\n    \"status\": \"APPROVED\",\n    \"category\": \"MARKETING\",\n    \"id\": \"920070352646140\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get template by name (default fields)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates?name=<TEMPLATE_NAME>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "<TEMPLATE_NAME>"
+								}
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates?name=2023_april_promo",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									],
+									"query": [
+										{
+											"key": "name",
+											"value": "2023_april_promo"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"27f9cd56fe671f038711cbf7136ec7f84da8987a\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AGWR1WfFKKo0s0TxB5GfuQn"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "HerPIJHngh2"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007276590"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "kDgYHRc3KXNszZd5J3o81ZZMUb/PWKShZbVlzINomeH3BtWE158Y+4fswKDUtStciJVunTEwVGX3YgTpkmbGNA=="
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 10 Apr 2023 23:27:16 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "391"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"name\": \"2023_april_promo\",\n            \"components\": [\n                {\n                    \"type\": \"HEADER\",\n                    \"format\": \"TEXT\",\n                    \"text\": \"Fall Sale\"\n                },\n                {\n                    \"type\": \"BODY\",\n                    \"text\": \"Hi {{1}}, our Fall Sale is on! Use promo code {{2}} Get an extra 25% off every order above $350!\",\n                    \"example\": {\n                        \"body_text\": [\n                            [\n                                \"Mark\",\n                                \"FALL25\"\n                            ]\n                        ]\n                    }\n                },\n                {\n                    \"type\": \"FOOTER\",\n                    \"text\": \"Not interested in any of our sales? Tap Stop Promotions\"\n                },\n                {\n                    \"type\": \"BUTTONS\",\n                    \"buttons\": [\n                        {\n                            \"type\": \"QUICK_REPLY\",\n                            \"text\": \"Stop promotions\"\n                        }\n                    ]\n                }\n            ],\n            \"language\": \"en_US\",\n            \"status\": \"REJECTED\",\n            \"category\": \"MARKETING\",\n            \"id\": \"920070352646140\"\n        }\n    ],\n    \"paging\": {\n        \"cursors\": {\n            \"before\": \"MAZDZD\",\n            \"after\": \"MjQZD\"\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get all templates (default fields)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"51f958583abc438d2081f013d228356c7be9b9cb\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "A3JwLvL_TNitEV6B9e0RloV"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "DdaerLa+9CB"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007251231"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "OMiFsmGF5A90+heFzqwF4JZ9/+d7uakMs29gu7fKBCEB31ThsTmzfX8ft/X3dBTHZNk8kYjTep2hwfep+aZ2Xw=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 18:46:29 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "590"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"name\": \"hello_world\",\n            \"previous_category\": \"ACCOUNT_UPDATE\",\n            \"components\": [\n                {\n                    \"type\": \"HEADER\",\n                    \"format\": \"TEXT\",\n                    \"text\": \"Hello World\"\n                },\n                {\n                    \"type\": \"BODY\",\n                    \"text\": \"Welcome and congratulations!! This message demonstrates your ability to send a message notification from WhatsApp Business Platform’s Cloud API. Thank you for taking the time to test with us.\"\n                },\n                {\n                    \"type\": \"FOOTER\",\n                    \"text\": \"WhatsApp Business API Team\"\n                }\n            ],\n            \"language\": \"en_US\",\n            \"status\": \"APPROVED\",\n            \"category\": \"MARKETING\",\n            \"id\": \"1192339204654487\"\n        },\n        {\n            \"name\": \"2023_april_promo\",\n            \"components\": [\n                {\n                    \"type\": \"HEADER\",\n                    \"format\": \"TEXT\",\n                    \"text\": \"Fall Sale\"\n                },\n                {\n                    \"type\": \"BODY\",\n                    \"text\": \"Hi {{1}}, our Fall Sale is on! Use promo code {{2}} Get an extra 25% off every order above $350!\",\n                    \"example\": {\n                        \"body_text\": [\n                            [\n                                \"Mark\",\n                                \"FALL25\"\n                            ]\n                        ]\n                    }\n                },\n                {\n                    \"type\": \"FOOTER\",\n                    \"text\": \"Not interested in any of our sales? Tap Stop Promotions\"\n                },\n                {\n                    \"type\": \"BUTTONS\",\n                    \"buttons\": [\n                        {\n                            \"type\": \"QUICK_REPLY\",\n                            \"text\": \"Stop promotions\"\n                        }\n                    ]\n                }\n            ],\n            \"language\": \"en_US\",\n            \"status\": \"APPROVED\",\n            \"category\": \"MARKETING\",\n            \"id\": \"920070352646140\"\n        }\n    ],\n    \"paging\": {\n        \"cursors\": {\n            \"before\": \"MAZDZD\",\n            \"after\": \"MjQZD\"\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get namespace",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}?fields=message_template_namespace",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}"
+							],
+							"query": [
+								{
+									"key": "fields",
+									"value": "message_template_namespace"
+								}
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}?fields=message_template_namespace",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "message_template_namespace"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"f3fe70e1e3b22c5aa9edd9d4430b0c5a9e78f68c\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "Amez7b9yCp8MnTQlGbo0AnF"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "EB5kGHWA89K"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007251231"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "jI6jeoezzMoKeb+HWbNzMiESQpSP/ZBpT0HLUdLgsaWMYrL0xDcINSox0i7lpqsiyoEsaQFngro4GtpMv+hpSw=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 05 Apr 2023 18:51:08 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "92"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message_template_namespace\": \"58e6d318_b627_4112_b9c7_2961197553ea\",\n    \"id\": \"104996122399160\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create authentication template w/ OTP copy code button",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"authentication_code_copy_code_button\",\n    \"language\": \"en_US\",\n    \"category\": \"AUTHENTICATION\",\n    \"components\": [\n        {\n            \"type\": \"BODY\",\n            \"add_security_recommendation\": true\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"code_expiration_minutes\": 10\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"OTP\",\n                    \"otp_type\": \"COPY_CODE\",\n                    \"text\": \"Copy Code\"\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Authentication Templates with OTP Buttons](https://developers.facebook.com/docs/whatsapp/business-management-api/authentication-templates)\n- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"authentication_code_copy_code_button\",\n    \"language\": \"en_US\",\n    \"category\": \"AUTHENTICATION\",\n    \"components\": [\n        {\n            \"type\": \"BODY\",\n            \"add_security_recommendation\": true\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"code_expiration_minutes\": 10\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"OTP\",\n                    \"otp_type\": \"COPY_CODE\",\n                    \"text\": \"Copy Code\"\n                }\n            ]\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"104996122399160\":[{\"type\":\"whatsapp_business_management\",\"call_count\":0,\"total_cputime\":0,\"total_time\":0,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AKDIp932lVvZuHIQyIS952l"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "G95hQDucvX9"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007468797"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "5laZch8UZd8gq/YUm4wPBo3Xo64o7SnELEqsMjdcW7ZIwi75buqMYyvxZXGOaCWur1/zh2hAQakRlkFkeJ7FKQ=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 20:33:46 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "73"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1473688840035974\",\n    \"status\": \"APPROVED\",\n    \"category\": \"AUTHENTICATION\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create authentication template w/ OTP one-tap autofill button",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"authentication_code_autofill_button\",\n    \"language\": \"en_US\",\n    \"category\": \"AUTHENTICATION\",\n    \"components\": [\n        {\n            \"type\": \"BODY\",\n            \"add_security_recommendation\": true\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"code_expiration_minutes\": 10\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"OTP\",\n                    \"otp_type\": \"ONE_TAP\",\n                    \"text\": \"Copy Code\",\n                    \"autofill_text\": \"Autofill\",\n                    \"package_name\": \"com.example.luckyshrub\",\n                    \"signature_hash\": \"K8a%2FAINcGX7\"\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Authentication Templates with OTP Buttons](https://developers.facebook.com/docs/whatsapp/business-management-api/authentication-templates)\n- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"authentication_code_autofill_button\",\n    \"language\": \"en_US\",\n    \"category\": \"AUTHENTICATION\",\n    \"components\": [\n        {\n            \"type\": \"BODY\",\n            \"add_security_recommendation\": true\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"code_expiration_minutes\": 10\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"OTP\",\n                    \"otp_type\": \"ONE_TAP\",\n                    \"text\": \"Copy Code\",\n                    \"autofill_text\": \"Autofill\",\n                    \"package_name\": \"com.example.luckyshrub\",\n                    \"signature_hash\": \"K8a%2FAINcGX7\"\n                }\n            ]\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"104996122399160\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ADlZKG2UmdFA85rJ2B8_Ozi"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "D+M6cMp+D1L"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007468797"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "//U2RB2hd4nk+GqaJM9kjVybDBP6Xw6k2lvMIpqAMJDKK8USOjNWRKbG5vpJNjp6y9N2a9zM1ZOhlE+4/5GB6w=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 21:04:23 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "72"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"771761447905391\",\n    \"status\": \"APPROVED\",\n    \"category\": \"AUTHENTICATION\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create catalog template",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"intro_catalog_offer\",\n    \"language\": \"en_US\",\n    \"category\": \"MARKETING\",\n    \"components\": [\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Now shop for your favourite products right here on WhatsApp! Get Rs {{1}} off on all orders above {{2}}Rs! Valid for your first {{3}} orders placed on WhatsApp!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"100\",\n                        \"400\",\n                        \"3\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"Best grocery deals on WhatsApp!\"\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"CATALOG\",\n                    \"text\": \"View catalog\"\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Catalog Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/catalog-templates)\n- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"authentication_code_autofill_button\",\n    \"language\": \"en_US\",\n    \"category\": \"AUTHENTICATION\",\n    \"components\": [\n        {\n            \"type\": \"BODY\",\n            \"add_security_recommendation\": true\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"code_expiration_minutes\": 10\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"OTP\",\n                    \"otp_type\": \"ONE_TAP\",\n                    \"text\": \"Copy Code\",\n                    \"autofill_text\": \"Autofill\",\n                    \"package_name\": \"com.example.luckyshrub\",\n                    \"signature_hash\": \"K8a%2FAINcGX7\"\n                }\n            ]\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"104996122399160\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "ADlZKG2UmdFA85rJ2B8_Ozi"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "D+M6cMp+D1L"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007468797"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "//U2RB2hd4nk+GqaJM9kjVybDBP6Xw6k2lvMIpqAMJDKK8USOjNWRKbG5vpJNjp6y9N2a9zM1ZOhlE+4/5GB6w=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 21:04:23 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "72"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"category\" : \"MARKETING\",\n    \"id\" : \"188720130491317\",\n    \"status\" : \"PENDING\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create multi-product message template",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"abandoned_cart\",\n    \"language\": \"en_US\",\n    \"category\": \"MARKETING\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"TEXT\",\n            \"text\": \"Forget something {{1}}?\",\n            \"example\": {\n                \"header_text\": [\n                    \"Pablo\"\n                ]\n            }\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Looks like you left some items in your cart! Use code {{1}} and you can get 10% off of all of them!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"10OFF\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\":\"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"MPM\",\n                    \"text\": \"View items\"\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Multi-Product Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates/mpm-templates)\n- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"abandoned_cart\",\n    \"language\": \"en_US\",\n    \"category\": \"MARKETING\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"TEXT\",\n            \"text\": \"Forget something {{1}}?\",\n            \"example\": {\n                \"header_text\": [\n                    \"Pablo\"\n                ]\n            }\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Looks like you left some items in your cart! Use code {{1}} and you can get 10% off of all of them!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"10OFF\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\":\"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"MPM\",\n                    \"text\": \"View items\"\n                }\n            ]\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"104996122399160\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "A3RpRCRYq_2lAy6Wxi8LHKA"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Bw/YMwRpjl4"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007468797"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "PUCQeqJ37UQ+sft7EingcX61vzlQ66E+YYidBn/TRmvZr4c+cmh/1L1Vi0IwsGuBeB1rTgXk4LrOevOiTagYMg=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 10 May 2023 21:28:52 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "67"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1986030731777856\",\n    \"status\": \"PENDING\",\n    \"category\": \"MARKETING\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create template w/ text header, text body, text footer, and 2 quick reply buttons",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"seasonal_promotion_text_only\",\n    \"language\": \"en\",\n    \"category\": \"MARKETING\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"TEXT\",\n            \"text\": \"Our {{1}} is on!\",\n            \"example\": {\n                \"header_text\": [\n                    \"Summer Sale\"\n                ]\n            }\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Shop now through {{1}} and use code {{2}} to get {{3}} off of all merchandise.\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"the end of August\",\"25OFF\",\"25%\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"Use the buttons below to manage your marketing subscriptions\"\n        },\n        {\n            \"type\":\"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"QUICK_REPLY\",\n                    \"text\": \"Unsubcribe from Promos\"\n                },\n                {\n                    \"type\":\"QUICK_REPLY\",\n                    \"text\": \"Unsubscribe from All\"\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"seasonal_promotion_text_only\",\n  \"language\": \"en\",\n  \"category\": \"MARKETING\",\n  \"components\": [\n    {\n      \"type\": \"HEADER\",\n      \"format\": \"TEXT\",\n      \"text\": \"Our {{1}} is on!\",\n      \"example\": {\n        \"header_text\": [\n          \"Summer Sale\"\n        ]\n      }\n    },\n    {\n      \"type\": \"BODY\",\n      \"text\": \"Shop now through {{1}} and use code {{2}} to get {{3}} off of all merchandise.\",\n      \"example\": {\n        \"body_text\": [\n          [\n            \"the end of August\",\"25OFF\",\"25%\"\n          ]\n        ]\n      }\n    },\n    {\n      \"type\": \"FOOTER\",\n      \"text\": \"Use the buttons below to manage your marketing subscriptions\"\n    },\n    {\n      \"type\":\"BUTTONS\",\n      \"buttons\": [\n        {\n          \"type\": \"QUICK_REPLY\",\n          \"text\": \"Unsubcribe from Promos\"\n        },\n        {\n          \"type\":\"QUICK_REPLY\",\n          \"text\": \"Unsubscribe from All\"\n        }\n      ]\n    }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AI_3T_tgo703qWCRyjGFo0Z"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "GsPSVe222Tl"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007262384"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "d9B0xsLYPaAGN0boQNCL6IKBUg7Y0ylgMRd9JiRdwb9d+wBe0TcvtpOvZ1RQ1s64QLIjemknt9ipTvNM5k7HVw=="
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 06 Apr 2023 21:34:33 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "67"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1627019861106475\",\n    \"status\": \"PENDING\",\n    \"category\": \"MARKETING\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create template w/ image header, text body, text footer, and 2 call-to-action buttons",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"limited_time_offer_tuscan_getaway_2023\",\n    \"language\": \"en_US\",\n    \"category\": \"MARKETING\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"IMAGE\",\n            \"example\": {\n                \"header_handle\": [\n                    \"4::aW...\"\n                ]\n            }\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Hi {{1}}! For a limited time only you can get our {{2}} for as low as {{3}}. Tap the Offer Details button for more information.\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"Mark\",\"Tuscan Getaway package\",\"800\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"Offer valid until May 31, 2023\"\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"PHONE_NUMBER\",\n                    \"text\": \"Call\",\n                    \"phone_number\": \"15550051310\"\n                },\n                {\n                    \"type\": \"URL\",\n                    \"text\": \"Shop Now\",\n                    \"url\": \"https://www.examplesite.com/shop?promo={{1}}\",\n                    \"example\": [\n                        \"summer2023\"\n                    ]\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"limited_time_offer_tuscan_getaway_2023\",\n  \"language\": \"en_US\",\n  \"category\": \"MARKETING\",\n  \"components\": [\n    {\n      \"type\": \"HEADER\",\n      \"format\": \"IMAGE\",\n      \"example\": {\n        \"header_handle\": [\n          \"4::aW1hZ2UvanBn:ARYytyb0kLp5htbBB8vWlclG5M9gMBxiEyt4FNCvrueWBOmFmRAztEuNtPGUnEC22Etc_SAAVU0YJOk3B7A-JuR1241_nq7gfITFxXKdDGnfvw:e:1681000441:634974688087057:100089620928913:ARbB4l0IPRncfMF-1sE\\n4::aW1hZ2UvanBn:ARZewDmbZuoq3rGUO1WgXjJEYcI1Tt7jr_Z6o2-oD5rg4--AQarBV_S1BYEcR8INJkctK0lNJmQ5v7PsBo-vqB-N0DSTe2-G6jHOlxKc12KSSg:e:1681000441:634974688087057:100089620928913:ARZQmT7tfO0sW--3oLo\\n4::aW1hZ2UvanBn:ARZkcJXFoEMa0YMMd2WQT8aVMJFaUPlSYW9xXshyh1bP-Pd6JP4t2VbrZezqGOEfC-acYkRZA5Q31FX7dEE_hQ9a-0i-b-RaueQrWO6vWk-7bQ:e:1681000441:634974688087057:100089620928913:ARYlgv7ErOQGsZYClfs\"\n        ]\n      }\n    },\n    {\n      \"type\": \"BODY\",\n      \"text\": \"Hi {{1}}! For a limited time only you can get our {{2}} for as low as {{3}}. Tap the Offer Details button for more information.\",\n      \"example\": {\n        \"body_text\": [\n          [\n            \"Mark\",\"Tuscan Getaway package\",\"800\"\n          ]\n        ]\n      }\n    },\n    {\n      \"type\": \"FOOTER\",\n      \"text\": \"Offer valid until May 31, 2023\"\n    },\n    {\n      \"type\": \"BUTTONS\",\n      \"buttons\": [\n        {\n          \"type\": \"PHONE_NUMBER\",\n          \"text\": \"Call\",\n          \"phone_number\": \"16467043595\"\n        },\n        {\n          \"type\": \"URL\",\n          \"text\": \"Shop Now\",\n          \"url\": \"https://damp-sea-63235.herokuapp.com/shop?promo={{1}}\",\n          \"example\": [\n            \"summer2023\"\n           ]\n        }\n      ]\n    }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "A8B59xsqDRPZs4cmEVzDXyW"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "EIhIwSCVG3y"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007263228"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "MCgT301EhTnmJPNQ3EvAkMyMb/+PcRdwjElfb/Ag/RkFLf37QJ2dZq6KZ/PKeWyksWL2JblPXyKF3uBeIMSyLQ=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 00:27:06 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "66"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"558456123149285\",\n    \"status\": \"PENDING\",\n    \"category\": \"MARKETING\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create template w/ location header, text body, text footer, and a website buttons",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"order_delivery_update\",\n    \"language\": \"en_US\",\n    \"category\": \"UTILITY\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"LOCATION\"\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Good news {{1}}! Your order #{{2}} is on its way to the location above. Thank you for your order!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"Mark\",\n                        \"566701\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"To stop receiving delivery updates, tap the button below.\"\n        },\n        {\n            \"type\":\"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"QUICK_REPLY\",\n                    \"text\": \"Stop Delivery Updates\"\n                }\n            ]\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"order_delivery_update\",\n    \"language\": \"en_US\",\n    \"category\": \"UTILITY\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"LOCATION\"\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Good news {{1}}! Your order #{{2}} is on its way to the location above. Thank you for your order!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"Mark\",\n                        \"566701\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"To stop receiving delivery updates, tap the button below.\"\n        },\n        {\n            \"type\":\"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"QUICK_REPLY\",\n                    \"text\": \"Stop Delivery Updates\"\n                }\n            ]\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AubwVT4uq_U6uQOGumC32Hn"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Hcn1fh7XKeE"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007266633"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "I5PZsVqJRarPN8lrGXwSOUDp5VtgobB98YBrVVqgAK6qIYAmci7WaCoXSKIxZ8ggtXH/6/pE413yIo3Gl4+DVw=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 05:36:15 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "65"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1667192013751005\",\n    \"status\": \"PENDING\",\n    \"category\": \"UTILITY\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create template w/ document header, text body, a phone number button, and a URL button",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"order_confirmation\",\n  \"language\": \"en_US\",\n  \"category\": \"UTILITY\",\n  \"components\": [\n    {\n      \"type\": \"HEADER\",\n      \"format\": \"DOCUMENT\",\n      \"example\": {\n        \"header_handle\": [\n          \"4::YXBwbGljYXRpb24vcGRm:ARZVv4zuogJMxmAdS3_6T4o_K4ll2806avA7rWpikisTzYPsXXUeKk0REjS-hIM1rYrizHD7rQXj951TKgUFblgd_BDWVROCwRkg9Vhjj-cHNQ:e:1681237341:634974688087057:100089620928913:ARa1ZDhwbLZM3EENeeg\"\n         ]\n      }\n    },\n    {\n      \"type\": \"BODY\",\n      \"text\": \"Thank you for your order, {{1}}! Your order number is {{2}}. Tap the PDF linked above to view your receipt. If you have any questions, please use the buttons below to contact support. Thanks again!\",\n      \"example\": {\n        \"body_text\": [\n          [\n            \"Mark\",\"860198-230332\"\n          ]\n        ]\n      }\n    },\n    {\n      \"type\": \"BUTTONS\",\n      \"buttons\": [\n        {\n          \"type\": \"PHONE_NUMBER\",\n          \"text\": \"Call\",\n          \"phone_number\": \"16467043595\"\n        },\n        {\n          \"type\": \"URL\",\n          \"text\": \"Contact Support\",\n          \"url\": \"https://www.examplesite.com/support\"\n        }\n      ]\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"order_confirmation\",\n  \"language\": \"en_US\",\n  \"category\": \"UTILITY\",\n  \"components\": [\n    {\n      \"type\": \"HEADER\",\n      \"format\": \"DOCUMENT\",\n      \"example\": {\n        \"header_handle\": [\n          \"4::YXBwbGljYXRpb24vcGRm:ARZVv4zuogJMxmAdS3_6T4o_K4ll2806avA7rWpikisTzYPsXXUeKk0REjS-hIM1rYrizHD7rQXj951TKgUFblgd_BDWVROCwRkg9Vhjj-cHNQ:e:1681237341:634974688087057:100089620928913:ARa1ZDhwbLZM3EENeeg\"\n         ]\n      }\n    },\n    {\n      \"type\": \"BODY\",\n      \"text\": \"Thank you for your order, {{1}}! Your order number is {{2}}. Tap the PDF linked above to view your receipt. If you have any questions, please use the buttons below to contact support. Thanks again!\",\n      \"example\": {\n        \"body_text\": [\n          [\n            \"Mark\",\"860198-230332\"\n          ]\n        ]\n      }\n    },\n    {\n      \"type\": \"BUTTONS\",\n      \"buttons\": [\n        {\n          \"type\": \"PHONE_NUMBER\",\n          \"text\": \"Call\",\n          \"phone_number\": \"16467043595\"\n        },\n        {\n          \"type\": \"URL\",\n          \"text\": \"Contact Support\",\n          \"url\": \"https://www.examplesite.com/support\"\n        }\n      ]\n    }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "A4STUhm0XiMwJTlYq_PrDV9"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "GLyPiVKuWzq"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "r8Ry/p8JFtsdtanUNO3CVXgTd2XQz+r+8BFIk0zjFPXXxOoaHwNiCyGZcPpsLDpBdP/XyP64DugpEKm/YOqaDw=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 18:52:24 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "65"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1689556908129832\",\n    \"status\": \"PENDING\",\n    \"category\": \"UTILITY\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Edit template",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"2023_april_promo\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"TEXT\",\n            \"text\": \"Fall Sale\"\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Hi {{1}}, our Fall Sale is on! Use promo code {{2}} Get an extra 25% off every order above $350!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"Mark\",\n                        \"FALL25\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"Not interested in any of our sales? Tap Stop Promotions\"\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"QUICK_REPLY\",\n                    \"text\": \"Stop promotions\"\n                }\n            ]\n        }\n    ],\n    \"language\": \"en_US\",\n    \"category\": \"MARKETING\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/<TEMPLATE_ID>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"<TEMPLATE_ID>"
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Message Template](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-hsm/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"2023_april_promo\",\n    \"components\": [\n        {\n            \"type\": \"HEADER\",\n            \"format\": \"TEXT\",\n            \"text\": \"Fall Sale\"\n        },\n        {\n            \"type\": \"BODY\",\n            \"text\": \"Hi {{1}}, our Fall Sale is on! Use promo code {{2}} Get an extra 25% off every order above $350!\",\n            \"example\": {\n                \"body_text\": [\n                    [\n                        \"Mark\",\n                        \"FALL25\"\n                    ]\n                ]\n            }\n        },\n        {\n            \"type\": \"FOOTER\",\n            \"text\": \"Not interested in any of our sales? Tap Stop Promotions\"\n        },\n        {\n            \"type\": \"BUTTONS\",\n            \"buttons\": [\n                {\n                    \"type\": \"QUICK_REPLY\",\n                    \"text\": \"Stop promotions\"\n                }\n            ]\n        }\n    ],\n    \"language\": \"en_US\",\n    \"category\": \"MARKETING\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/920070352646140",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"920070352646140"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"634974688087057\":[{\"type\":\"whatsapp_business_management\",\"call_count\":0,\"total_cputime\":0,\"total_time\":0,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AxL3yVE-rzEh1hPOKywIZDW"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "BfPPcrAeZzp"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "zbNYNbDIkRVjsYZD3iU+7DGcNYKDv3s4901qpUuDTKGBq20h5dU5YjKCRIlIc2+Mzs/ZqnnGk0U68tK3eYVjvA=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 19:32:22 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete template by name",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates?name=<TEMPLATE_NAME>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "<TEMPLATE_NAME>"
+								}
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates?name=seasonal_promotion_text_only",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									],
+									"query": [
+										{
+											"key": "name",
+											"value": "seasonal_promotion_text_only"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AQ2o2PPr2PzuzjL5VZnyNRs"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "GJFtrOLrU++"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007262384"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "4JujrkREfj7kXJ4hfIYNWM5BsnPHtocabFGJw3lBKCBCBKxPEdf1g4UCOFBVskGCoG28U17u3ysbIQxbvlhIOg=="
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 06 Apr 2023 21:00:35 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete template by ID",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates?hsm_id=<HSM_ID>&name=<NAME>",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"message_templates"
+							],
+							"query": [
+								{
+									"key": "hsm_id",
+									"value": "<HSM_ID>",
+									"description": "Template ID"
+								},
+								{
+									"key": "name",
+									"value": "<NAME>",
+									"description": "Template name"
+								}
+							]
+						},
+						"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)\n- Endpoint reference: [WhatsApp Business Account > Message Templates](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/message_templates/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/message_templates?hsm_id=1407680676729941&name=order_confirmation",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"message_templates"
+									],
+									"query": [
+										{
+											"key": "hsm_id",
+											"value": "1407680676729941"
+										},
+										{
+											"key": "name",
+											"value": "order_confirmation"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AdYqACouwJuFZWuJ6z-Zb-6"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "ADp6tYI5dOX"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007383760"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "bZ8hhZfdE97MVE74znlGSPtmnavHwev8Zkxa0dKIYEozk4+GVC1MXXCGbrfC25WV0ku5G1VmB3u7M9uq9ye/2w=="
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 26 Apr 2023 22:10:27 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				}
+			],
+			"description": "- Guide: [Message Templates](https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates)\n- Guide: [How To Monitor Quality Signals](https://developers.facebook.com/docs/whatsapp/guides/how-to-monitor-quality-signals)"
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "Get all apps subscribed to WABA's webhooks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/subscribed_apps",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"subscribed_apps"
+							]
+						},
+						"description": "- Guide: [Webhooks](https://developers.facebook.com/docs/whatsapp/business-management-api/guides/set-up-webhooks)\n- Endpoint reference: [WhatsApp Business Account > Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/subscribed_apps)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"subscribed_apps"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"f6275804731fa4ef6316d247dc91df6785da77b2\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "APGh5TlCu4eg7VzPj_aw2o8"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "GykvZIffPyl"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "zKh1SOmMXyOA100aGp2Uzz8hPiGQzfkzvQYcllKRvb+R9laq8V//NLESAdXmIMeJOQ++O5fIE109Ml8ptCoMNg=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 20:19:18 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "159"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"whatsapp_business_api_data\": {\n                \"link\": \"https://www.facebook.com/games/?app_id=634974688087057\",\n                \"name\": \"MuttonTop Media\",\n                \"id\": \"634974688087057\"\n            }\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Subscribe app to WABA's webhooks",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/subscribed_apps",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"subscribed_apps"
+							]
+						},
+						"description": "- Guide: [Webhooks](https://developers.facebook.com/docs/whatsapp/business-management-api/guides/set-up-webhooks)\n- Endpoint reference: [WhatsApp Business Account > Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/subscribed_apps)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"subscribed_apps"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "A7bjA-cWMeyPgzE8tW2ECuw"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Ax+Dfc+OYKd"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "BovZLBXelV9Y98i3XY9BML6g9fcuQFun6u6dknSTzWG9+kHJUQ97P0Seft5dOAuJKQHDrTkh3q7DkVGaqvMLHw=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 20:32:10 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				},
+				{
+					"name": "Unsubscribe app from WABA's webhooks",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/subscribed_apps",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}",
+								"subscribed_apps"
+							]
+						},
+						"description": "- Guide: [Webhooks](https://developers.facebook.com/docs/whatsapp/business-management-api/guides/set-up-webhooks)\n- Endpoint reference: [WhatsApp Business Account > Subscribed Apps](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/subscribed_apps)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}/subscribed_apps",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}",
+										"subscribed_apps"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AnfhDzYVxHSbuFYdkxpi3uG"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "CnJVgoggfUR"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007268877"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "mw9Vkv3us71gf3430EpXv4GH97KzlYtKIVCD2p+JHuaQ5INCKrMVV6ejbzjVy0KceM48gcf+2ezJCkcOL/eBZw=="
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 07 Apr 2023 20:31:50 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "16"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true\n}"
+						}
+					]
+				}
+			],
+			"description": "- Guide: [Webhooks](https://developers.facebook.com/docs/whatsapp/business-management-api/guides/set-up-webhooks)\n- Guide: [Webhook Components](https://developers.facebook.com/docs/whatsapp/business-management-api/webhooks/components)"
+		},
+		{
+			"name": "WhatsApp Business Accounts (WABA)",
+			"item": [
+				{
+					"name": "Get WABA",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{waba-id}}"
+							]
+						},
+						"description": "- Endpoint reference: [WhatsApp Business Account](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{waba-id}}",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{waba-id}}"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "ETag",
+									"value": "\"c39946d41277419f1b3eb1f9761f2068612715ed\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "AuECIG8CyNuAbaHekReCMDU"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "Au3qI883HZc"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007269544"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "Ja/wv3Ohd34TUOD8zF8ba70aUikGGCX1SwPAPuFErmXs69aTDV0YPXaxA2Xdj+bpGHniTzMRpaJYaOyGZYEtLA=="
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 08 Apr 2023 01:05:37 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "150"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"104996122399160\",\n    \"name\": \"Lucky Shrub\",\n    \"timezone_id\": \"1\",\n    \"message_template_namespace\": \"58e6d318_b627_4112_b9c7_2961197553ea\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get all shared WABAs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-account-id}}/client_whatsapp_business_accounts",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-account-id}}",
+								"client_whatsapp_business_accounts"
+							]
+						},
+						"description": "Endpoint reference: [Business > Extended Credits](https://developers.facebook.com/docs/marketing-api/reference/business/extendedcredits/)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get all owned WABAs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://graph.facebook.com/{{api-version}}/{{business-account-id}}/owned_whatsapp_business_accounts",
+							"protocol": "https",
+							"host": [
+								"graph",
+								"facebook",
+								"com"
+							],
+							"path": [
+								"{{api-version}}",
+								"{{business-account-id}}",
+								"owned_whatsapp_business_accounts"
+							]
+						},
+						"description": "Endpoint reference: [Business > Extended Credits](https://developers.facebook.com/docs/marketing-api/reference/business/extendedcredits/)"
+					},
+					"response": [
+						{
+							"name": "Example response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://graph.facebook.com/{{api-version}}/{{business-account-id}}/owned_whatsapp_business_accounts",
+									"protocol": "https",
+									"host": [
+										"graph",
+										"facebook",
+										"com"
+									],
+									"path": [
+										"{{api-version}}",
+										"{{business-account-id}}",
+										"owned_whatsapp_business_accounts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "ETag",
+									"value": "\"366ab827015bbd04e3737a8e0e33b755ebdb1190\""
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=UTF-8"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept-Encoding"
+								},
+								{
+									"key": "x-business-use-case-usage",
+									"value": "{\"102290129340398\":[{\"type\":\"whatsapp_business_management\",\"call_count\":1,\"total_cputime\":1,\"total_time\":1,\"estimated_time_to_regain_access\":0}],\"104996122399160\":[{\"type\":\"whatsapp_business_management\",\"call_count\":0,\"total_cputime\":0,\"total_time\":0,\"estimated_time_to_regain_access\":0}]}"
+								},
+								{
+									"key": "x-fb-rlafr",
+									"value": "0"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "facebook-api-version",
+									"value": "v16.0"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; preload"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "private, no-cache, no-store, must-revalidate"
+								},
+								{
+									"key": "Expires",
+									"value": "Sat, 01 Jan 2000 00:00:00 GMT"
+								},
+								{
+									"key": "x-fb-request-id",
+									"value": "Ah4MqTo1ZUzj81zkb2XbBje"
+								},
+								{
+									"key": "x-fb-trace-id",
+									"value": "EjCBhZpFH17"
+								},
+								{
+									"key": "x-fb-rev",
+									"value": "1007269544"
+								},
+								{
+									"key": "X-FB-Debug",
+									"value": "VZi3ZGTNb0Rd+lKKWI0HEaur9OTNIBff6mO7rsXN/IeCzQa8AcsdK0ef8XPzSYrHjrpTulugwFludywozAfNOQ=="
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 08 Apr 2023 01:06:45 GMT"
+								},
+								{
+									"key": "Alt-Svc",
+									"value": "h3=\":443\"; ma=86400"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Length",
+									"value": "422"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": [\n        {\n            \"id\": \"104996122399160\",\n            \"name\": \"Lucky Shrub\",\n            \"timezone_id\": \"1\",\n            \"message_template_namespace\": \"58e6d318_b627_4112_b9c7_2961197553ea\"\n        },\n        {\n            \"id\": \"102290129340398\",\n            \"name\": \"Test WhatsApp Business Account\",\n            \"timezone_id\": \"1\",\n            \"message_template_namespace\": \"ba30dd89_2ebd_41e4_b805_f2c05ae04cc9\"\n        }\n    ],\n    \"paging\": {\n        \"cursors\": {\n            \"before\": \"QVFIUnpPVXRnY3BPN19rTVItOG51T291YURjV3BaeXRXU29adDVreS04ekhSNl9YWTlfdmN3SHlyTEk1a2FRdnlWanBqM1FuQm1uZAHhfYl9UMTNCYjM3MWV3\",\n            \"after\": \"QVFIUjBrRUs5QVJuUDhDSmZARMlc2dXRYNXBmMjMtRUt3SmFlbk9PRk43azdiN1VQaW1HcnRkejFzZATNoNDdTdGVWMDhjamVvY25HWnI4WjIzX0hYSk40NHhB\"\n        }\n    }\n}"
+						}
+					]
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access-token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({",
+					"    key: 'User-Agent',",
+					"    value: 'Postman/WhatsAppBusinessManagementCollection'",
+					"});"
+				]
+			}
+		}
+	]
+}
