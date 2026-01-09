@@ -14,6 +14,10 @@ const maxKnowledgeLength = 600;
 const defaultMemoryHours = 6;
 const defaultHistoryMessages = 12;
 
+function normalizePhone(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
 function buildKnowledgeContext(
   entries: Array<{ title?: string; content?: string }>,
 ): string {
@@ -36,6 +40,19 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const verifyToken = Deno.env.get("WHATSAPP_WEBHOOK_TOKEN") ?? "";
+
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const mode = url.searchParams.get("hub.mode");
+    const token = url.searchParams.get("hub.verify_token");
+    const challenge = url.searchParams.get("hub.challenge");
+    if (mode === "subscribe" && token && token === verifyToken && challenge) {
+      return new Response(challenge, { status: 200, headers: corsHeaders });
+    }
+    return new Response("Forbidden", { status: 403, headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -43,20 +60,33 @@ serve(async (req) => {
     });
   }
 
-  const inboundToken = Deno.env.get("MOCK_WHATSAPP_TOKEN") ?? "";
-  const requestToken = req.headers.get("x-api-key") ?? "";
-  if (inboundToken.length > 0 && inboundToken !== requestToken) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
   const body = await req.json().catch(() => ({}));
   let tenantId = (body.tenant_id ?? body.tenantId) as string | undefined;
-  const messageText = (body.message ?? body.text ?? body.body) as string | undefined;
-  const phone = (body.phone ?? body.from) as string | undefined;
-  const contactName = (body.contact_name ?? body.contactName ?? body.name ?? phone) as string | undefined;
+  let phoneNumberId = (body.phone_number_id ?? body.phoneNumberId) as string | undefined;
+  let messageText = (body.message ?? body.text ?? body.body) as string | undefined;
+  let phone = (body.phone ?? body.from) as string | undefined;
+  let contactName = (body.contact_name ?? body.contactName ?? body.name ?? phone) as string | undefined;
+
+  if (!messageText && body?.entry) {
+    const entry = Array.isArray(body.entry) ? body.entry[0] : null;
+    const change = entry?.changes?.[0];
+    const value = change?.value ?? {};
+    const message = Array.isArray(value.messages) ? value.messages[0] : null;
+    if (!message) {
+      return new Response(JSON.stringify({ status: "ignored" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    phone = message.from ?? phone;
+    phoneNumberId = value?.metadata?.phone_number_id ?? phoneNumberId;
+    contactName = value?.contacts?.[0]?.profile?.name ?? contactName ?? phone;
+    messageText = message?.text?.body ??
+      message?.image?.caption ??
+      message?.video?.caption ??
+      message?.document?.caption ??
+      `[${message.type ?? "mesaj"}]`;
+  }
 
   if (!tenantId) {
     tenantId = Deno.env.get("DEFAULT_TENANT_ID") ??
@@ -72,8 +102,20 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
+  const whatsappPhoneNumberId = phoneNumberId ??
+    Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
+  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
+  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
+    "https://graph.facebook.com";
   if (!supabaseUrl || !supabaseServiceKey) {
     return new Response(JSON.stringify({ error: "Server config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+  if (!whatsappToken || !whatsappPhoneNumberId) {
+    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
@@ -277,21 +319,33 @@ serve(async (req) => {
     .update({ last_message: reply, updated_at: replyAt })
     .eq("id", conversation.id);
 
-  const mockUrl = Deno.env.get("MOCK_WHATSAPP_URL") ?? "";
-  if (mockUrl.length > 0) {
-    await fetch(mockUrl, {
+  const to = normalizePhone(phone);
+  const sendResponse = await fetch(
+    `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappPhoneNumberId}/messages`,
+    {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(inboundToken.length > 0 ? { "x-api-key": inboundToken } : {}),
+        Authorization: `Bearer ${whatsappToken}`,
       },
       body: JSON.stringify({
-        tenant_id: tenantId,
-        conversation_id: conversation.id,
-        to: phone,
-        body: reply,
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: "text",
+        text: {
+          body: reply,
+        },
       }),
-    }).catch(() => {});
+    },
+  );
+
+  if (!sendResponse.ok) {
+    const errorText = await sendResponse.text();
+    return new Response(JSON.stringify({ error: errorText }), {
+      status: 502,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 
   return new Response(

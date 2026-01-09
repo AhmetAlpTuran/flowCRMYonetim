@@ -39,6 +39,17 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
+  const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
+  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
+  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
+    "https://graph.facebook.com";
+  if (!whatsappToken || !whatsappPhoneNumberId) {
+    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
 
   const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -87,10 +98,23 @@ serve(async (req) => {
     });
   }
 
+  const { data: template } = await supabaseService
+    .from("templates")
+    .select("name, language, components")
+    .eq("id", campaign.template_id)
+    .maybeSingle();
+
+  if (!template) {
+    return new Response(JSON.stringify({ error: "Template not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
   const filter = (campaign.audience_filter ?? {}) as Record<string, unknown>;
   let contactsQuery = supabaseService
     .from("contacts")
-    .select("id, tags, last_contacted_at")
+    .select("id, tags, last_contacted_at, phone")
     .eq("tenant_id", campaign.tenant_id);
 
   if (typeof filter.segment === "string") {
@@ -107,14 +131,73 @@ serve(async (req) => {
   }
 
   const { data: contacts } = await contactsQuery.limit(100);
-  const jobs = (contacts ?? []).map((contact) => ({
-    tenant_id: campaign.tenant_id,
-    campaign_id: campaign.id,
-    contact_id: contact.id,
-    template_id: campaign.template_id,
-    status: "sent",
-    attempts: 1,
-  }));
+  const jobs = [];
+  let sent = 0;
+  let failed = 0;
+
+  for (const contact of contacts ?? []) {
+    const to = String(contact.phone ?? "").replace(/\D/g, "");
+    if (!to) {
+      failed += 1;
+      jobs.push({
+        tenant_id: campaign.tenant_id,
+        campaign_id: campaign.id,
+        contact_id: contact.id,
+        template_id: campaign.template_id,
+        status: "failed",
+        attempts: 1,
+        last_error: "Contact phone missing",
+      });
+      continue;
+    }
+
+    const response = await fetch(
+      `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappPhoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${whatsappToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to,
+          type: "template",
+          template: {
+            name: template.name,
+            language: { code: template.language },
+            components: template.components ?? [],
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      failed += 1;
+      jobs.push({
+        tenant_id: campaign.tenant_id,
+        campaign_id: campaign.id,
+        contact_id: contact.id,
+        template_id: campaign.template_id,
+        status: "failed",
+        attempts: 1,
+        last_error: errorText,
+      });
+      continue;
+    }
+
+    sent += 1;
+    jobs.push({
+      tenant_id: campaign.tenant_id,
+      campaign_id: campaign.id,
+      contact_id: contact.id,
+      template_id: campaign.template_id,
+      status: "sent",
+      attempts: 1,
+    });
+  }
 
   if (jobs.length > 0) {
     await supabaseService.from("message_jobs").insert(jobs);
@@ -128,8 +211,8 @@ serve(async (req) => {
   return new Response(
     JSON.stringify({
       status: "ok",
-      sent: jobs.length,
-      failed: 0,
+      sent,
+      failed,
     }),
     {
       status: 200,

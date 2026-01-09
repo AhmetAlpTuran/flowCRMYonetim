@@ -44,6 +44,17 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
+  const whatsappWabaId = Deno.env.get("WHATSAPP_WABA_ID") ?? "";
+  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
+  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
+    "https://graph.facebook.com";
+  if (!whatsappToken || !whatsappWabaId) {
+    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
 
   const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -79,6 +90,34 @@ serve(async (req) => {
     });
   }
 
+  const createResponse = await fetch(
+    `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappWabaId}/message_templates`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${whatsappToken}`,
+      },
+      body: JSON.stringify({
+        name,
+        language,
+        category,
+        components,
+      }),
+    },
+  );
+
+  if (!createResponse.ok) {
+    const errorText = await createResponse.text();
+    return new Response(JSON.stringify({ error: errorText }), {
+      status: 502,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const createPayload = await createResponse.json();
+  const apiStatus = createPayload?.status ?? "Beklemede";
+
   const { data, error } = await supabaseService
     .from("templates")
     .insert({
@@ -86,7 +125,7 @@ serve(async (req) => {
       name,
       category,
       language,
-      status: "Beklemede",
+      status: apiStatus,
       components,
     })
     .select("id")
@@ -99,7 +138,11 @@ serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify({ status: "ok", template_id: data.id }), {
+  return new Response(JSON.stringify({
+    status: "ok",
+    template_id: data.id,
+    whatsapp_status: apiStatus,
+  }), {
     status: 200,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });

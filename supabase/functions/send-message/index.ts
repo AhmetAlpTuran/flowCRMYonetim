@@ -42,6 +42,17 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
+  const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
+  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
+  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
+    "https://graph.facebook.com";
+  if (!whatsappToken || !whatsappPhoneNumberId) {
+    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -72,6 +83,62 @@ serve(async (req) => {
     });
   }
 
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id, contact_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  if (!conversation?.contact_id) {
+    return new Response(JSON.stringify({ error: "Contact not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("phone")
+    .eq("id", conversation.contact_id)
+    .maybeSingle();
+
+  if (!contact?.phone) {
+    return new Response(JSON.stringify({ error: "Contact phone missing" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const sendResponse = await fetch(
+    `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappPhoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${whatsappToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: String(contact.phone).replace(/\D/g, ""),
+        type: "text",
+        text: {
+          body: text,
+        },
+      }),
+    },
+  );
+
+  if (!sendResponse.ok) {
+    const errorText = await sendResponse.text();
+    return new Response(JSON.stringify({ error: errorText }), {
+      status: 502,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const sendPayload = await sendResponse.json();
+  const waMessageId = sendPayload?.messages?.[0]?.id ?? null;
   const now = new Date().toISOString();
 
   const { error: insertError } = await supabase.from("messages").insert({
@@ -95,23 +162,7 @@ serve(async (req) => {
     .update({ last_message: text, updated_at: now })
     .eq("id", conversationId);
 
-  const replyText = `Mock yanit: ${text}`;
-
-  await supabase.from("messages").insert({
-    tenant_id: tenantId,
-    conversation_id: conversationId,
-    sender: "WhatsApp (Mock)",
-    body: replyText,
-    is_from_customer: true,
-    sent_at: now,
-  });
-
-  await supabase
-    .from("conversations")
-    .update({ last_message: replyText, updated_at: now })
-    .eq("id", conversationId);
-
-  return new Response(JSON.stringify({ status: "ok", reply: replyText }), {
+  return new Response(JSON.stringify({ status: "ok", wa_message_id: waMessageId }), {
     status: 200,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
