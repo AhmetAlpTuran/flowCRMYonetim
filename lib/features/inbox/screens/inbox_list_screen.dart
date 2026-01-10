@@ -271,6 +271,13 @@ class _ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final time = _formatTime(conversation.updatedAt, context);
     final hasUnread = conversation.unreadCount > 0;
+    final openedAt = conversation.lastOpenedAt;
+    final openedRole = _roleLabel(conversation.lastOpenedRole);
+    final openedLabel = openedAt != null
+        ? openedRole == null
+            ? 'Goruldu ${_formatTime(openedAt, context)}'
+            : 'Goruldu ${_formatTime(openedAt, context)} • $openedRole'
+        : null;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -337,7 +344,7 @@ class _ConversationTile extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant,
-                              ),
+                          ),
                         ),
                       ),
                       if (hasUnread) ...[
@@ -362,6 +369,27 @@ class _ConversationTile extends StatelessWidget {
                       ],
                     ],
                   ),
+                  if (!hasUnread && openedLabel != null) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.visibility_outlined,
+                          size: 14,
+                          color: Colors.black45,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          openedLabel,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
@@ -418,6 +446,17 @@ class _ConversationTile extends StatelessWidget {
     final first = parts.first.isNotEmpty ? parts.first[0] : '';
     final last = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
     return (first + last).toUpperCase();
+  }
+
+  String? _roleLabel(String? role) {
+    switch (role) {
+      case 'admin':
+        return 'Yonetici';
+      case 'user':
+        return 'Temsilci';
+      default:
+        return null;
+    }
   }
 }
 

@@ -148,6 +148,8 @@ serve(async (req) => {
     body: text,
     is_from_customer: false,
     sent_at: now,
+    wa_message_id: waMessageId,
+    wa_status: "sent",
   });
 
   if (insertError) {

@@ -35,6 +35,17 @@ function buildKnowledgeContext(
   return lines.join("\n");
 }
 
+function parseWebhookTimestamp(value?: string): string | null {
+  if (!value) {
+    return null;
+  }
+  const seconds = Number(value);
+  if (Number.isNaN(seconds)) {
+    return null;
+  }
+  return new Date(seconds * 1000).toISOString();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -61,16 +72,73 @@ serve(async (req) => {
   }
 
   const body = await req.json().catch(() => ({}));
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
+  const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
+  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
+  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
+    "https://graph.facebook.com";
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: "Server config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+  if (!whatsappToken) {
+    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false },
+  });
+
+  const entry = Array.isArray(body.entry) ? body.entry[0] : null;
+  const change = entry?.changes?.[0];
+  const value = change?.value ?? {};
+  const statuses = Array.isArray(value?.statuses) ? value.statuses : [];
+  if (statuses.length > 0) {
+    for (const status of statuses) {
+      const messageId = status?.id as string | undefined;
+      if (!messageId) {
+        continue;
+      }
+      const state = status?.status as string | undefined;
+      const timestamp = parseWebhookTimestamp(status?.timestamp as string | undefined);
+      const updates: Record<string, string> = {};
+      if (state) {
+        updates.wa_status = state;
+      }
+      if (timestamp && state == "delivered") {
+        updates.delivered_at = timestamp;
+      }
+      if (timestamp && state == "read") {
+        updates.read_at = timestamp;
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from("messages")
+          .update(updates)
+          .eq("wa_message_id", messageId);
+      }
+    }
+    return new Response(JSON.stringify({ status: "ok" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
   let tenantId = (body.tenant_id ?? body.tenantId) as string | undefined;
   let phoneNumberId = (body.phone_number_id ?? body.phoneNumberId) as string | undefined;
   let messageText = (body.message ?? body.text ?? body.body) as string | undefined;
   let phone = (body.phone ?? body.from) as string | undefined;
-  let contactName = (body.contact_name ?? body.contactName ?? body.name ?? phone) as string | undefined;
+  let contactName = (body.contact_name ?? body.contactName ?? body.name ?? phone)
+    as string | undefined;
 
-  if (!messageText && body?.entry) {
-    const entry = Array.isArray(body.entry) ? body.entry[0] : null;
-    const change = entry?.changes?.[0];
-    const value = change?.value ?? {};
+  if (!messageText && entry) {
     const message = Array.isArray(value.messages) ? value.messages[0] : null;
     if (!message) {
       return new Response(JSON.stringify({ status: "ignored" }), {
@@ -100,30 +168,7 @@ serve(async (req) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
-  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
-  const whatsappPhoneNumberId = phoneNumberId ??
-    Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
-  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
-  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
-    "https://graph.facebook.com";
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return new Response(JSON.stringify({ error: "Server config missing" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-  if (!whatsappToken || !whatsappPhoneNumberId) {
-    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
+  const activePhoneNumberId = phoneNumberId ?? whatsappPhoneNumberId;
 
   const now = new Date().toISOString();
 
@@ -162,7 +207,7 @@ serve(async (req) => {
 
   let { data: conversation } = await supabase
     .from("conversations")
-    .select("id, title")
+    .select("id, title, unread_count")
     .eq("tenant_id", tenantId)
     .eq("contact_id", contact.id)
     .order("updated_at", { ascending: false })
@@ -182,7 +227,7 @@ serve(async (req) => {
         unread_count: 1,
         updated_at: now,
       })
-      .select("id, title")
+      .select("id, title, unread_count")
       .single();
     conversation = created ?? null;
   }
@@ -203,9 +248,15 @@ serve(async (req) => {
     sent_at: now,
   });
 
+  const unreadCount = (conversation?.unread_count ?? 0) + 1;
   await supabase
     .from("conversations")
-    .update({ last_message: messageText, updated_at: now, status: "open" })
+    .update({
+      last_message: messageText,
+      updated_at: now,
+      status: "open",
+      unread_count: unreadCount,
+    })
     .eq("id", conversation.id);
 
   const { data: botSettings } = await supabase
@@ -302,26 +353,9 @@ serve(async (req) => {
   const reply = (aiJson?.choices?.[0]?.message?.content as string | undefined)
     ?.trim() ?? "Size nasil yardimci olabilirim?";
 
-  const replyAt = new Date().toISOString();
-  const senderName = botSettings?.name ?? "Bot";
-
-  await supabase.from("messages").insert({
-    tenant_id: tenantId,
-    conversation_id: conversation.id,
-    sender: senderName,
-    body: reply,
-    is_from_customer: false,
-    sent_at: replyAt,
-  });
-
-  await supabase
-    .from("conversations")
-    .update({ last_message: reply, updated_at: replyAt })
-    .eq("id", conversation.id);
-
   const to = normalizePhone(phone);
   const sendResponse = await fetch(
-    `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappPhoneNumberId}/messages`,
+    `${whatsappBaseUrl}/${whatsappApiVersion}/${activePhoneNumberId}/messages`,
     {
       method: "POST",
       headers: {
@@ -347,6 +381,27 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
+
+  const sendPayload = await sendResponse.json();
+  const waMessageId = sendPayload?.messages?.[0]?.id ?? null;
+  const replyAt = new Date().toISOString();
+  const senderName = botSettings?.name ?? "Bot";
+
+  await supabase.from("messages").insert({
+    tenant_id: tenantId,
+    conversation_id: conversation.id,
+    sender: senderName,
+    body: reply,
+    is_from_customer: false,
+    sent_at: replyAt,
+    wa_message_id: waMessageId,
+    wa_status: "sent",
+  });
+
+  await supabase
+    .from("conversations")
+    .update({ last_message: reply, updated_at: replyAt })
+    .eq("id", conversation.id);
 
   return new Response(
     JSON.stringify({

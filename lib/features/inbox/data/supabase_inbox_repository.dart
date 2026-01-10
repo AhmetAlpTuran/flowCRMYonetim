@@ -38,6 +38,7 @@ class SupabaseInboxRepository {
   }
 
   Conversation _fromConversation(Map<String, dynamic> row) {
+    final lastOpened = row['last_opened_at'] as String?;
     return Conversation(
       id: row['id'] as String,
       title: row['title'] as String,
@@ -46,10 +47,15 @@ class SupabaseInboxRepository {
       unreadCount: (row['unread_count'] as int?) ?? 0,
       status: _statusFromString(row['status'] as String),
       tags: List<String>.from(row['tags'] as List<dynamic>? ?? const []),
+      lastOpenedAt: lastOpened == null ? null : DateTime.parse(lastOpened),
+      lastOpenedBy: row['last_opened_by'] as String?,
+      lastOpenedRole: row['last_opened_role'] as String?,
     );
   }
 
   Message _fromMessage(Map<String, dynamic> row) {
+    final deliveredAt = row['delivered_at'] as String?;
+    final readAt = row['read_at'] as String?;
     return Message(
       id: row['id'] as String,
       conversationId: row['conversation_id'] as String,
@@ -57,6 +63,10 @@ class SupabaseInboxRepository {
       text: row['body'] as String,
       sentAt: DateTime.parse(row['sent_at'] as String),
       isFromCustomer: row['is_from_customer'] as bool? ?? false,
+      status: _messageStatusFromString(row['wa_status'] as String?),
+      waMessageId: row['wa_message_id'] as String?,
+      deliveredAt: deliveredAt == null ? null : DateTime.parse(deliveredAt),
+      readAt: readAt == null ? null : DateTime.parse(readAt),
     );
   }
 
@@ -72,6 +82,21 @@ class SupabaseInboxRepository {
         return ConversationStatus.closed;
       default:
         return ConversationStatus.open;
+    }
+  }
+
+  MessageStatus _messageStatusFromString(String? value) {
+    switch (value) {
+      case 'sent':
+        return MessageStatus.sent;
+      case 'delivered':
+        return MessageStatus.delivered;
+      case 'read':
+        return MessageStatus.read;
+      case 'failed':
+        return MessageStatus.failed;
+      default:
+        return MessageStatus.unknown;
     }
   }
 }

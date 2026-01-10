@@ -14,6 +14,9 @@ class Conversation {
     required this.unreadCount,
     required this.status,
     required this.tags,
+    this.lastOpenedAt,
+    this.lastOpenedBy,
+    this.lastOpenedRole,
   });
 
   final String id;
@@ -23,6 +26,9 @@ class Conversation {
   final int unreadCount;
   final ConversationStatus status;
   final List<String> tags;
+  final DateTime? lastOpenedAt;
+  final String? lastOpenedBy;
+  final String? lastOpenedRole;
 
   Conversation copyWith({
     String? title,
@@ -31,6 +37,9 @@ class Conversation {
     int? unreadCount,
     ConversationStatus? status,
     List<String>? tags,
+    DateTime? lastOpenedAt,
+    String? lastOpenedBy,
+    String? lastOpenedRole,
   }) {
     return Conversation(
       id: id,
@@ -40,6 +49,9 @@ class Conversation {
       unreadCount: unreadCount ?? this.unreadCount,
       status: status ?? this.status,
       tags: tags ?? this.tags,
+      lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+      lastOpenedBy: lastOpenedBy ?? this.lastOpenedBy,
+      lastOpenedRole: lastOpenedRole ?? this.lastOpenedRole,
     );
   }
 }

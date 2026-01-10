@@ -12,6 +12,8 @@ class MockInboxRepository {
         unreadCount: 2,
         status: ConversationStatus.open,
         tags: ['VIP', 'Faturalama'],
+        lastOpenedAt: null,
+        lastOpenedRole: null,
       ),
       Conversation(
         id: 'c2',
@@ -21,6 +23,8 @@ class MockInboxRepository {
         unreadCount: 0,
         status: ConversationStatus.closed,
         tags: ['Hata', 'Cozuldu'],
+        lastOpenedAt: DateTime(2024, 6, 12, 8, 20),
+        lastOpenedRole: 'admin',
       ),
       Conversation(
         id: 'c3',
@@ -30,6 +34,8 @@ class MockInboxRepository {
         unreadCount: 1,
         status: ConversationStatus.handoff,
         tags: ['Satis', 'Acil'],
+        lastOpenedAt: null,
+        lastOpenedRole: null,
       ),
       Conversation(
         id: 'c4',
@@ -39,6 +45,8 @@ class MockInboxRepository {
         unreadCount: 3,
         status: ConversationStatus.pending,
         tags: ['Iade', 'VIP'],
+        lastOpenedAt: null,
+        lastOpenedRole: null,
       ),
     ];
   }
@@ -72,6 +80,7 @@ class MockInboxRepository {
         text: 'Tabii! Yeni adresi paylasir misiniz?',
         sentAt: DateTime(2024, 6, 12, 9, 41),
         isFromCustomer: false,
+        status: MessageStatus.read,
       ),
       Message(
         id: 'm3',
@@ -108,6 +117,7 @@ class MockInboxRepository {
         text: 'Satis ekibini dahil ediyorum.',
         sentAt: DateTime(2024, 6, 11, 17, 32),
         isFromCustomer: false,
+        status: MessageStatus.delivered,
       ),
     ],
     'c4': [
@@ -126,6 +136,7 @@ class MockInboxRepository {
         text: 'Tesekkurler! Politika bilgisini kontrol ediyorum.',
         sentAt: DateTime(2024, 6, 11, 14, 21),
         isFromCustomer: false,
+        status: MessageStatus.sent,
       ),
     ],
   };

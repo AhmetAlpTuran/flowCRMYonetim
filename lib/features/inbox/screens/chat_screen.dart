@@ -8,7 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../config/app_server_config.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../models/conversation.dart';
+import '../models/message.dart';
 import '../providers/inbox_providers.dart';
+import '../widgets/tag_editor_sheet.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversation});
@@ -23,11 +25,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _sending = false;
   RealtimeChannel? _channel;
+  List<String> _tagSuggestions = const [];
 
   @override
   void initState() {
     super.initState();
     _subscribeRealtime();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _markConversationOpened();
+    });
   }
 
   @override
@@ -40,12 +46,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(messagesProvider(widget.conversation.id));
+    final conversations = ref.watch(conversationsProvider);
+    final updatedConversation = conversations.maybeWhen(
+      data: (items) => items.firstWhere(
+        (item) => item.id == widget.conversation.id,
+        orElse: () => widget.conversation,
+      ),
+      orElse: () => widget.conversation,
+    );
+
+    conversations.whenData((items) {
+      final tags = <String>{};
+      for (final item in items) {
+        tags.addAll(item.tags);
+      }
+      _tagSuggestions = tags.toList()..sort();
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFECE5DD),
       appBar: AppBar(
         backgroundColor: const Color(0xFF075E54),
         foregroundColor: Colors.white,
+        toolbarHeight: 72,
         title: Row(
           children: [
             CircleAvatar(
@@ -63,19 +86,53 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _openTagEditor(updatedConversation),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.sell_outlined, size: 16, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text(
+                      'Etiket',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
-        actions: const [
-          Icon(Icons.videocam),
-          SizedBox(width: 12),
-          Icon(Icons.call),
-          SizedBox(width: 12),
-          Icon(Icons.more_vert),
-          SizedBox(width: 8),
+        actions: [
+          IconButton(
+            tooltip: 'Musteri temsilcisine yonlendir',
+            icon: const Icon(Icons.support_agent_outlined),
+            onPressed: _openHandoverSheet,
+          ),
+          IconButton(
+            tooltip: 'Diger',
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
+          _OpenedInfoBanner(conversation: updatedConversation),
           Expanded(
             child: messages.when(
               data: (items) => ListView.builder(
@@ -118,12 +175,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           const SizedBox(height: 6),
                           Align(
                             alignment: Alignment.bottomRight,
-                            child: Text(
-                              _formatTimestamp(message.sentAt, context),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(color: Colors.black54),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _formatTimestamp(message.sentAt, context),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(color: Colors.black54),
+                                ),
+                                if (!isCustomer) ...[
+                                  const SizedBox(width: 6),
+                                  _statusIcon(message.status),
+                                ],
+                              ],
                             ),
                           ),
                         ],
@@ -277,5 +343,171 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final first = parts.first.isNotEmpty ? parts.first[0] : '';
     final last = parts.length > 1 && parts.last.isNotEmpty ? parts.last[0] : '';
     return (first + last).toUpperCase();
+  }
+
+  void _openTagEditor(Conversation conversation) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => TagEditorSheet(
+        initialTags: conversation.tags,
+        suggestions: _tagSuggestions,
+        onSave: (tags) {
+          ref.read(conversationsProvider.notifier).updateTags(
+                conversation.id,
+                tags,
+              );
+        },
+      ),
+    );
+  }
+
+  void _openHandoverSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => const _HandoverSheet(),
+    );
+  }
+
+  Widget _statusIcon(MessageStatus status) {
+    switch (status) {
+      case MessageStatus.read:
+        return const Icon(Icons.done_all, size: 16, color: Colors.blue);
+      case MessageStatus.delivered:
+        return const Icon(Icons.done_all, size: 16, color: Colors.black54);
+      case MessageStatus.sent:
+        return const Icon(Icons.check, size: 16, color: Colors.black54);
+      case MessageStatus.failed:
+        return const Icon(Icons.error_outline, size: 16, color: Colors.redAccent);
+      case MessageStatus.unknown:
+        return const Icon(Icons.check, size: 16, color: Colors.black45);
+    }
+  }
+
+  Future<void> _markConversationOpened() async {
+    final auth = ref.read(authControllerProvider).value;
+    if (auth == null) {
+      return;
+    }
+    final membership = await ref.read(currentMembershipProvider.future);
+    final role = membership?.role ?? 'user';
+    await Supabase.instance.client.from('conversations').update({
+      'last_opened_at': DateTime.now().toIso8601String(),
+      'last_opened_by': auth.userId,
+      'last_opened_role': role,
+      'unread_count': 0,
+    }).eq('id', widget.conversation.id);
+    ref.invalidate(conversationsProvider);
+  }
+}
+
+class _OpenedInfoBanner extends StatelessWidget {
+  const _OpenedInfoBanner({required this.conversation});
+
+  final Conversation conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final openedAt = conversation.lastOpenedAt;
+    if (openedAt == null) {
+      return const SizedBox.shrink();
+    }
+    final time = TimeOfDay.fromDateTime(openedAt).format(context);
+    final roleLabel = _roleLabel(conversation.lastOpenedRole);
+    final label =
+        roleLabel == null ? 'Goruldu $time' : 'Goruldu $time • $roleLabel';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDF4C9),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.visibility_outlined, size: 16),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _roleLabel(String? role) {
+    switch (role) {
+      case 'admin':
+        return 'Yonetici';
+      case 'user':
+        return 'Temsilci';
+      default:
+        return null;
+    }
+  }
+}
+
+class _HandoverSheet extends StatelessWidget {
+  const _HandoverSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.support_agent_outlined),
+                const SizedBox(width: 8),
+                Text(
+                  'Musteri temsilcisine yonlendir',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Konusmayi bir musteri temsilcisine yonlendirmek icin not ekleyin.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Not',
+                alignLabelWithHint: true,
+                prefixIcon: Icon(Icons.sticky_note_2_outlined),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Vazgec'),
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.send_outlined),
+                  label: const Text('Yonlendirmeyi baslat'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
