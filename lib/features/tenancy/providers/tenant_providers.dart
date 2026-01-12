@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/user_role.dart';
 import '../models/tenant_membership.dart';
 import '../models/tenant.dart';
+import '../models/tenant_directory.dart';
 
 class AuthState {
   const AuthState({
@@ -36,6 +37,7 @@ class AuthController extends AsyncNotifier<AuthState?> {
     if (user == null) {
       throw const AuthException('Giris basarisiz.');
     }
+    await _upsertProfile(user.id, email);
     state = AsyncValue.data(AuthState(userId: user.id, email: email));
   }
 
@@ -48,12 +50,20 @@ class AuthController extends AsyncNotifier<AuthState?> {
     if (user == null) {
       throw const AuthException('Kayit basarisiz.');
     }
+    await _upsertProfile(user.id, email);
     state = AsyncValue.data(AuthState(userId: user.id, email: email));
   }
 
   Future<void> logout() async {
     await Supabase.instance.client.auth.signOut();
     state = const AsyncValue.data(null);
+  }
+
+  Future<void> _upsertProfile(String userId, String email) async {
+    await Supabase.instance.client.from('user_profiles').upsert({
+      'id': userId,
+      'email': email,
+    });
   }
 }
 
@@ -100,6 +110,24 @@ final accessibleTenantsProvider = FutureProvider<List<Tenant>>((ref) async {
       brandColor: _parseColor(tenant['brand_color'] as String),
       features: _parseFeatures(tenant['features'] as List<dynamic>),
       allowedDomains: const [],
+    );
+  }).toList();
+});
+
+final publicTenantsProvider =
+    FutureProvider<List<TenantDirectoryEntry>>((ref) async {
+  final client = Supabase.instance.client;
+  final response = await client
+      .from('tenants')
+      .select('id, name, brand_color')
+      .eq('is_public', true)
+      .order('name');
+
+  return response.map<TenantDirectoryEntry>((row) {
+    return TenantDirectoryEntry(
+      id: row['id'] as String,
+      name: row['name'] as String,
+      brandColor: _parseColor(row['brand_color'] as String),
     );
   }).toList();
 });
@@ -189,6 +217,8 @@ TenantFeature _featureFromString(String value) {
       return TenantFeature.campaigns;
     case 'templates':
       return TenantFeature.templates;
+    case 'users':
+      return TenantFeature.users;
     default:
       return TenantFeature.inbox;
   }

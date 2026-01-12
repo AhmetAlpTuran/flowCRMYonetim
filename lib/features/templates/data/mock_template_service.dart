@@ -9,8 +9,8 @@ class MockTemplateService {
       name: draft.name,
       category: draft.category,
       language: draft.language,
-      body: draft.body,
       status: 'Taslak',
+      body: draft.body,
     );
   }
 }

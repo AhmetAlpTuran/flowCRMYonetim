@@ -1,17 +1,29 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../templates/models/message_template.dart';
+import '../../tenancy/providers/tenant_providers.dart';
+import '../data/supabase_campaign_repository.dart';
 
-class CampaignsScreen extends StatefulWidget {
+class CampaignsScreen extends ConsumerStatefulWidget {
   const CampaignsScreen({super.key});
 
   @override
-  State<CampaignsScreen> createState() => _CampaignsScreenState();
+  ConsumerState<CampaignsScreen> createState() => _CampaignsScreenState();
 }
 
-class _CampaignsScreenState extends State<CampaignsScreen> {
+class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
+  late final SupabaseCampaignRepository _repository;
+  final TextEditingController _campaignNameController = TextEditingController();
+
   String _selectedFilter = 'Son 7 gunde gorusulenler';
   MessageTemplate? _selectedTemplate;
+  int _audienceCount = 0;
+  bool _loading = false;
+  bool _sending = false;
+  String? _error;
+  String? _currentTenantId;
 
   final List<String> _filters = const [
     'Son 7 gunde gorusulenler',
@@ -20,57 +32,79 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     'Son kampanyaya cevap verenler',
   ];
 
-  final List<MessageTemplate> _templates = const [
-    MessageTemplate(
-      id: 't1',
-      name: 'Kampanya Duyurusu',
-      category: 'MARKETING',
-      language: 'tr',
-      body: 'Merhaba {{1}}, yeni kampanyamiz basladi! Detaylar icin tiklayin.',
-      status: 'Onaylandi',
-    ),
-    MessageTemplate(
-      id: 't2',
-      name: 'Sepet Hatirlatma',
-      category: 'MARKETING',
-      language: 'tr',
-      body: 'Merhaba {{1}}, sepetinizdeki urunler sizi bekliyor.',
-      status: 'Onaylandi',
-    ),
-    MessageTemplate(
-      id: 't3',
-      name: 'Siparis Guncelleme',
-      category: 'UTILITY',
-      language: 'tr',
-      body: 'Siparisiniz hazirlaniyor. Takip no: {{1}}',
-      status: 'Taslak',
-    ),
-  ];
+  final List<MessageTemplate> _templates = [];
 
   final List<_CustomFilter> _customFilters = [
     _CustomFilter(field: 'Son iletisim', operatorValue: '>', value: '7 gun'),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _repository = SupabaseCampaignRepository(Supabase.instance.client);
+  }
+
+  @override
+  void dispose() {
+    _campaignNameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final tenant = ref.watch(selectedTenantProvider);
+    if (_currentTenantId != tenant?.id) {
+      _currentTenantId = tenant?.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
+    }
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         _HeaderSection(
           title: 'Kampanya Yoneticisi',
-          subtitle: 'Hedef kitleyi secin, sablonu belirleyin ve gonderimi baslatin.',
+          subtitle:
+              'KVKK izinli kitleyi secin, sablonu belirleyin ve gonderimi baslatin.',
           icon: Icons.campaign_outlined,
         ),
         const SizedBox(height: 16),
-        _StatsRow(),
+        _StatsRow(
+          audienceCount: _audienceCount,
+          isLoading: _loading,
+        ),
         const SizedBox(height: 16),
+        if (_error != null) ...[
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+          const SizedBox(height: 12),
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionTitle(icon: Icons.filter_alt_outlined, title: 'Kitle Filtresi'),
+                _SectionTitle(
+                  icon: Icons.edit_outlined,
+                  title: 'Kampanya Bilgileri',
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _campaignNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Kampanya adi',
+                    hintText: 'Ornek: Yaz Indirimi',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _SectionTitle(
+                  icon: Icons.filter_alt_outlined,
+                  title: 'Kitle Filtresi',
+                ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _selectedFilter,
@@ -86,6 +120,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       setState(() {
                         _selectedFilter = value;
                       });
+                      _refreshAudienceCount();
                     }
                   },
                   decoration: const InputDecoration(
@@ -96,20 +131,10 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: const [
+                  children: [
                     FilterChip(
-                      label: Text('Son iletisim: 7 gun'),
+                      label: Text('Filtre: $_selectedFilter'),
                       selected: true,
-                      onSelected: null,
-                    ),
-                    FilterChip(
-                      label: Text('Aktif'),
-                      selected: true,
-                      onSelected: null,
-                    ),
-                    FilterChip(
-                      label: Text('Segment: VIP'),
-                      selected: false,
                       onSelected: null,
                     ),
                   ],
@@ -156,7 +181,10 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionTitle(icon: Icons.article_outlined, title: 'Sablon Secimi'),
+                _SectionTitle(
+                  icon: Icons.article_outlined,
+                  title: 'Sablon Secimi',
+                ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<MessageTemplate>(
                   value: _selectedTemplate,
@@ -164,12 +192,19 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     for (final template in _templates)
                       DropdownMenuItem(
                         value: template,
-                        child: Text('${template.name} • ${template.status}'),
+                        child: Text(
+                          '${template.name} • ${template.status}',
+                        ),
                       ),
                   ],
                   onChanged: (value) {
                     setState(() {
                       _selectedTemplate = value;
+                      if (value != null &&
+                          _campaignNameController.text.trim().isEmpty) {
+                        _campaignNameController.text =
+                            '${value.name} Kampanyasi';
+                      }
                     });
                   },
                   decoration: const InputDecoration(
@@ -228,13 +263,19 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 Row(
                   children: [
                     TextButton(
-                      onPressed: () {},
+                      onPressed: _sending ? null : _saveDraft,
                       child: const Text('Taslak olarak kaydet'),
                     ),
                     const Spacer(),
                     FilledButton(
-                      onPressed: _selectedTemplate == null ? null : () {},
-                      child: const Text('Kampanya baslat'),
+                      onPressed: _sending ? null : _startCampaign,
+                      child: _sending
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Kampanya baslat'),
                     ),
                   ],
                 ),
@@ -244,6 +285,149 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _loadData() async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
+    setState(() {
+      _loading = true;
+    });
+    try {
+      final templates = await _repository.fetchTemplates(tenant.id);
+      setState(() {
+        _templates
+          ..clear()
+          ..addAll(templates);
+      });
+      await _refreshAudienceCount();
+    } catch (error) {
+      setState(() {
+        _error = 'Veriler yuklenemedi: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshAudienceCount() async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
+    final filter = _buildAudienceFilter();
+    final count = await _repository.countAudience(
+      tenantId: tenant.id,
+      segment: filter['segment'] as String?,
+      lastContacted: filter['last_contacted'] as String?,
+    );
+    if (mounted) {
+      setState(() {
+        _audienceCount = count;
+      });
+    }
+  }
+
+  Map<String, dynamic> _buildAudienceFilter() {
+    final filter = <String, dynamic>{};
+    switch (_selectedFilter) {
+      case 'Son 7 gunde gorusulenler':
+        filter['last_contacted'] = '7d';
+        break;
+      case 'Son 30 gunde aktif olanlar':
+        filter['last_contacted'] = '30d';
+        break;
+      case '3+ kez alisveris yapanlar':
+        filter['segment'] = 'VIP';
+        break;
+      case 'Son kampanyaya cevap verenler':
+        filter['segment'] = 'Kampanya';
+        break;
+      default:
+        break;
+    }
+    if (_customFilters.isNotEmpty) {
+      filter['custom'] = _customFilters
+          .map((item) => {
+                'field': item.field,
+                'operator': item.operatorValue,
+                'value': item.value,
+              })
+          .toList();
+    }
+    return filter;
+  }
+
+  Future<void> _saveDraft() async {
+    final tenant = ref.read(selectedTenantProvider);
+    final template = _selectedTemplate;
+    if (tenant == null || template == null) {
+      return;
+    }
+    final name = _campaignNameController.text.trim().isEmpty
+        ? '${template.name} Kampanyasi'
+        : _campaignNameController.text.trim();
+    await Supabase.instance.client.from('campaigns').insert({
+      'tenant_id': tenant.id,
+      'name': name,
+      'audience_filter': _buildAudienceFilter(),
+      'template_id': template.id,
+      'status': 'draft',
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Taslak kaydedildi.')),
+      );
+    }
+  }
+
+  Future<void> _startCampaign() async {
+    final tenant = ref.read(selectedTenantProvider);
+    final template = _selectedTemplate;
+    if (tenant == null || template == null) {
+      return;
+    }
+    final name = _campaignNameController.text.trim().isEmpty
+        ? '${template.name} Kampanyasi'
+        : _campaignNameController.text.trim();
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      final campaignId = await _repository.createCampaign(
+        tenantId: tenant.id,
+        name: name,
+        audienceFilter: _buildAudienceFilter(),
+        templateId: template.id,
+      );
+      final result = await _repository.sendCampaign(campaignId);
+      final sent = result['sent'] ?? 0;
+      final failed = result['failed'] ?? 0;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gonderim tamamlandi. $sent basarili, $failed hatali.'),
+          ),
+        );
+      }
+    } catch (error) {
+      setState(() {
+        _error = 'Kampanya baslatilamadi: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+        });
+      }
+    }
   }
 }
 
@@ -284,6 +468,14 @@ class _HeaderSection extends StatelessWidget {
 }
 
 class _StatsRow extends StatelessWidget {
+  const _StatsRow({
+    required this.audienceCount,
+    required this.isLoading,
+  });
+
+  final int audienceCount;
+  final bool isLoading;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -291,24 +483,24 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatCard(
             title: 'Tahmini erisim',
-            value: '4.820 kisi',
+            value: isLoading ? '...' : '$audienceCount kisi',
             icon: Icons.people_alt_outlined,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
-            title: 'Ortalama acilma',
-            value: '%63',
+            title: 'Durum',
+            value: isLoading ? 'Yukleniyor' : 'Hazir',
             icon: Icons.insights_outlined,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
-            title: 'Butce kullanimi',
-            value: '%42',
-            icon: Icons.account_balance_wallet_outlined,
+            title: 'KVKK izinli',
+            value: isLoading ? '...' : 'Aktif',
+            icon: Icons.verified_user_outlined,
           ),
         ),
       ],

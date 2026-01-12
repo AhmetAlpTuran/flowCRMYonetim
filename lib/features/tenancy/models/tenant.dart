@@ -9,6 +9,7 @@ enum TenantFeature {
   custom,
   campaigns,
   templates,
+  users,
 }
 
 extension TenantFeaturePermission on TenantFeature {
@@ -30,6 +31,8 @@ extension TenantFeaturePermission on TenantFeature {
         return 'campaigns';
       case TenantFeature.templates:
         return 'templates';
+      case TenantFeature.users:
+        return 'users';
     }
   }
 }

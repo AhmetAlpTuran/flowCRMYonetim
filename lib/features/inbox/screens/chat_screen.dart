@@ -363,11 +363,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _openHandoverSheet() {
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const _HandoverSheet(),
-    );
+      builder: (context) => _HandoverSheet(
+        conversationId: widget.conversation.id,
+      ),
+    ).then((value) {
+      if (value == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Yonlendirme olusturuldu.')),
+        );
+      }
+    });
   }
 
   Widget _statusIcon(MessageStatus status) {
@@ -454,8 +462,24 @@ class _OpenedInfoBanner extends StatelessWidget {
   }
 }
 
-class _HandoverSheet extends StatelessWidget {
-  const _HandoverSheet();
+class _HandoverSheet extends ConsumerStatefulWidget {
+  const _HandoverSheet({required this.conversationId});
+
+  final String conversationId;
+
+  @override
+  ConsumerState<_HandoverSheet> createState() => _HandoverSheetState();
+}
+
+class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
+  final TextEditingController _noteController = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -483,6 +507,7 @@ class _HandoverSheet extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: _noteController,
               maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Not',
@@ -499,8 +524,14 @@ class _HandoverSheet extends StatelessWidget {
                 ),
                 const Spacer(),
                 FilledButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.send_outlined),
+                  onPressed: _sending ? null : _submit,
+                  icon: _sending
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_outlined),
                   label: const Text('Yonlendirmeyi baslat'),
                 ),
               ],
@@ -509,5 +540,39 @@ class _HandoverSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    final tenant = ref.read(selectedTenantProvider);
+    final auth = ref.read(authControllerProvider).value;
+    if (tenant == null || auth == null) {
+      return;
+    }
+    setState(() {
+      _sending = true;
+    });
+    try {
+      await Supabase.instance.client.from('handoff_requests').insert({
+        'tenant_id': tenant.id,
+        'conversation_id': widget.conversationId,
+        'note': _noteController.text.trim(),
+        'created_by': auth.userId,
+        'status': 'open',
+      });
+      await Supabase.instance.client.from('conversations').update({
+        'status': 'handoff',
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', widget.conversationId);
+      ref.invalidate(conversationsProvider);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+        });
+      }
+    }
   }
 }

@@ -11,6 +11,7 @@ import '../tenancy/models/tenant.dart';
 import '../tenancy/providers/tenant_providers.dart';
 import '../tenancy/screens/custom_feature_screen.dart';
 import '../templates/screens/templates_screen.dart';
+import '../users/screens/tenant_users_screen.dart';
 import 'shell_providers.dart';
 
 class AppShell extends ConsumerWidget {
@@ -317,6 +318,14 @@ List<_ShellDestination> _destinationsFor(
       selectedIcon: Icons.auto_awesome,
       screen: CustomFeatureScreen(),
       feature: TenantFeature.custom,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.users,
+      label: 'Kullanicilar',
+      icon: Icons.manage_accounts_outlined,
+      selectedIcon: Icons.manage_accounts,
+      screen: TenantUsersScreen(),
+      feature: TenantFeature.users,
     ),
   ];
 

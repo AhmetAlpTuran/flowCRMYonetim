@@ -198,37 +198,66 @@ class _FilterBar extends StatelessWidget {
             runSpacing: 12,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              SizedBox(
-                width: 220,
-                child: DropdownButtonFormField<ConversationStatus?>(
-                  value: filters.status,
-                  decoration: const InputDecoration(
-                    labelText: 'Durum',
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: null,
-                      child: Text('Tum durumlar'),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxWidth = constraints.maxWidth;
+                  final width = maxWidth.isFinite
+                      ? (maxWidth < 280 ? maxWidth : 260)
+                      : 260.0;
+                  return SizedBox(
+                    width: width,
+                    child: DropdownButtonFormField<ConversationStatus?>(
+                      isExpanded: true,
+                      value: filters.status,
+                      decoration: const InputDecoration(
+                        labelText: 'Durum',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text(
+                            'Tum durumlar',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: ConversationStatus.open,
+                          child: Text(
+                            'Acik',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: ConversationStatus.pending,
+                          child: Text(
+                            'Beklemede',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: ConversationStatus.handoff,
+                          child: Text(
+                            'Müşteri temsilcisine yönlendir',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: ConversationStatus.closed,
+                          child: Text(
+                            'Kapali',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      onChanged: onStatusChanged,
                     ),
-                    DropdownMenuItem(
-                      value: ConversationStatus.open,
-                      child: Text('Acik'),
-                    ),
-                    DropdownMenuItem(
-                      value: ConversationStatus.pending,
-                      child: Text('Beklemede'),
-                    ),
-                    DropdownMenuItem(
-                      value: ConversationStatus.handoff,
-                      child: Text('Müşteri temsilcisine yönlendir'),
-                    ),
-                    DropdownMenuItem(
-                      value: ConversationStatus.closed,
-                      child: Text('Kapali'),
-                    ),
-                  ],
-                  onChanged: onStatusChanged,
-                ),
+                  );
+                },
               ),
               if (filters.selectedTags.isNotEmpty)
                 TextButton.icon(

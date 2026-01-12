@@ -112,8 +112,11 @@ serve(async (req) => {
   }
 
   const filter = (campaign.audience_filter ?? {}) as Record<string, unknown>;
+  const templateComponents = Array.isArray(template.components)
+    ? template.components
+    : (template.components?.components ?? []);
   let contactsQuery = supabaseService
-    .from("contacts")
+    .from("consented_contacts")
     .select("id, tags, last_contacted_at, phone")
     .eq("tenant_id", campaign.tenant_id);
 
@@ -142,7 +145,7 @@ serve(async (req) => {
       jobs.push({
         tenant_id: campaign.tenant_id,
         campaign_id: campaign.id,
-        contact_id: contact.id,
+        consented_contact_id: contact.id,
         template_id: campaign.template_id,
         status: "failed",
         attempts: 1,
@@ -167,7 +170,7 @@ serve(async (req) => {
           template: {
             name: template.name,
             language: { code: template.language },
-            components: template.components ?? [],
+            components: templateComponents,
           },
         }),
       },
@@ -176,15 +179,15 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       failed += 1;
-      jobs.push({
-        tenant_id: campaign.tenant_id,
-        campaign_id: campaign.id,
-        contact_id: contact.id,
-        template_id: campaign.template_id,
-        status: "failed",
-        attempts: 1,
-        last_error: errorText,
-      });
+    jobs.push({
+      tenant_id: campaign.tenant_id,
+      campaign_id: campaign.id,
+      consented_contact_id: contact.id,
+      template_id: campaign.template_id,
+      status: "failed",
+      attempts: 1,
+      last_error: errorText,
+    });
       continue;
     }
 
@@ -192,11 +195,16 @@ serve(async (req) => {
     jobs.push({
       tenant_id: campaign.tenant_id,
       campaign_id: campaign.id,
-      contact_id: contact.id,
+      consented_contact_id: contact.id,
       template_id: campaign.template_id,
       status: "sent",
       attempts: 1,
     });
+
+    await supabaseService
+      .from("consented_contacts")
+      .update({ last_contacted_at: new Date().toISOString() })
+      .eq("id", contact.id);
   }
 
   if (jobs.length > 0) {

@@ -135,8 +135,7 @@ serve(async (req) => {
   let phoneNumberId = (body.phone_number_id ?? body.phoneNumberId) as string | undefined;
   let messageText = (body.message ?? body.text ?? body.body) as string | undefined;
   let phone = (body.phone ?? body.from) as string | undefined;
-  let contactName = (body.contact_name ?? body.contactName ?? body.name ?? phone)
-    as string | undefined;
+  let contactName = (body.contact_name ?? body.contactName ?? body.name ?? phone) as string | undefined;
 
   if (!messageText && entry) {
     const message = Array.isArray(value.messages) ? value.messages[0] : null;

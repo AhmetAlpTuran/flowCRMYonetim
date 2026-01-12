@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -29,14 +29,7 @@ serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const tenantId = body.tenant_id as string | undefined;
-  const name = body.name as string | undefined;
-  const category = body.category as string | undefined;
-  const language = body.language as string | undefined;
-  const components = Array.isArray(body.components)
-    ? body.components
-    : body.components ?? [];
-
-  if (!tenantId || !name || !category || !language) {
+  if (!tenantId) {
     return new Response(JSON.stringify({ error: "Invalid payload" }), {
       status: 400,
       headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -51,6 +44,14 @@ serve(async (req) => {
   const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
   const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
     "https://graph.facebook.com";
+
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: "Server config missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
   if (!whatsappToken || !whatsappWabaId) {
     return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
       status: 500,
@@ -60,9 +61,6 @@ serve(async (req) => {
 
   const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
-  });
-  const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
   });
 
   const { data: userData } = await supabaseUser.auth.getUser();
@@ -92,63 +90,54 @@ serve(async (req) => {
     });
   }
 
-  const createResponse = await fetch(
-    `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappWabaId}/message_templates`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${whatsappToken}`,
-      },
-      body: JSON.stringify({
-        name,
-        language,
-        category,
-        components,
-      }),
-    },
-  );
+  const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false },
+  });
 
-  if (!createResponse.ok) {
-    const errorText = await createResponse.text();
-    return new Response(JSON.stringify({ error: errorText }), {
-      status: 502,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const createPayload = await createResponse.json();
-  const apiStatus = createPayload?.status ?? "PENDING";
-  const waTemplateId = createPayload?.id ?? null;
-
-  const { data, error } = await supabaseService
+  const { data: templates } = await supabaseService
     .from("templates")
-    .insert({
-      tenant_id: tenantId,
-      name,
-      category,
-      language,
-      status: apiStatus,
-      components,
-      wa_template_id: waTemplateId,
-      status_updated_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
+    .select("id, name")
+    .eq("tenant_id", tenantId);
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+  if (!templates || templates.length === 0) {
+    return new Response(JSON.stringify({ status: "ok", updated: 0 }), {
+      status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
-  return new Response(JSON.stringify({
-    status: "ok",
-    template_id: data.id,
-    whatsapp_status: apiStatus,
-    wa_template_id: waTemplateId,
-  }), {
+  let updated = 0;
+  for (const template of templates) {
+    const name = template.name as string;
+    const response = await fetch(
+      `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappWabaId}/message_templates?name=${encodeURIComponent(name)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${whatsappToken}`,
+        },
+      },
+    );
+    if (!response.ok) {
+      continue;
+    }
+    const payload = await response.json();
+    const item = Array.isArray(payload?.data) ? payload.data[0] : null;
+    if (!item) {
+      continue;
+    }
+    await supabaseService
+      .from("templates")
+      .update({
+        status: item.status ?? "PENDING",
+        components: item.components ?? {},
+        wa_template_id: item.id ?? null,
+        status_updated_at: new Date().toISOString(),
+      })
+      .eq("id", template.id);
+    updated += 1;
+  }
+
+  return new Response(JSON.stringify({ status: "ok", updated }), {
     status: 200,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });

@@ -1,9 +1,9 @@
 -- Seed tenants
 insert into public.tenants (id, name, brand_color, features, is_public)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Flow CRM', '#1F4B99', array['dashboard','bot','knowledge','inbox','handoff','custom','campaigns','templates'], true),
-  ('22222222-2222-2222-2222-222222222222', 'Atlas Destek', '#00A896', array['dashboard','inbox','handoff','campaigns','templates'], true),
-  ('33333333-3333-3333-3333-333333333333', 'Nimbus Support', '#F2A541', array['dashboard','bot','inbox','campaigns','templates'], true);
+  ('11111111-1111-1111-1111-111111111111', 'Flow CRM', '#1F4B99', array['dashboard','bot','knowledge','inbox','handoff','custom','campaigns','templates','users'], true),
+  ('22222222-2222-2222-2222-222222222222', 'Atlas Destek', '#00A896', array['dashboard','inbox','handoff','campaigns','templates','users'], true),
+  ('33333333-3333-3333-3333-333333333333', 'Nimbus Support', '#F2A541', array['dashboard','bot','inbox','campaigns','templates','users'], true);
 
 -- Seed contacts (for Flow CRM)
 insert into public.contacts (tenant_id, full_name, phone, email, tags, last_contacted_at)
@@ -11,6 +11,11 @@ values
   ('11111111-1111-1111-1111-111111111111', 'Acme Co.', '+905000000001', 'billing@acme.co', array['VIP','Faturalama'], now() - interval '2 days'),
   ('11111111-1111-1111-1111-111111111111', 'Maria Lopez', '+905000000002', 'maria@example.com', array['Hata','Cozuldu'], now() - interval '5 days'),
   ('11111111-1111-1111-1111-111111111111', 'Globex Support', '+905000000003', 'globex@example.com', array['Satis','Acil'], now() - interval '10 days');
+
+-- Seed KVKK consented contacts (for campaigns)
+insert into public.consented_contacts (tenant_id, full_name, phone, tags, last_contacted_at)
+values
+  ('11111111-1111-1111-1111-111111111111', 'Test Kullanici', '+905533440854', array['VIP'], now() - interval '1 day');
 
 -- Seed conversations
 insert into public.conversations (id, tenant_id, contact_id, title, last_message, status, tags, unread_count, updated_at)

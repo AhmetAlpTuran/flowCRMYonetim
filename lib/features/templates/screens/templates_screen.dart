@@ -1,29 +1,26 @@
-﻿import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
 
-import '../data/mock_template_service.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../tenancy/providers/tenant_providers.dart';
+import '../data/supabase_template_repository.dart';
 import '../models/message_template.dart';
 import '../models/template_draft.dart';
 
-class TemplatesScreen extends StatefulWidget {
+class TemplatesScreen extends ConsumerStatefulWidget {
   const TemplatesScreen({super.key});
 
   @override
-  State<TemplatesScreen> createState() => _TemplatesScreenState();
+  ConsumerState<TemplatesScreen> createState() => _TemplatesScreenState();
 }
 
-class _TemplatesScreenState extends State<TemplatesScreen> {
-  final MockTemplateService _service = MockTemplateService();
-  final List<MessageTemplate> _templates = [
-    const MessageTemplate(
-      id: 't1',
-      name: 'Kampanya Duyurusu',
-      category: 'MARKETING',
-      language: 'tr',
-      body: 'Merhaba {{1}}, yeni kampanyamiz basladi! Detaylar icin tiklayin.',
-      status: 'Onaylandi',
-    ),
-  ];
+class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
+    with WidgetsBindingObserver {
+  late final SupabaseTemplateRepository _repository;
 
   final _nameController = TextEditingController();
   final _headerController = TextEditingController();
@@ -36,10 +33,28 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
   String _headerType = 'TEXT';
   final List<String> _buttons = [];
   final List<TemplateAttachment> _attachments = [];
+  final List<MessageTemplate> _templates = [];
+
   String? _error;
+  bool _loadingTemplates = false;
+  bool _syncing = false;
+  bool _submitting = false;
+  String? _currentTenantId;
+  Timer? _syncTimer;
+
+  static const Duration _syncInterval = Duration(seconds: 60);
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = SupabaseTemplateRepository(Supabase.instance.client);
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   void dispose() {
+    _stopSyncTimer();
+    WidgetsBinding.instance.removeObserver(this);
     _nameController.dispose();
     _headerController.dispose();
     _bodyController.dispose();
@@ -50,6 +65,15 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tenant = ref.watch(selectedTenantProvider);
+    if (_currentTenantId != tenant?.id) {
+      _currentTenantId = tenant?.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadTemplates();
+        _startSyncTimer();
+      });
+    }
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -120,7 +144,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
                         ),
                         items: const [
                           DropdownMenuItem(value: 'tr', child: Text('tr')),
-                          DropdownMenuItem(value: 'en', child: Text('en')),
+                          DropdownMenuItem(value: 'en_US', child: Text('en_US')),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -284,7 +308,17 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
                   children: [
                     for (final attachment in _attachments)
                       InputChip(
-                        label: Text('${attachment.label} (${attachment.type})'),
+                        avatar: Icon(
+                          _attachmentStatusIcon(attachment.status),
+                          size: 18,
+                          color: _attachmentStatusColor(context, attachment.status),
+                        ),
+                        label: Text(
+                          '${attachment.label} (${attachment.type}) • ${_attachmentStatusLabel(attachment.status)}',
+                        ),
+                        onPressed: attachment.status == TemplateAttachmentStatus.failed
+                            ? () => _retryUpload(attachment)
+                            : null,
                         onDeleted: () {
                           setState(() {
                             _attachments.remove(attachment);
@@ -333,8 +367,14 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton(
-                    onPressed: _handleCreate,
-                    child: const Text('Sablonu olustur'),
+                    onPressed: _submitting ? null : _handleCreate,
+                    child: _submitting
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Sablonu olustur'),
                   ),
                 ),
               ],
@@ -342,20 +382,45 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          'Mevcut Sablonlar',
-          style: Theme.of(context).textTheme.titleMedium,
+        Row(
+          children: [
+            Text(
+              'Mevcut Sablonlar',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const Spacer(),
+            IconButton(
+              tooltip: 'Durumlari yenile',
+              onPressed: _syncing ? null : _syncTemplates,
+              icon: _syncing
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
-        for (final template in _templates)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.article_outlined),
-              title: Text(template.name),
-              subtitle: Text('${template.category} • ${template.language}'),
-              trailing: Chip(label: Text(template.status)),
+        if (_loadingTemplates)
+          const Center(child: CircularProgressIndicator())
+        else if (_templates.isEmpty)
+          const Text('Henuz sablon yok.')
+        else
+          for (final template in _templates)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.article_outlined),
+                title: Text(template.name),
+                subtitle: Text(
+                  '${template.category} • ${template.language}\n${template.body}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: _StatusChip(status: template.status),
+              ),
             ),
-          ),
       ],
     );
   }
@@ -378,6 +443,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
 
     final result = await FilePicker.platform.pickFiles(
       type: pickerType,
+      withData: true,
       allowedExtensions: type == 'DOCUMENT'
           ? ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']
           : null,
@@ -388,9 +454,80 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
     }
 
     final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) {
+      setState(() {
+        _error = 'Dosya okunamadi.';
+      });
+      return;
+    }
+
+    final attachment = TemplateAttachment(
+      type: type,
+      label: file.name,
+      fileName: file.name,
+      mimeType: _inferMimeType(type, file.extension),
+      bytes: bytes,
+      status: TemplateAttachmentStatus.uploading,
+    );
+
     setState(() {
-      _attachments.add(TemplateAttachment(type: type, label: file.name));
+      _attachments.add(attachment);
+      _error = null;
     });
+
+    final index = _attachments.length - 1;
+    await _uploadAttachment(index);
+  }
+
+  Future<void> _retryUpload(TemplateAttachment attachment) async {
+    final index = _attachments.indexOf(attachment);
+    if (index == -1) {
+      return;
+    }
+    setState(() {
+      _attachments[index] =
+          attachment.copyWith(status: TemplateAttachmentStatus.uploading);
+      _error = null;
+    });
+    await _uploadAttachment(index);
+  }
+
+  Future<void> _uploadAttachment(int index) async {
+    final attachment = _attachments[index];
+    final tenant = ref.read(selectedTenantProvider);
+    final bytes = attachment.bytes;
+    final mimeType = attachment.mimeType;
+    final fileName = attachment.fileName;
+    if (tenant == null || bytes == null || mimeType == null || fileName == null) {
+      setState(() {
+        _attachments[index] =
+            attachment.copyWith(status: TemplateAttachmentStatus.failed);
+      });
+      return;
+    }
+
+    try {
+      final handle = await _repository.uploadTemplateMedia(
+        tenantId: tenant.id,
+        fileName: fileName,
+        fileLength: bytes.length,
+        mimeType: mimeType,
+        base64Data: base64Encode(bytes),
+      );
+      setState(() {
+        _attachments[index] = attachment.copyWith(
+          handle: handle,
+          status: TemplateAttachmentStatus.uploaded,
+        );
+      });
+    } catch (error) {
+      setState(() {
+        _attachments[index] =
+            attachment.copyWith(status: TemplateAttachmentStatus.failed);
+        _error = 'Medya yuklenemedi: $error';
+      });
+    }
   }
 
   Future<void> _handleCreate() async {
@@ -403,33 +540,173 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
       });
       return;
     }
+
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
+
     setState(() {
       _error = null;
+      _submitting = true;
     });
 
-    final draft = TemplateDraft(
-      name: name,
-      category: _category,
-      language: _language,
-      headerType: _headerType,
-      headerText: _headerController.text.trim(),
-      body: body,
-      footer: _footerController.text.trim(),
-      buttons: List<String>.from(_buttons),
-      attachments: List<TemplateAttachment>.from(_attachments),
-    );
+    try {
+      final components = _buildComponents();
+      final created = await _repository.createTemplate(
+        tenantId: tenant.id,
+        name: name,
+        category: _category,
+        language: _language,
+        components: components,
+      );
+      setState(() {
+        _templates.insert(0, created);
+        _nameController.clear();
+        _headerController.clear();
+        _bodyController.clear();
+        _footerController.clear();
+        _buttonController.clear();
+        _buttons.clear();
+        _attachments.clear();
+      });
+    } catch (error) {
+      setState(() {
+        _error = 'Sablon olusturulamadi: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
 
-    final created = await _service.createTemplate(draft);
+  Future<void> _loadTemplates() async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
     setState(() {
-      _templates.add(created);
-      _nameController.clear();
-      _headerController.clear();
-      _bodyController.clear();
-      _footerController.clear();
-      _buttonController.clear();
-      _buttons.clear();
-      _attachments.clear();
+      _loadingTemplates = true;
     });
+    try {
+      final data = await _repository.fetchTemplates(tenant.id);
+      setState(() {
+        _templates
+          ..clear()
+          ..addAll(data);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingTemplates = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _syncTemplates() async {
+    if (_syncing) {
+      return;
+    }
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) {
+      return;
+    }
+    setState(() {
+      _syncing = true;
+    });
+    try {
+      await _repository.syncTemplates(tenant.id);
+      await _loadTemplates();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _syncing = false;
+        });
+      }
+    }
+  }
+
+  void _startSyncTimer() {
+    _syncTimer?.cancel();
+    if (_currentTenantId == null) {
+      return;
+    }
+    _syncTimer = Timer.periodic(_syncInterval, (_) {
+      if (mounted) {
+        _syncTemplates();
+      }
+    });
+  }
+
+  void _stopSyncTimer() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startSyncTimer();
+      _syncTemplates();
+    } else if (state == AppLifecycleState.paused) {
+      _stopSyncTimer();
+    }
+  }
+
+  List<Map<String, dynamic>> _buildComponents() {
+    final components = <Map<String, dynamic>>[];
+    if (_headerType == 'TEXT') {
+      final headerText = _headerController.text.trim();
+      if (headerText.isNotEmpty) {
+        components.add({
+          'type': 'HEADER',
+          'format': 'TEXT',
+          'text': headerText,
+        });
+      }
+    } else {
+      final handle = _headerHandleForType(_headerType);
+      if (handle != null) {
+        components.add({
+          'type': 'HEADER',
+          'format': _headerType,
+          'example': {
+            'header_handle': [handle],
+          },
+        });
+      }
+    }
+
+    components.add({
+      'type': 'BODY',
+      'text': _bodyController.text.trim(),
+    });
+
+    final footerText = _footerController.text.trim();
+    if (footerText.isNotEmpty) {
+      components.add({
+        'type': 'FOOTER',
+        'text': footerText,
+      });
+    }
+
+    if (_buttons.isNotEmpty) {
+      components.add({
+        'type': 'BUTTONS',
+        'buttons': _buttons
+            .map((label) => {
+                  'type': 'QUICK_REPLY',
+                  'text': label,
+                })
+            .toList(),
+      });
+    }
+
+    return components;
   }
 
   String? _validateTemplate(String name, String body) {
@@ -440,9 +717,11 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
     if (body.length < 10 || body.length > 1024) {
       return 'Mesaj govdesi 10-1024 karakter arasinda olmali.';
     }
-    if (_headerType != 'TEXT' &&
-        !_attachments.any((item) => item.type == _headerType)) {
-      return 'Secilen baslik tipi icin medya ekleyin.';
+    if (_headerType != 'TEXT' && _headerHandleForType(_headerType) == null) {
+      return 'Secilen baslik tipi icin medya yukleyin.';
+    }
+    if (_attachments.any((item) => item.status == TemplateAttachmentStatus.uploading)) {
+      return 'Medya yukleme islemi devam ediyor.';
     }
     if (_buttons.length > 10) {
       return 'En fazla 10 buton ekleyebilirsiniz.';
@@ -460,6 +739,89 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
       }
     }
     return null;
+  }
+
+  String? _headerHandleForType(String type) {
+    final matching = _attachments.firstWhere(
+      (item) => item.type == type && item.handle != null,
+      orElse: () => const TemplateAttachment(type: '', label: ''),
+    );
+    return matching.handle;
+  }
+
+  String _inferMimeType(String type, String? extension) {
+    final ext = (extension ?? '').toLowerCase();
+    if (type == 'IMAGE') {
+      if (ext == 'png') {
+        return 'image/png';
+      }
+      return 'image/jpeg';
+    }
+    if (type == 'VIDEO') {
+      return 'video/mp4';
+    }
+    switch (ext) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'xls':
+        return 'application/vnd.ms-excel';
+      case 'xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case 'ppt':
+        return 'application/vnd.ms-powerpoint';
+      case 'pptx':
+        return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      case 'txt':
+        return 'text/plain';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  String _attachmentStatusLabel(TemplateAttachmentStatus status) {
+    switch (status) {
+      case TemplateAttachmentStatus.pending:
+        return 'Bekliyor';
+      case TemplateAttachmentStatus.uploading:
+        return 'Yukleniyor';
+      case TemplateAttachmentStatus.uploaded:
+        return 'Yuklendi';
+      case TemplateAttachmentStatus.failed:
+        return 'Hata';
+    }
+  }
+
+  IconData _attachmentStatusIcon(TemplateAttachmentStatus status) {
+    switch (status) {
+      case TemplateAttachmentStatus.pending:
+        return Icons.schedule_outlined;
+      case TemplateAttachmentStatus.uploading:
+        return Icons.cloud_upload_outlined;
+      case TemplateAttachmentStatus.uploaded:
+        return Icons.check_circle_outline;
+      case TemplateAttachmentStatus.failed:
+        return Icons.error_outline;
+    }
+  }
+
+  Color _attachmentStatusColor(
+    BuildContext context,
+    TemplateAttachmentStatus status,
+  ) {
+    switch (status) {
+      case TemplateAttachmentStatus.pending:
+        return Theme.of(context).colorScheme.outline;
+      case TemplateAttachmentStatus.uploading:
+        return Theme.of(context).colorScheme.secondary;
+      case TemplateAttachmentStatus.uploaded:
+        return Theme.of(context).colorScheme.primary;
+      case TemplateAttachmentStatus.failed:
+        return Theme.of(context).colorScheme.error;
+    }
   }
 }
 
@@ -584,5 +946,58 @@ class _TemplatePreview extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(context, status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        _statusLabel(status),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+      ),
+    );
+  }
+
+  String _statusLabel(String value) {
+    switch (value.toUpperCase()) {
+      case 'APPROVED':
+        return 'Onaylandi';
+      case 'REJECTED':
+        return 'Reddedildi';
+      case 'PENDING':
+        return 'Beklemede';
+      case 'PAUSED':
+        return 'Duraklatildi';
+      default:
+        return value;
+    }
+  }
+
+  Color _statusColor(BuildContext context, String value) {
+    switch (value.toUpperCase()) {
+      case 'APPROVED':
+        return Theme.of(context).colorScheme.primary;
+      case 'PENDING':
+        return Theme.of(context).colorScheme.secondary;
+      case 'REJECTED':
+        return Theme.of(context).colorScheme.error;
+      case 'PAUSED':
+        return Theme.of(context).colorScheme.outline;
+      default:
+        return Theme.of(context).colorScheme.primary;
+    }
   }
 }
