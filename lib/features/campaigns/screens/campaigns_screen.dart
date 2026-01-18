@@ -608,79 +608,61 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 640;
-          final spacing = isNarrow ? const SizedBox(height: 8) : const SizedBox(width: 8);
-
-          final fieldDropdown = Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: widget.filter.field,
-              items: const [
-                DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
-                DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
-                DropdownMenuItem(value: 'Ulke', child: Text('Ulke')),
-                DropdownMenuItem(
-                  value: 'Siparis adedi',
-                  child: Text('Siparis adedi'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    widget.filter.field = value;
-                  });
-                }
-              },
-              decoration: const InputDecoration(labelText: 'Alan'),
-            ),
-          );
-
-          final operatorDropdown = SizedBox(
-            width: isNarrow ? double.infinity : 120,
-            child: DropdownButtonFormField<String>(
-              initialValue: widget.filter.operatorValue,
-              items: const [
-                DropdownMenuItem(value: '=', child: Text('=')),
-                DropdownMenuItem(value: '>', child: Text('>')),
-                DropdownMenuItem(value: '<', child: Text('<')),
-                DropdownMenuItem(value: 'icerir', child: Text('icerir')),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    widget.filter.operatorValue = value;
-                  });
-                }
-              },
-              decoration: const InputDecoration(labelText: 'Operator'),
-            ),
-          );
-
-          final valueField = Expanded(
-            child: TextField(
-              controller: _valueController,
-              decoration: const InputDecoration(labelText: 'Deger'),
-              onChanged: (value) => widget.filter.value = value,
-            ),
-          );
-
-          final removeButton = IconButton(
-            onPressed: widget.onRemove,
-            icon: const Icon(Icons.close),
-            tooltip: 'Kaldir',
-          );
+          const hSpacing = SizedBox(width: 8);
+          const vSpacing = SizedBox(height: 8);
 
           if (isNarrow) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                fieldDropdown,
-                spacing,
-                operatorDropdown,
-                spacing,
-                valueField,
-                spacing,
+                DropdownButtonFormField<String>(
+                  initialValue: widget.filter.field,
+                  items: const [
+                    DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
+                    DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
+                    DropdownMenuItem(value: 'Ulke', child: Text('Ulke')),
+                    DropdownMenuItem(
+                      value: 'Siparis adedi',
+                      child: Text('Siparis adedi'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => widget.filter.field = value);
+                    }
+                  },
+                  decoration: const InputDecoration(labelText: 'Alan'),
+                ),
+                vSpacing,
+                DropdownButtonFormField<String>(
+                  initialValue: widget.filter.operatorValue,
+                  items: const [
+                    DropdownMenuItem(value: '=', child: Text('=')),
+                    DropdownMenuItem(value: '>', child: Text('>')),
+                    DropdownMenuItem(value: '<', child: Text('<')),
+                    DropdownMenuItem(value: 'icerir', child: Text('icerir')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => widget.filter.operatorValue = value);
+                    }
+                  },
+                  decoration: const InputDecoration(labelText: 'Operator'),
+                ),
+                vSpacing,
+                TextField(
+                  controller: _valueController,
+                  decoration: const InputDecoration(labelText: 'Deger'),
+                  onChanged: (value) => widget.filter.value = value,
+                ),
+                vSpacing,
                 Align(
                   alignment: Alignment.centerRight,
-                  child: removeButton,
+                  child: IconButton(
+                    onPressed: widget.onRemove,
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Kaldir',
+                  ),
                 ),
               ],
             );
@@ -688,13 +670,59 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
 
           return Row(
             children: [
-              fieldDropdown,
-              spacing,
-              operatorDropdown,
-              spacing,
-              valueField,
-              spacing,
-              removeButton,
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: widget.filter.field,
+                  items: const [
+                    DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
+                    DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
+                    DropdownMenuItem(value: 'Ulke', child: Text('Ulke')),
+                    DropdownMenuItem(
+                      value: 'Siparis adedi',
+                      child: Text('Siparis adedi'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => widget.filter.field = value);
+                    }
+                  },
+                  decoration: const InputDecoration(labelText: 'Alan'),
+                ),
+              ),
+              hSpacing,
+              SizedBox(
+                width: 120,
+                child: DropdownButtonFormField<String>(
+                  initialValue: widget.filter.operatorValue,
+                  items: const [
+                    DropdownMenuItem(value: '=', child: Text('=')),
+                    DropdownMenuItem(value: '>', child: Text('>')),
+                    DropdownMenuItem(value: '<', child: Text('<')),
+                    DropdownMenuItem(value: 'icerir', child: Text('icerir')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => widget.filter.operatorValue = value);
+                    }
+                  },
+                  decoration: const InputDecoration(labelText: 'Operator'),
+                ),
+              ),
+              hSpacing,
+              Expanded(
+                child: TextField(
+                  controller: _valueController,
+                  decoration: const InputDecoration(labelText: 'Deger'),
+                  onChanged: (value) => widget.filter.value = value,
+                ),
+              ),
+              hSpacing,
+              IconButton(
+                onPressed: widget.onRemove,
+                icon: const Icon(Icons.close),
+                tooltip: 'Kaldir',
+              ),
             ],
           );
         },

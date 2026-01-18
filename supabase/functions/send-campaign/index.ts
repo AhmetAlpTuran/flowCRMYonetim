@@ -137,6 +137,7 @@ serve(async (req) => {
   const jobs = [];
   let sent = 0;
   let failed = 0;
+  const failures: Array<{ phone: string; error: string }> = [];
 
   for (const contact of contacts ?? []) {
     const to = String(contact.phone ?? "").replace(/\D/g, "");
@@ -170,7 +171,8 @@ serve(async (req) => {
           template: {
             name: template.name,
             language: { code: template.language },
-            components: templateComponents,
+            // WhatsApp expects only parameter payloads here, not template definitions.
+            components: normalizeComponentsForSend(templateComponents),
           },
         }),
       },
@@ -179,15 +181,20 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       failed += 1;
-    jobs.push({
-      tenant_id: campaign.tenant_id,
-      campaign_id: campaign.id,
-      consented_contact_id: contact.id,
-      template_id: campaign.template_id,
-      status: "failed",
-      attempts: 1,
-      last_error: errorText,
-    });
+      jobs.push({
+        tenant_id: campaign.tenant_id,
+        campaign_id: campaign.id,
+        consented_contact_id: contact.id,
+        template_id: campaign.template_id,
+        status: "failed",
+        attempts: 1,
+        last_error: errorText,
+      });
+      failures.push({ phone: to, error: errorText });
+      console.error("[send-campaign] WhatsApp send failed", {
+        phone: to,
+        error: errorText,
+      });
       continue;
     }
 
@@ -216,11 +223,20 @@ serve(async (req) => {
     .update({ status: "completed" })
     .eq("id", campaign.id);
 
+  function normalizeComponentsForSend(
+    raw: unknown[] | undefined,
+  ): Array<Record<string, unknown>> {
+    // For now, do not send creation-time component definitions back to WhatsApp.
+    // If the template has placeholders, provide parameters here; otherwise keep empty.
+    return [];
+  }
+
   return new Response(
     JSON.stringify({
       status: "ok",
       sent,
       failed,
+      failures,
     }),
     {
       status: 200,
