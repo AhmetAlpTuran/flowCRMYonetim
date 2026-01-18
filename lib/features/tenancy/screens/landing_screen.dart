@@ -62,10 +62,10 @@ class LandingScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
-              Wrap(
+              const Wrap(
                 spacing: 16,
                 runSpacing: 16,
-                children: const [
+                children: [
                   _StepCard(
                     icon: Icons.alternate_email,
                     title: '1. Kayit ol',
@@ -98,10 +98,10 @@ class LandingScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
-              Wrap(
+              const Wrap(
                 spacing: 16,
                 runSpacing: 16,
-                children: const [
+                children: [
                   _FeatureCard(
                     icon: Icons.inbox_outlined,
                     title: 'Gelen Kutusu',
@@ -140,18 +140,18 @@ class LandingScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 12),
-                      _BulletLine(
+                      const _BulletLine(
                         icon: Icons.check_circle_outline,
                         text:
                             'Kayit olduktan sonra e-posta dogrulamasini tamamla.',
                       ),
                       const SizedBox(height: 8),
-                      _BulletLine(
+                      const _BulletLine(
                         icon: Icons.check_circle_outline,
                         text:
                             'Yonetici tarafindan tenant atamasi yapildiginda',
                       ),
-                      _BulletLine(
+                      const _BulletLine(
                         icon: Icons.check_circle_outline,
                         text:
                             'giris ekranindan hesabinla sisteme baglan.',
@@ -299,20 +299,20 @@ class _HeroMock extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: const Column(
         children: [
           _HeroRow(
             icon: Icons.chat_bubble_outline,
             title: 'Gelen Kutusu',
             subtitle: 'Canli gorusmeler',
           ),
-          const Divider(height: 24),
+          Divider(height: 24),
           _HeroRow(
             icon: Icons.auto_awesome_outlined,
             title: 'AI Asistani',
             subtitle: 'Akilli yanitlar',
           ),
-          const Divider(height: 24),
+          Divider(height: 24),
           _HeroRow(
             icon: Icons.campaign_outlined,
             title: 'Kampanyalar',

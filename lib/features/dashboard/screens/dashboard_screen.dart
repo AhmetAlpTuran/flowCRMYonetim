@@ -64,7 +64,7 @@ class DashboardScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          Wrap(
+          const Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [

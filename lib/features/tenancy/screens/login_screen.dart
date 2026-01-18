@@ -137,6 +137,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
     try {
       await action();
+      // After a successful auth call, go back to the root so AppEntry rebuilds
+      // with the authenticated state and shows the dashboard instead of the
+      // login screen.
+      if (mounted) {
+        final authed = ref.read(authControllerProvider).value != null;
+        if (authed) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      }
     } catch (error) {
       setState(() {
         _error = error.toString();

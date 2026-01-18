@@ -118,7 +118,7 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
                           }
                           _selectedTenantId ??= items.first.id;
                           return DropdownButtonFormField<String>(
-                            value: _selectedTenantId,
+                            initialValue: _selectedTenantId,
                             decoration:
                                 const InputDecoration(labelText: 'Tenant'),
                             items: [

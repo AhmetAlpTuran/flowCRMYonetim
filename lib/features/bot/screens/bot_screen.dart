@@ -176,7 +176,7 @@ class _BotScreenState extends ConsumerState<BotScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _model,
+                        initialValue: _model,
                         decoration: const InputDecoration(
                           labelText: 'Model',
                           prefixIcon: Icon(Icons.auto_awesome_outlined),

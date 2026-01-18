@@ -77,7 +77,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _HeaderSection(
+        const _HeaderSection(
           title: 'WhatsApp Sablonlari',
           subtitle: 'Cloud API sablon yapisina gore yeni mesajlar olusturun.',
           icon: Icons.article_outlined,
@@ -107,7 +107,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _category,
+                        initialValue: _category,
                         decoration: const InputDecoration(
                           labelText: 'Kategori',
                         ),
@@ -138,7 +138,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                     SizedBox(
                       width: 140,
                       child: DropdownButtonFormField<String>(
-                        value: _language,
+                        initialValue: _language,
                         decoration: const InputDecoration(
                           labelText: 'Dil',
                         ),
@@ -162,7 +162,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _headerType,
+                        initialValue: _headerType,
                         decoration: const InputDecoration(
                           labelText: 'Baslik tipi',
                         ),

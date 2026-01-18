@@ -63,7 +63,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _HeaderSection(
+        const _HeaderSection(
           title: 'Kampanya Yoneticisi',
           subtitle:
               'KVKK izinli kitleyi secin, sablonu belirleyin ve gonderimi baslatin.',
@@ -88,7 +88,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionTitle(
+                const _SectionTitle(
                   icon: Icons.edit_outlined,
                   title: 'Kampanya Bilgileri',
                 ),
@@ -101,13 +101,13 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _SectionTitle(
+                const _SectionTitle(
                   icon: Icons.filter_alt_outlined,
                   title: 'Kitle Filtresi',
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _selectedFilter,
+                  initialValue: _selectedFilter,
                   items: [
                     for (final filter in _filters)
                       DropdownMenuItem(
@@ -140,7 +140,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _SectionTitle(icon: Icons.tune, title: 'Ozel filtreler'),
+                const _SectionTitle(icon: Icons.tune, title: 'Ozel filtreler'),
                 const SizedBox(height: 8),
                 for (final filter in _customFilters)
                   _CustomFilterRow(
@@ -181,13 +181,13 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionTitle(
+                const _SectionTitle(
                   icon: Icons.article_outlined,
                   title: 'Sablon Secimi',
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<MessageTemplate>(
-                  value: _selectedTemplate,
+                  initialValue: _selectedTemplate,
                   items: [
                     for (final template in _templates)
                       DropdownMenuItem(
@@ -609,7 +609,7 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
         children: [
           Expanded(
             child: DropdownButtonFormField<String>(
-              value: widget.filter.field,
+              initialValue: widget.filter.field,
               items: const [
                 DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
                 DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
@@ -633,7 +633,7 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
           SizedBox(
             width: 120,
             child: DropdownButtonFormField<String>(
-              value: widget.filter.operatorValue,
+              initialValue: widget.filter.operatorValue,
               items: const [
                 DropdownMenuItem(value: '=', child: Text('=')),
                 DropdownMenuItem(value: '>', child: Text('>')),

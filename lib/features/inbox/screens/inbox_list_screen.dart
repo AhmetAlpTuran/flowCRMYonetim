@@ -208,7 +208,7 @@ class _FilterBar extends StatelessWidget {
                     width: width,
                     child: DropdownButtonFormField<ConversationStatus?>(
                       isExpanded: true,
-                      value: filters.status,
+                      initialValue: filters.status,
                       decoration: const InputDecoration(
                         labelText: 'Durum',
                       ),

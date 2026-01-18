@@ -97,9 +97,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   color: Colors.white.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.sell_outlined, size: 16, color: Colors.white),
                     SizedBox(width: 4),
                     Text(

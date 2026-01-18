@@ -34,7 +34,7 @@ class KnowledgeScreen extends ConsumerWidget {
                           isScrollControlled: true,
                           builder: (context) => const KnowledgeEntrySheet(),
                         );
-                        if (draft == null || tenant == null) {
+                        if (draft == null) {
                           return;
                         }
                         final repository =

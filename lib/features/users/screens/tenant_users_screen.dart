@@ -58,7 +58,7 @@ class TenantUsersScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Expanded(
+          const Expanded(
             child: TabBarView(
               children: [
                 _MembersTab(),
@@ -389,7 +389,7 @@ class _InviteFormCardState extends ConsumerState<_InviteFormCard> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _role,
+              initialValue: _role,
               decoration: const InputDecoration(labelText: 'Rol'),
               items: const [
                 DropdownMenuItem(value: 'user', child: Text('Temsilci')),
@@ -605,7 +605,7 @@ class _MemberEditorSheetState extends ConsumerState<_MemberEditorSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _role,
+              initialValue: _role,
               decoration: const InputDecoration(labelText: 'Rol'),
               items: const [
                 DropdownMenuItem(value: 'user', child: Text('Temsilci')),
@@ -744,7 +744,7 @@ class _RequestApprovalSheetState extends ConsumerState<_RequestApprovalSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _role,
+              initialValue: _role,
               decoration: const InputDecoration(labelText: 'Rol'),
               items: const [
                 DropdownMenuItem(value: 'user', child: Text('Temsilci')),
