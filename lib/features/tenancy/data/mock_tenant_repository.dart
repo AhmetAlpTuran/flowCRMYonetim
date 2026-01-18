@@ -4,10 +4,10 @@ import '../models/tenant.dart';
 
 class MockTenantRepository {
   final List<Tenant> _tenants = [
-    Tenant(
+    const Tenant(
       id: 't1',
       name: 'Flow CRM',
-      brandColor: const Color(0xFF1F4B99),
+      brandColor: Color(0xFF1F4B99),
       features: {
         TenantFeature.dashboard,
         TenantFeature.bot,
@@ -21,10 +21,10 @@ class MockTenantRepository {
       },
       allowedDomains: ['flowcrm.com', 'example.com'],
     ),
-    Tenant(
+    const Tenant(
       id: 't2',
       name: 'Atlas Destek',
-      brandColor: const Color(0xFF00A896),
+      brandColor: Color(0xFF00A896),
       features: {
         TenantFeature.dashboard,
         TenantFeature.inbox,
@@ -35,10 +35,10 @@ class MockTenantRepository {
       },
       allowedDomains: ['atlas.com', 'example.com'],
     ),
-    Tenant(
+    const Tenant(
       id: 't3',
       name: 'Nimbus Support',
-      brandColor: const Color(0xFFF2A541),
+      brandColor: Color(0xFFF2A541),
       features: {
         TenantFeature.dashboard,
         TenantFeature.bot,

@@ -202,7 +202,7 @@ class _FilterBar extends StatelessWidget {
                 builder: (context, constraints) {
                   final maxWidth = constraints.maxWidth;
                   final width = maxWidth.isFinite
-                      ? (maxWidth < 280 ? maxWidth : 260)
+                      ? (maxWidth < 280 ? maxWidth : 260.0)
                       : 260.0;
                   return SizedBox(
                     width: width,

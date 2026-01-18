@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shell/app_shell.dart';
 import '../../users/providers/tenant_admin_providers.dart';
 import '../providers/tenant_providers.dart';
-import 'login_screen.dart';
+import 'landing_screen.dart';
 
 class AppEntry extends ConsumerWidget {
   const AppEntry({super.key});
@@ -16,7 +16,7 @@ class AppEntry extends ConsumerWidget {
     return auth.when(
       data: (value) {
         if (value == null) {
-          return const LoginScreen();
+          return const LandingScreen();
         }
         final tenants = ref.watch(accessibleTenantsProvider);
         final selectedId = ref.watch(selectedTenantIdProvider);
