@@ -94,49 +94,12 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Sablon adi',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _category,
-                        decoration: const InputDecoration(
-                          labelText: 'Kategori',
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'MARKETING',
-                            child: Text('MARKETING'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'UTILITY',
-                            child: Text('UTILITY'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'AUTHENTICATION',
-                            child: Text('AUTHENTICATION'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _category = value;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 140,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 720;
+                    final spacing = isNarrow ? const SizedBox(height: 12) : const SizedBox(width: 12);
+                    final languageField = SizedBox(
+                      width: isNarrow ? double.infinity : 140,
                       child: DropdownButtonFormField<String>(
                         initialValue: _language,
                         decoration: const InputDecoration(
@@ -154,13 +117,73 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                           }
                         },
                       ),
-                    ),
-                  ],
+                    );
+
+                    final rowChildren = <Widget>[
+                      Expanded(
+                        child: TextField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Sablon adi',
+                          ),
+                        ),
+                      ),
+                      spacing,
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _category,
+                          decoration: const InputDecoration(
+                            labelText: 'Kategori',
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'MARKETING',
+                              child: Text('MARKETING'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'UTILITY',
+                              child: Text('UTILITY'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'AUTHENTICATION',
+                              child: Text('AUTHENTICATION'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _category = value;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      spacing,
+                      languageField,
+                    ];
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          rowChildren[0],
+                          spacing,
+                          rowChildren[2],
+                          spacing,
+                          languageField,
+                        ],
+                      );
+                    }
+
+                    return Row(children: rowChildren);
+                  },
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 720;
+                    final spacing = isNarrow ? const SizedBox(height: 12) : const SizedBox(width: 12);
+                    final headerTypeField = Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: _headerType,
                         decoration: const InputDecoration(
@@ -183,9 +206,8 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                           }
                         },
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    );
+                    final headerTextField = Expanded(
                       flex: 2,
                       child: TextField(
                         controller: _headerController,
@@ -193,8 +215,27 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
                           labelText: 'Baslik metni (opsiyonel)',
                         ),
                       ),
-                    ),
-                  ],
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          headerTypeField,
+                          spacing,
+                          headerTextField,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        headerTypeField,
+                        spacing,
+                        headerTextField,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextField(

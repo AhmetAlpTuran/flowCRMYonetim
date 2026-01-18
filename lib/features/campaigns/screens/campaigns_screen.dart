@@ -605,9 +605,12 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 640;
+          final spacing = isNarrow ? const SizedBox(height: 8) : const SizedBox(width: 8);
+
+          final fieldDropdown = Expanded(
             child: DropdownButtonFormField<String>(
               initialValue: widget.filter.field,
               items: const [
@@ -628,10 +631,10 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
               },
               decoration: const InputDecoration(labelText: 'Alan'),
             ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 120,
+          );
+
+          final operatorDropdown = SizedBox(
+            width: isNarrow ? double.infinity : 120,
             child: DropdownButtonFormField<String>(
               initialValue: widget.filter.operatorValue,
               items: const [
@@ -649,22 +652,52 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
               },
               decoration: const InputDecoration(labelText: 'Operator'),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
+          );
+
+          final valueField = Expanded(
             child: TextField(
               controller: _valueController,
               decoration: const InputDecoration(labelText: 'Deger'),
               onChanged: (value) => widget.filter.value = value,
             ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
+          );
+
+          final removeButton = IconButton(
             onPressed: widget.onRemove,
             icon: const Icon(Icons.close),
             tooltip: 'Kaldir',
-          ),
-        ],
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                fieldDropdown,
+                spacing,
+                operatorDropdown,
+                spacing,
+                valueField,
+                spacing,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: removeButton,
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              fieldDropdown,
+              spacing,
+              operatorDropdown,
+              spacing,
+              valueField,
+              spacing,
+              removeButton,
+            ],
+          );
+        },
       ),
     );
   }
