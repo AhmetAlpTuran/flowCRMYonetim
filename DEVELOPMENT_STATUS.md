@@ -21,19 +21,18 @@ modified when this work began; preserve it outside milestone commits.
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
 | Inbox | Conversations, text replies, tags, realtime, read events | Assignment, pagination, attachments, per-agent unread state, resilient sends |
 | AI | Settings, knowledge CRUD, webhook reply | Signed webhooks, phone-to-tenant routing, deduplication, human ownership, usage accounting |
-| Templates | Submit, sync, media upload | Validated send parameters, tenant-specific credentials, supported-type validation |
-| Campaigns | Draft/create, synchronous send, consented contacts | Canonical filters, parameters, durable queue, claims, retries, progress and delivery |
+| Templates | Submit, sync, media upload, validated send bindings and form | Tenant-specific credentials, broader template families, provider verification |
+| Campaigns | Shared audience RPC, parameters, draft/create, queue schema/RPC foundation | Replace synchronous endpoint, wire workers, retries/progress UI and delivery events |
 | Handoff | Request creation/list | Assignment, processing/closure, bot pause, response/resolution metrics |
 | Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
 | Billing | Absent | Provider integration, subscription lifecycle, entitlements, usage limits |
 | Operations | Migrations, local config | Deployment guide, observability, backup/restore and scheduled workers |
-| Tests | Generated counter test references missing MyApp | Replace and author meaningful suites; execution deferred by user |
+| Tests | Audience/queue SQL fixtures, template builder cases, form regressions replacing counter test | Broader security/workflow suites; execution deferred by user |
 
 ## Confirmed defects and release risks
 
-- Flutter audience date regex is over-escaped; count and send use different logic.
-- Custom campaign filters are stored but ignored by the sender.
-- Send components always become an empty list; dynamic parameters cannot work.
+- Fixed in source, runtime unverified: over-escaped audience date regex and ignored custom filters.
+- Fixed in source, runtime unverified: empty send components replaced by validated parameters.
 - Sender stops at 100 contacts, has no durable claim, and marks failures completed.
 - Jobs are recorded after external delivery: retries can duplicate dispatch.
 - Some service-role queries retrieve related objects by ID without tenant equality.
@@ -100,3 +99,14 @@ modified when this work began; preserve it outside milestone commits.
   entrypoint/runtime checks, live Meta conformance and visual checks are pending.
   Next: durable campaign snapshot/claims, duplicate protection, bounded workers,
   partial/unknown outcomes and delivery reconciliation, then Riverpod ownership.
+- 2026-10-30: Campaign execution sub-milestone 4a: authored durable dispatch schema
+  and service-only enqueue/claim/start/finalize/progress functions. Snapshot matching
+  is atomic; unique normalized recipient keys prevent per-campaign duplicates;
+  leases are fenced; expired dispatches become unknown, not automatic re-sends;
+  retries are bounded. Client writes to legacy jobs are revoked, and new campaign
+  template references enforce tenant equality. Historical jobs remain preserved.
+  Added queue regression fixtures and `docs/CAMPAIGN_EXECUTION.md`. SQL and PL/pgSQL
+  grammar parsing succeeded with pglast 8.7; no migration or test suite was executed.
+  This foundation is not wired to the still-synchronous sender yet. Next: tenant
+  connection resolution, replacement enqueue endpoint, bounded scheduled worker,
+  verified delivery events and progress UI. Do not deploy 4a as a complete upgrade.

@@ -27,3 +27,16 @@ The current Meta Postman pages were reachable; direct Meta reference requests
 returned HTTP 429 during this pass. Named-parameter support is implemented with
 `parameter_name`, but live provider conformance, supported limits and current Graph
 version must be rechecked before release. No integration success is claimed.
+
+## Queue/background processing (2026-10-30)
+
+- PostgreSQL locking/queue consumers: https://www.postgresql.org/docs/current/sql-select.html
+  `FOR UPDATE SKIP LOCKED` is appropriate for claiming queue rows across consumers;
+  do not use it as a consistent audience snapshot. Enqueue uses a normal atomic
+  insert-select and a campaign row lock instead.
+- Supabase scheduling: https://supabase.com/docs/guides/functions/schedule-functions
+  and https://supabase.com/docs/guides/cron
+  Scheduled invocation and secret storage must be configured during backend setup.
+  Cron integration is not active in this checkout yet.
+- Static parser: https://pypi.org/project/pglast/ (8.7 used from a temporary tools
+  directory; not added to app dependencies). Grammar parsing does not execute SQL.

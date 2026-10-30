@@ -76,6 +76,30 @@ parser. It persists values with draft/send requests. Draft listing/editing and
 durable dispatch are subsequent milestones. Existing campaigns receive `{}`;
 static templates can still send, but variable templates require values before send.
 
+## Durable queue foundation (integration pending)
+
+`20261030092000_campaign_dispatch_queue.sql` introduces `campaign_dispatches` and
+service-only worker RPCs. See [CAMPAIGN_EXECUTION.md](CAMPAIGN_EXECUTION.md) for the
+protocol, unknown-send handling and required integration order. This is an incremental
+foundation: do not deploy it alone as the finished campaign upgrade. The enqueue
+endpoint, per-tenant connection resolution, scheduler/worker and UI progress must
+be deployed together after their implementation milestones.
+
+The new campaign/template composite foreign key rejects new cross-tenant references
+but is initially NOT VALID to preserve historical data. Before release, audit:
+
+```sql
+select c.id, c.tenant_id, c.template_id
+from public.campaigns c
+join public.templates t on t.id = c.template_id
+where c.tenant_id <> t.tenant_id;
+```
+
+Review any mismatches and repair their intended references before running
+`alter table public.campaigns validate constraint campaigns_template_tenant_fk`.
+Do not auto-delete campaigns or guess their intended template. Legacy jobs become
+read-only to clients; historical sends are not replayed into the new queue.
+
 ## Deferred verification commands
 
 Test suites are authored but not executed at the owner's request. During verification,
@@ -89,6 +113,11 @@ Additional authored suites (do not run until the agreed verification phase):
 deno test supabase/functions/_shared/template_parameters_test.ts
 flutter test test/widget_test.dart
 ```
+
+Also execute `supabase/tests/campaign_dispatch_queue.sql` on an isolated migrated
+database in that phase. It is transactional and authors no network sends. The queue
+migration and SQL fixture were grammar-parsed with pglast 8.7 during implementation;
+this does not validate PostgreSQL privileges, constraint behavior or concurrency.
 
 Static-only checks used during implementation:
 
