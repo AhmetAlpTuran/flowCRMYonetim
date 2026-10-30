@@ -10,7 +10,8 @@ class SupabaseCampaignRepository {
   Future<List<MessageTemplate>> fetchTemplates(String tenantId) async {
     final response = await _client
         .from('templates')
-        .select('id, name, category, language, status, components, wa_template_id')
+        .select(
+            'id, name, category, language, status, components, wa_template_id')
         .eq('tenant_id', tenantId)
         .order('created_at', ascending: false);
 
@@ -37,28 +38,17 @@ class SupabaseCampaignRepository {
     required String tenantId,
     String? segment,
     String? lastContacted,
+    List<Map<String, dynamic>> custom = const [],
   }) async {
-    var query = _client.from('consented_contacts').select('id').eq(
-          'tenant_id',
-          tenantId,
-        );
-
-    if (segment != null && segment.isNotEmpty) {
-      query = query.contains('tags', [segment]);
-    }
-
-    if (lastContacted != null) {
-      final match = RegExp(r'^(\\d+)(d)$').firstMatch(lastContacted);
-      if (match != null) {
-        final days = int.parse(match.group(1)!);
-        final cutoff =
-            DateTime.now().subtract(Duration(days: days)).toIso8601String();
-        query = query.gte('last_contacted_at', cutoff);
-      }
-    }
-
-    final response = await query.count(CountOption.exact);
-    return response.count ?? 0;
+    final response = await _client.rpc('count_campaign_audience', params: {
+      'p_tenant_id': tenantId,
+      'p_filter': {
+        if (segment != null && segment.isNotEmpty) 'segment': segment,
+        if (lastContacted != null) 'last_contacted': lastContacted,
+        'custom': custom,
+      },
+    });
+    return (response as num).toInt();
   }
 
   Future<String> createCampaign({

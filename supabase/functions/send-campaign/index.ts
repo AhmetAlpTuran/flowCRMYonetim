@@ -102,6 +102,7 @@ serve(async (req) => {
     .from("templates")
     .select("name, language, components")
     .eq("id", campaign.template_id)
+    .eq("tenant_id", campaign.tenant_id)
     .maybeSingle();
 
   if (!template) {
@@ -115,25 +116,15 @@ serve(async (req) => {
   const templateComponents = Array.isArray(template.components)
     ? template.components
     : (template.components?.components ?? []);
-  let contactsQuery = supabaseService
-    .from("consented_contacts")
-    .select("id, tags, last_contacted_at, phone")
-    .eq("tenant_id", campaign.tenant_id);
-
-  if (typeof filter.segment === "string") {
-    contactsQuery = contactsQuery.contains("tags", [filter.segment]);
+  const { data: contacts, error: audienceError } = await supabaseService
+    .rpc("campaign_audience", { p_tenant_id: campaign.tenant_id, p_filter: filter })
+    .limit(100);
+  if (audienceError) {
+    return new Response(JSON.stringify({ error: "Invalid audience or audience unavailable" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
-
-  if (typeof filter.last_contacted === "string") {
-    const match = /^(\d+)(d)$/.exec(filter.last_contacted);
-    if (match) {
-      const days = Number(match[1]);
-      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      contactsQuery = contactsQuery.gte("last_contacted_at", cutoff.toISOString());
-    }
-  }
-
-  const { data: contacts } = await contactsQuery.limit(100);
   const jobs = [];
   let sent = 0;
   let failed = 0;

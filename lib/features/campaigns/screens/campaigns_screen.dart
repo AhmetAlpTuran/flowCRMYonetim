@@ -24,6 +24,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
   bool _sending = false;
   String? _error;
   String? _currentTenantId;
+  int _audienceRevision = 0;
 
   final List<String> _filters = const [
     'Son 7 gunde gorusulenler',
@@ -34,9 +35,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
 
   final List<MessageTemplate> _templates = [];
 
-  final List<_CustomFilter> _customFilters = [
-    _CustomFilter(field: 'Son iletisim', operatorValue: '>', value: '7 gun'),
-  ];
+  final List<_CustomFilter> _customFilters = [];
 
   @override
   void initState() {
@@ -144,11 +143,14 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                 const SizedBox(height: 8),
                 for (final filter in _customFilters)
                   _CustomFilterRow(
+                    key: ObjectKey(filter),
                     filter: filter,
+                    onChanged: _refreshAudienceCount,
                     onRemove: () {
                       setState(() {
                         _customFilters.remove(filter);
                       });
+                      _refreshAudienceCount();
                     },
                   ),
                 const SizedBox(height: 8),
@@ -165,6 +167,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                           ),
                         );
                       });
+                      _refreshAudienceCount();
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Filtre ekle'),
@@ -317,20 +320,37 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
   }
 
   Future<void> _refreshAudienceCount() async {
+    final revision = ++_audienceRevision;
     final tenant = ref.read(selectedTenantProvider);
     if (tenant == null) {
       return;
     }
     final filter = _buildAudienceFilter();
-    final count = await _repository.countAudience(
-      tenantId: tenant.id,
-      segment: filter['segment'] as String?,
-      lastContacted: filter['last_contacted'] as String?,
-    );
-    if (mounted) {
-      setState(() {
-        _audienceCount = count;
-      });
+    try {
+      final count = await _repository.countAudience(
+        tenantId: tenant.id,
+        segment: filter['segment'] as String?,
+        lastContacted: filter['last_contacted'] as String?,
+        custom: (filter['custom'] as List<Map<String, dynamic>>?) ?? const [],
+      );
+      if (mounted &&
+          revision == _audienceRevision &&
+          ref.read(selectedTenantProvider)?.id == tenant.id) {
+        setState(() {
+          _audienceCount = count;
+          _error = null;
+        });
+      }
+    } catch (_) {
+      if (mounted &&
+          revision == _audienceRevision &&
+          ref.read(selectedTenantProvider)?.id == tenant.id) {
+        setState(() {
+          _audienceCount = 0;
+          _error =
+              'Kitle hesaplanamadı. Filtreleri kontrol edip tekrar deneyin.';
+        });
+      }
     }
   }
 
@@ -413,7 +433,8 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gonderim tamamlandi. $sent basarili, $failed hatali.'),
+            content:
+                Text('Gonderim tamamlandi. $sent basarili, $failed hatali.'),
           ),
         );
       }
@@ -527,7 +548,8 @@ class _StatCard extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Icon(icon, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(width: 12),
@@ -580,11 +602,14 @@ class _CustomFilter {
 
 class _CustomFilterRow extends StatefulWidget {
   const _CustomFilterRow({
+    super.key,
     required this.filter,
+    required this.onChanged,
     required this.onRemove,
   });
 
   final _CustomFilter filter;
+  final VoidCallback onChanged;
   final VoidCallback onRemove;
 
   @override
@@ -618,17 +643,14 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                 DropdownButtonFormField<String>(
                   initialValue: widget.filter.field,
                   items: const [
-                    DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
-                    DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
-                    DropdownMenuItem(value: 'Ulke', child: Text('Ulke')),
                     DropdownMenuItem(
-                      value: 'Siparis adedi',
-                      child: Text('Siparis adedi'),
-                    ),
+                        value: 'Son iletisim', child: Text('Son iletisim')),
+                    DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
                   ],
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => widget.filter.field = value);
+                      widget.onChanged();
                     }
                   },
                   decoration: const InputDecoration(labelText: 'Alan'),
@@ -645,6 +667,7 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => widget.filter.operatorValue = value);
+                      widget.onChanged();
                     }
                   },
                   decoration: const InputDecoration(labelText: 'Operator'),
@@ -653,7 +676,10 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                 TextField(
                   controller: _valueController,
                   decoration: const InputDecoration(labelText: 'Deger'),
-                  onChanged: (value) => widget.filter.value = value,
+                  onChanged: (value) {
+                    widget.filter.value = value;
+                    widget.onChanged();
+                  },
                 ),
                 vSpacing,
                 Align(
@@ -674,17 +700,14 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                 child: DropdownButtonFormField<String>(
                   initialValue: widget.filter.field,
                   items: const [
-                    DropdownMenuItem(value: 'Son iletisim', child: Text('Son iletisim')),
-                    DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
-                    DropdownMenuItem(value: 'Ulke', child: Text('Ulke')),
                     DropdownMenuItem(
-                      value: 'Siparis adedi',
-                      child: Text('Siparis adedi'),
-                    ),
+                        value: 'Son iletisim', child: Text('Son iletisim')),
+                    DropdownMenuItem(value: 'Etiket', child: Text('Etiket')),
                   ],
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => widget.filter.field = value);
+                      widget.onChanged();
                     }
                   },
                   decoration: const InputDecoration(labelText: 'Alan'),
@@ -704,6 +727,7 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => widget.filter.operatorValue = value);
+                      widget.onChanged();
                     }
                   },
                   decoration: const InputDecoration(labelText: 'Operator'),
@@ -714,7 +738,10 @@ class _CustomFilterRowState extends State<_CustomFilterRow> {
                 child: TextField(
                   controller: _valueController,
                   decoration: const InputDecoration(labelText: 'Deger'),
-                  onChanged: (value) => widget.filter.value = value,
+                  onChanged: (value) {
+                    widget.filter.value = value;
+                    widget.onChanged();
+                  },
                 ),
               ),
               hSpacing,

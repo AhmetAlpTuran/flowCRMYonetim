@@ -82,3 +82,9 @@ modified when this work began; preserve it outside milestone commits.
 
 - 2026-10-30: Baseline inspection completed. No suites run; no backend modified.
   Next: canonical audience RPC with strict validation and caller-scoped permissions.
+- 2026-10-30: Audience matching moved to PostgreSQL for both preview and send.
+  Added strict legacy-filter validation, invoker permissions, deterministic ordering,
+  custom-filter propagation, stale-response suppression and surfaced preview errors.
+  Removed the contradictory implicit custom-date rule and unsupported country/order
+  fields from the form. Added transactional SQL fixtures; execution deferred.
+  The sender's 100-recipient cap and queue reliability remain milestone 4 work.
