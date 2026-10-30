@@ -40,3 +40,16 @@ version must be rechecked before release. No integration success is claimed.
   Cron integration is not active in this checkout yet.
 - Static parser: https://pypi.org/project/pglast/ (8.7 used from a temporary tools
   directory; not added to app dependencies). Grammar parsing does not execute SQL.
+
+## WhatsApp connection foundation (2026-10-30)
+
+- Meta phone account relationship:
+  https://www.postman.com/meta/whatsapp-business-platform/folder/ypba0gk/phone-numbers
+- Meta token debugging reference:
+  https://developers.facebook.com/docs/facebook-login/guides/access-tokens/debugging-and-error-handling/
+  Direct retrieval was unavailable during this pass; the bundled Meta Embedded
+  Signup collection supplies the debug_token request/response structure. Live
+  permission and token-type conformance remains a release verification item.
+- Supabase official package registry metadata:
+  https://registry.npmjs.org/@supabase/supabase-js/latest
+  Resolved 2.118.0; new shared imports pin that release instead of floating @2.

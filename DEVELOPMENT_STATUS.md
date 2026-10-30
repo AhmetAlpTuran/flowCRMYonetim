@@ -110,3 +110,12 @@ modified when this work began; preserve it outside milestone commits.
   This foundation is not wired to the still-synchronous sender yet. Next: tenant
   connection resolution, replacement enqueue endpoint, bounded scheduled worker,
   verified delivery events and progress UI. Do not deploy 4a as a complete upgrade.
+- 2026-10-30: Tenant WhatsApp connection foundation added before wiring workers:
+  tenant-readable immutable phone metadata, service-only AES-GCM encrypted tokens,
+  admin-only connect/disconnect with Meta app/scope/expiry/account checks, audit
+  events and a scoped resolver. Closed the existing users-permission escalation
+  path for direct membership writes. Added connection fields to campaigns and WABA
+  identity to templates; legacy senders are not yet migrated to them.
+  New endpoints/helpers and authored security tests pass Deno static type checking;
+  new migration/SQL cases pass grammar parsing. All suites and live APIs remain
+  unrun. Backend setup/rotation assumptions are in `docs/WHATSAPP_CONNECTIONS.md`.

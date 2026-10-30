@@ -102,6 +102,12 @@ read-only to clients; historical sends are not replayed into the new queue.
 
 ## Deferred verification commands
 
+Apply the connection foundation migration `20261030093000_whatsapp_connections.sql`
+in order as part of the eventual complete deployment. Configuration and verification
+requirements are in [WHATSAPP_CONNECTIONS.md](WHATSAPP_CONNECTIONS.md). Do not ship
+the connection endpoint with the legacy unsigned webhook or global-credential
+senders as a finished multi-tenant integration.
+
 Test suites are authored but not executed at the owner's request. During verification,
 run `supabase/tests/campaign_audience.sql` against an isolated migrated database.
 It uses a transaction and rolls its fixture changes back. Full RLS adversarial tests,
@@ -127,5 +133,6 @@ npx --yes --package typescript@5.9.3 tsc --project supabase/functions/_shared/ts
 ```
 
 The isolated TypeScript config checks the pure builder without inheriting unrelated
-parent-folder Node types. It is not a Deno/Edge integration check. Deno is not
-installed in this workstation; Edge entrypoint checks remain pending.
+parent-folder Node types. New connection entrypoints/helpers and authored Deno cases
+were additionally type-checked with the temporary `npx deno` tool (2.9.6). Type
+checking does not execute suites or prove Edge runtime/provider integration.
