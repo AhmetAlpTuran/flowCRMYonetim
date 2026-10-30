@@ -1,5 +1,11 @@
 ﻿import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildTemplateComponents,
+  TemplateInputError,
+  templateInputs,
+  validateTemplateBindings,
+} from "../_shared/template_parameters.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,8 +48,8 @@ serve(async (req) => {
   const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
   const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
   const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
-  const whatsappBaseUrl = Deno.env.get("WHATSAPP_BASE_URL") ??
-    "https://graph.facebook.com";
+  const whatsappBaseUrl =
+    Deno.env.get("WHATSAPP_BASE_URL") ?? "https://graph.facebook.com";
   if (!whatsappToken || !whatsappPhoneNumberId) {
     return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
       status: 500,
@@ -69,7 +75,7 @@ serve(async (req) => {
 
   const { data: campaign, error: campaignError } = await supabaseUser
     .from("campaigns")
-    .select("id, tenant_id, audience_filter, template_id")
+    .select("id, tenant_id, audience_filter, template_id, template_bindings")
     .eq("id", campaignId)
     .maybeSingle();
 
@@ -100,7 +106,7 @@ serve(async (req) => {
 
   const { data: template } = await supabaseService
     .from("templates")
-    .select("name, language, components")
+    .select("name, language, components, status")
     .eq("id", campaign.template_id)
     .eq("tenant_id", campaign.tenant_id)
     .maybeSingle();
@@ -112,18 +118,50 @@ serve(async (req) => {
     });
   }
 
+  if (String(template.status).toUpperCase() !== "APPROVED") {
+    return new Response(
+      JSON.stringify({ error: "Template must be approved before sending" }),
+      {
+        status: 409,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
+  }
+  try {
+    validateTemplateBindings(
+      templateInputs(template.components),
+      campaign.template_bindings,
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        error:
+          error instanceof TemplateInputError
+            ? error.message
+            : "Invalid template bindings",
+      }),
+      {
+        status: 422,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
+  }
+
   const filter = (campaign.audience_filter ?? {}) as Record<string, unknown>;
-  const templateComponents = Array.isArray(template.components)
-    ? template.components
-    : (template.components?.components ?? []);
   const { data: contacts, error: audienceError } = await supabaseService
-    .rpc("campaign_audience", { p_tenant_id: campaign.tenant_id, p_filter: filter })
+    .rpc("campaign_audience", {
+      p_tenant_id: campaign.tenant_id,
+      p_filter: filter,
+    })
     .limit(100);
   if (audienceError) {
-    return new Response(JSON.stringify({ error: "Invalid audience or audience unavailable" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    return new Response(
+      JSON.stringify({ error: "Invalid audience or audience unavailable" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
   }
   const jobs = [];
   let sent = 0;
@@ -146,6 +184,32 @@ serve(async (req) => {
       continue;
     }
 
+    let components: Array<Record<string, unknown>>;
+    try {
+      components = buildTemplateComponents(
+        template.components,
+        campaign.template_bindings,
+        contact,
+      );
+    } catch (error) {
+      const message =
+        error instanceof TemplateInputError
+          ? error.message
+          : "Invalid contact parameters";
+      failed += 1;
+      jobs.push({
+        tenant_id: campaign.tenant_id,
+        campaign_id: campaign.id,
+        consented_contact_id: contact.id,
+        template_id: campaign.template_id,
+        status: "failed",
+        attempts: 0,
+        last_error: message,
+      });
+      failures.push({ phone: to, error: message });
+      continue;
+    }
+
     const response = await fetch(
       `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappPhoneNumberId}/messages`,
       {
@@ -162,8 +226,7 @@ serve(async (req) => {
           template: {
             name: template.name,
             language: { code: template.language },
-            // WhatsApp expects only parameter payloads here, not template definitions.
-            components: normalizeComponentsForSend(templateComponents),
+            ...(components.length > 0 ? { components } : {}),
           },
         }),
       },
@@ -213,14 +276,6 @@ serve(async (req) => {
     .from("campaigns")
     .update({ status: "completed" })
     .eq("id", campaign.id);
-
-  function normalizeComponentsForSend(
-    raw: unknown[] | undefined,
-  ): Array<Record<string, unknown>> {
-    // For now, do not send creation-time component definitions back to WhatsApp.
-    // If the template has placeholders, provide parameters here; otherwise keep empty.
-    return [];
-  }
 
   return new Response(
     JSON.stringify({

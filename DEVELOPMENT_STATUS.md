@@ -88,3 +88,15 @@ modified when this work began; preserve it outside milestone commits.
   Removed the contradictory implicit custom-date rule and unsupported country/order
   fields from the form. Added transactional SQL fixtures; execution deferred.
   The sender's 100-recipient cap and queue reliability remain milestone 4 work.
+- 2026-10-30: Template binding milestone implemented in source: additive JSON
+  storage; one server-owned input manifest/parser; approved-template validation;
+  text/contact/fallback/media/URL-button parameter construction; parameter form;
+  persisted draft/send values; stale manifest suppression and wrapped action buttons.
+  Draft writes now go through the repository. Unsupported component families fail
+  explicitly. The placeholder counter test was replaced by meaningful form cases;
+  server payload/validation regressions were authored. All suites remain unrun.
+  Added DESIGN.md and UX-CONTRACT.md documenting existing theme and target behavior.
+  Static Dart analysis and isolated TypeScript builder checking passed. Deno Edge
+  entrypoint/runtime checks, live Meta conformance and visual checks are pending.
+  Next: durable campaign snapshot/claims, duplicate protection, bounded workers,
+  partial/unknown outcomes and delivery reconciliation, then Riverpod ownership.

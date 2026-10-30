@@ -1,11 +1,28 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../templates/models/message_template.dart';
+import '../models/template_input.dart';
 
 class SupabaseCampaignRepository {
   SupabaseCampaignRepository(this._client);
 
   final SupabaseClient _client;
+
+  Future<List<CampaignTemplateInput>> fetchTemplateInputs({
+    required String tenantId,
+    required String templateId,
+  }) async {
+    final response = await _client.functions.invoke(
+      'campaign-template-inputs',
+      body: {'tenant_id': tenantId, 'template_id': templateId},
+    );
+    final inputs = (response.data as Map<String, dynamic>)['inputs'] as List;
+    return inputs
+        .map((value) => CampaignTemplateInput.fromJson(
+              Map<String, dynamic>.from(value as Map),
+            ))
+        .toList();
+  }
 
   Future<List<MessageTemplate>> fetchTemplates(String tenantId) async {
     final response = await _client
@@ -13,6 +30,7 @@ class SupabaseCampaignRepository {
         .select(
             'id, name, category, language, status, components, wa_template_id')
         .eq('tenant_id', tenantId)
+        .eq('status', 'APPROVED')
         .order('created_at', ascending: false);
 
     return response.map<MessageTemplate>((row) {
@@ -56,6 +74,8 @@ class SupabaseCampaignRepository {
     required String name,
     required Map<String, dynamic> audienceFilter,
     required String templateId,
+    Map<String, dynamic> templateBindings = const {},
+    String status = 'draft',
   }) async {
     final response = await _client
         .from('campaigns')
@@ -64,7 +84,8 @@ class SupabaseCampaignRepository {
           'name': name,
           'audience_filter': audienceFilter,
           'template_id': templateId,
-          'status': 'running',
+          'template_bindings': templateBindings,
+          'status': status,
         })
         .select('id')
         .single();

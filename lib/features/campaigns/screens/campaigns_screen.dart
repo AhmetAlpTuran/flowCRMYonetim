@@ -5,25 +5,46 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../templates/models/message_template.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../data/supabase_campaign_repository.dart';
+import '../models/template_input.dart';
+import '../widgets/template_parameter_fields.dart';
 
-class CampaignsScreen extends ConsumerStatefulWidget {
+class CampaignsScreen extends ConsumerWidget {
   const CampaignsScreen({super.key});
 
   @override
-  ConsumerState<CampaignsScreen> createState() => _CampaignsScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tenant = ref.watch(selectedTenantProvider);
+    if (tenant == null) {
+      return const Center(
+          child: Text('Kampanya oluşturmak için işletme seçin.'));
+    }
+    return _TenantCampaignForm(key: ValueKey(tenant.id));
+  }
 }
 
-class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
+class _TenantCampaignForm extends ConsumerStatefulWidget {
+  const _TenantCampaignForm({super.key});
+
+  @override
+  ConsumerState<_TenantCampaignForm> createState() => _CampaignsScreenState();
+}
+
+class _CampaignsScreenState extends ConsumerState<_TenantCampaignForm> {
   late final SupabaseCampaignRepository _repository;
   final TextEditingController _campaignNameController = TextEditingController();
+  final _parameterFormKey = GlobalKey<FormState>();
+  List<CampaignTemplateInput> _templateInputs = [];
+  Map<String, dynamic> _templateBindings = {};
+  bool _templateLoading = false;
+  String? _templateError;
+  int _templateRevision = 0;
 
   String _selectedFilter = 'Son 7 gunde gorusulenler';
   MessageTemplate? _selectedTemplate;
   int _audienceCount = 0;
-  bool _loading = false;
+  bool _loading = true;
   bool _sending = false;
   String? _error;
-  String? _currentTenantId;
   int _audienceRevision = 0;
 
   final List<String> _filters = const [
@@ -41,6 +62,9 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
   void initState() {
     super.initState();
     _repository = SupabaseCampaignRepository(Supabase.instance.client);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadData();
+    });
   }
 
   @override
@@ -52,13 +76,6 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
   @override
   Widget build(BuildContext context) {
     final tenant = ref.watch(selectedTenantProvider);
-    if (_currentTenantId != tenant?.id) {
-      _currentTenantId = tenant?.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadData();
-      });
-    }
-
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -107,6 +124,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _selectedFilter,
+                  isExpanded: true,
                   items: [
                     for (final filter in _filters)
                       DropdownMenuItem(
@@ -190,26 +208,20 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<MessageTemplate>(
+                  key: ValueKey('${tenant?.id}:${_selectedTemplate?.id}'),
                   initialValue: _selectedTemplate,
+                  isExpanded: true,
                   items: [
                     for (final template in _templates)
                       DropdownMenuItem(
                         value: template,
                         child: Text(
                           '${template.name} • ${template.status}',
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTemplate = value;
-                      if (value != null &&
-                          _campaignNameController.text.trim().isEmpty) {
-                        _campaignNameController.text =
-                            '${value.name} Kampanyasi';
-                      }
-                    });
-                  },
+                  onChanged: _sending ? null : _selectTemplate,
                   decoration: const InputDecoration(
                     labelText: 'WhatsApp sablonu',
                   ),
@@ -263,15 +275,44 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
                     ),
                   ),
                 const SizedBox(height: 16),
-                Row(
+                if (_templateLoading)
+                  const LinearProgressIndicator(
+                      semanticsLabel: 'Şablon alanları yükleniyor'),
+                if (_templateError != null) ...[
+                  Text(_templateError!,
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.error)),
+                  TextButton(
+                    onPressed: () => _selectTemplate(_selectedTemplate),
+                    child: const Text('Tekrar dene'),
+                  ),
+                ],
+                if (_selectedTemplate != null &&
+                    !_templateLoading &&
+                    _templateError == null)
+                  Form(
+                    key: _parameterFormKey,
+                    child: TemplateParameterFields(
+                      key: ValueKey(_selectedTemplate!.id),
+                      inputs: _templateInputs,
+                      bindings: _templateBindings,
+                      enabled: !_sending,
+                      onChanged: (value) =>
+                          setState(() => _templateBindings = value),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: _sending ? null : _saveDraft,
+                      onPressed: _canSubmit ? _saveDraft : null,
                       child: const Text('Taslak olarak kaydet'),
                     ),
-                    const Spacer(),
                     FilledButton(
-                      onPressed: _sending ? null : _startCampaign,
+                      onPressed: _canSubmit ? _startCampaign : null,
                       child: _sending
                           ? const SizedBox(
                               height: 16,
@@ -290,6 +331,61 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
     );
   }
 
+  bool get _canSubmit =>
+      !_sending &&
+      !_loading &&
+      !_templateLoading &&
+      _selectedTemplate != null &&
+      _templateError == null;
+
+  Future<void> _selectTemplate(MessageTemplate? template) async {
+    final tenantId = ref.read(selectedTenantProvider)?.id;
+    final revision = ++_templateRevision;
+    setState(() {
+      _selectedTemplate = template;
+      _templateInputs = [];
+      _templateBindings = {};
+      _templateError = null;
+      _templateLoading = template != null && tenantId != null;
+      if (template != null && _campaignNameController.text.trim().isEmpty) {
+        _campaignNameController.text = '${template.name} Kampanyasi';
+      }
+    });
+    if (template == null || tenantId == null) return;
+    try {
+      final inputs = await _repository.fetchTemplateInputs(
+          tenantId: tenantId, templateId: template.id);
+      if (!mounted ||
+          revision != _templateRevision ||
+          ref.read(selectedTenantProvider)?.id != tenantId) {
+        return;
+      }
+      setState(() {
+        _templateInputs = inputs;
+        _templateBindings = {
+          for (final input in inputs)
+            input.key: {
+              'source': input.isMedia ? 'media_link' : 'literal',
+              'value': '',
+            },
+        };
+      });
+    } catch (_) {
+      if (mounted &&
+          revision == _templateRevision &&
+          ref.read(selectedTenantProvider)?.id == tenantId) {
+        setState(() => _templateError =
+            'Şablon alanları yüklenemedi. Onay durumunu ve desteklenen şablon türünü kontrol edin.');
+      }
+    } finally {
+      if (mounted &&
+          revision == _templateRevision &&
+          ref.read(selectedTenantProvider)?.id == tenantId) {
+        setState(() => _templateLoading = false);
+      }
+    }
+  }
+
   Future<void> _loadData() async {
     final tenant = ref.read(selectedTenantProvider);
     if (tenant == null) {
@@ -300,18 +396,20 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
     });
     try {
       final templates = await _repository.fetchTemplates(tenant.id);
+      if (!mounted || ref.read(selectedTenantProvider)?.id != tenant.id) return;
       setState(() {
         _templates
           ..clear()
           ..addAll(templates);
       });
       await _refreshAudienceCount();
-    } catch (error) {
-      setState(() {
-        _error = 'Veriler yuklenemedi: $error';
-      });
+    } catch (_) {
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
+        setState(
+            () => _error = 'Şablonlar yüklenemedi. Lütfen tekrar deneyin.');
+      }
     } finally {
-      if (mounted) {
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
         setState(() {
           _loading = false;
         });
@@ -385,6 +483,7 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
   }
 
   Future<void> _saveDraft() async {
+    if (!_canSubmit) return;
     final tenant = ref.read(selectedTenantProvider);
     final template = _selectedTemplate;
     if (tenant == null || template == null) {
@@ -393,21 +492,34 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
     final name = _campaignNameController.text.trim().isEmpty
         ? '${template.name} Kampanyasi'
         : _campaignNameController.text.trim();
-    await Supabase.instance.client.from('campaigns').insert({
-      'tenant_id': tenant.id,
-      'name': name,
-      'audience_filter': _buildAudienceFilter(),
-      'template_id': template.id,
-      'status': 'draft',
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Taslak kaydedildi.')),
+    setState(() => _sending = true);
+    try {
+      await _repository.createCampaign(
+        tenantId: tenant.id,
+        name: name,
+        audienceFilter: _buildAudienceFilter(),
+        templateId: template.id,
+        templateBindings: _templateBindings,
       );
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Taslak kaydedildi.')),
+        );
+      }
+    } catch (_) {
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
+        setState(() =>
+            _error = 'Taslak kaydedilemedi. Girdiğiniz değerler korunuyor.');
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
   }
 
   Future<void> _startCampaign() async {
+    if (!_canSubmit || !(_parameterFormKey.currentState?.validate() ?? false)) {
+      return;
+    }
     final tenant = ref.read(selectedTenantProvider);
     final template = _selectedTemplate;
     if (tenant == null || template == null) {
@@ -426,11 +538,12 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
         name: name,
         audienceFilter: _buildAudienceFilter(),
         templateId: template.id,
+        templateBindings: _templateBindings,
       );
       final result = await _repository.sendCampaign(campaignId);
       final sent = result['sent'] ?? 0;
       final failed = result['failed'] ?? 0;
-      if (mounted) {
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
@@ -438,10 +551,11 @@ class _CampaignsScreenState extends ConsumerState<CampaignsScreen> {
           ),
         );
       }
-    } catch (error) {
-      setState(() {
-        _error = 'Kampanya baslatilamadi: $error';
-      });
+    } catch (_) {
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
+        setState(() => _error =
+            'Gönderim sonucu alınamadı. Tekrar göndermeden önce kampanya durumunu kontrol edin.');
+      }
     } finally {
       if (mounted) {
         setState(() {

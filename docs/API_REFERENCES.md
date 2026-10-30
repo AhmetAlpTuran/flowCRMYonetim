@@ -13,3 +13,17 @@ Reviewed 2026-10-30. Record contract decisions here as integrations are implemen
 Before provider integration, read the current detailed official endpoint documentation.
 The bundled WPAPI collection is historical supporting material, not the version authority.
 Graph version must be explicit configuration and verified during deployment.
+
+## Template parameter follow-up (2026-10-30)
+
+- Meta-maintained media example: https://www.postman.com/meta/whatsapp-business-platform/request/2qbotrb/send-message-template-media
+- Meta parameter/component reference linked from its collection:
+  https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
+- Local `wpapi/WhatsApp Cloud API.postman_collection.json` contains text/media request
+  bodies consistent with the send-time parameters structure. It is supporting
+  historical evidence, not proof of current version support.
+
+The current Meta Postman pages were reachable; direct Meta reference requests
+returned HTTP 429 during this pass. Named-parameter support is implemented with
+`parameter_name`, but live provider conformance, supported limits and current Graph
+version must be rechecked before release. No integration success is claimed.
