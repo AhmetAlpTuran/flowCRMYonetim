@@ -119,3 +119,15 @@ modified when this work began; preserve it outside milestone commits.
   New endpoints/helpers and authored security tests pass Deno static type checking;
   new migration/SQL cases pass grammar parsing. All suites and live APIs remain
   unrun. Backend setup/rotation assumptions are in `docs/WHATSAPP_CONNECTIONS.md`.
+- 2026-10-31: Campaign execution sub-milestone 4b: replaced the synchronous sender
+  with authenticated enqueue and a secret-authenticated bounded background worker.
+  Frozen tenant/account identity is checked at enqueue and again before dispatch;
+  blocked configuration consumes no send attempts. Uncertain provider outcomes are
+  not replayed, acknowledgements retry without another send, and partial progress
+  is server-owned. Added the optional cron/Vault setup script without activating it.
+  Template synchronization now uses encrypted tenant connections and atomic,
+  account/language-scoped page imports, preserving ambiguous legacy records. Campaign
+  selection excludes unlinked templates. Added delivery and sync regression suites
+  and extended queue fixtures; all remain unrun. Deno type checking, Dart analysis,
+  SQL/PLpgSQL grammar parsing and diff whitespace checks passed. Next: Riverpod ownership, stable
+  client campaign IDs, draft/history/progress UI and signed delivery reconciliation.

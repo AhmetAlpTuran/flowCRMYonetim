@@ -541,13 +541,14 @@ class _CampaignsScreenState extends ConsumerState<_TenantCampaignForm> {
         templateBindings: _templateBindings,
       );
       final result = await _repository.sendCampaign(campaignId);
-      final sent = result['sent'] ?? 0;
-      final failed = result['failed'] ?? 0;
+      final progress = result['progress'] as Map<String, dynamic>?;
+      final total = progress?['total'] ?? 0;
       if (mounted && ref.read(selectedTenantProvider)?.id == tenant.id) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('Gonderim tamamlandi. $sent basarili, $failed hatali.'),
+            content: Text(result['status'] == 'queued'
+                ? 'Kampanya kuyruğa alındı. $total alıcı arka planda işlenecek.'
+                : 'Bu kampanya daha önce kuyruğa alındı. $total kayıtlı alıcı var.'),
           ),
         );
       }

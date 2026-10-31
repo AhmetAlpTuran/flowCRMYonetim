@@ -6,6 +6,16 @@ import { ApiError } from "./http.ts";
 
 export type DatabaseClient = SupabaseClient;
 
+const boundedFetch: typeof fetch = (input, init) => {
+  const callerSignal = init?.signal ??
+    (input instanceof Request ? input.signal : null);
+  const deadline = AbortSignal.timeout(10000);
+  return fetch(input, {
+    ...init,
+    signal: callerSignal ? AbortSignal.any([callerSignal, deadline]) : deadline,
+  });
+};
+
 export function requiredEnv(name: string): string {
   const value = Deno.env.get(name)?.trim();
   if (!value) {
@@ -23,6 +33,7 @@ export function serviceClient(): DatabaseClient {
     requiredEnv("SUPABASE_URL"),
     requiredEnv("SERVICE_ROLE_KEY"),
     {
+      global: { fetch: boundedFetch },
       auth: { persistSession: false, autoRefreshToken: false },
     },
   );
@@ -37,7 +48,10 @@ export async function authenticate(req: Request) {
     requiredEnv("SUPABASE_URL"),
     requiredEnv("SUPABASE_ANON_KEY"),
     {
-      global: { headers: { Authorization: authorization } },
+      global: {
+        headers: { Authorization: authorization },
+        fetch: boundedFetch,
+      },
       auth: { persistSession: false, autoRefreshToken: false },
     },
   );

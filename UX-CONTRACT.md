@@ -46,5 +46,7 @@ Widget regressions are authored in `test/widget_test.dart`; server cases are in
 `supabase/functions/_shared/template_parameters_test.ts`. Suites have not been run.
 Full-route focus/error scrolling, screen-reader announcements, 200% zoom, session
 expiry, tenant switching during sends and deployed-function failure cases require
-the deferred verification phase. Legacy synchronous dispatch, cross-screen error
+the deferred verification phase. Dispatch now queues asynchronously and the submit
+notice reports queued recipients, never a fabricated zero-success completion.
+Stable client campaign identity across retries, history/progress, cross-screen error
 handling and controller ownership remain open; they are not approved exceptions.

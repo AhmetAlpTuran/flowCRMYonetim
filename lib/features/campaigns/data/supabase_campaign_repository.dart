@@ -31,6 +31,7 @@ class SupabaseCampaignRepository {
             'id, name, category, language, status, components, wa_template_id')
         .eq('tenant_id', tenantId)
         .eq('status', 'APPROVED')
+        .not('waba_id', 'is', null)
         .order('created_at', ascending: false);
 
     return response.map<MessageTemplate>((row) {

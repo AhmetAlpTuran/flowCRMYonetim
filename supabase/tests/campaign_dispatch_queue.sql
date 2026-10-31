@@ -9,13 +9,16 @@ declare
   template_id uuid := gen_random_uuid(); fixture_campaign uuid := gen_random_uuid(); other_campaign uuid := gen_random_uuid();
   expected jsonb; count_before bigint; count_after bigint; first_job public.campaign_dispatches;
   second_job public.campaign_dispatches; third_job public.campaign_dispatches; fourth_job public.campaign_dispatches;
-  claimed_ids uuid[]; result jsonb;
+  claimed_ids uuid[]; result jsonb; connection_id uuid := gen_random_uuid(); blocked_job public.campaign_dispatches;
 begin
   insert into auth.users(id, email) values (actor, actor::text || '@example.invalid');
   insert into public.tenants(id, name) values (tenant_a, 'Queue test A'), (tenant_b, 'Queue test B');
   insert into public.tenant_memberships(tenant_id, user_id, role) values (tenant_a, actor, 'admin');
-  insert into public.templates(id, tenant_id, name, category, language, status, components)
-    values (template_id, tenant_a, 'queue_test', 'UTILITY', 'tr', 'APPROVED', '[{"type":"BODY","text":"Hello"}]');
+  perform public.save_whatsapp_connection(tenant_a, actor, connection_id, '777', '7777',
+    '{"display_phone_number":"+90 555 000 0000","verified_name":"Queue fixture","token_expires_at":null}',
+    jsonb_build_object('key_id', 'fixture', 'ciphertext', repeat('A', 24), 'iv', repeat('A', 16)), true);
+  insert into public.templates(id, tenant_id, name, category, language, status, components, waba_id)
+    values (template_id, tenant_a, 'queue_test', 'UTILITY', 'tr', 'APPROVED', '[{"type":"BODY","text":"Hello"}]', '777');
   insert into public.consented_contacts(tenant_id, phone, full_name)
     select tenant_a, (905550000000 + n)::text, 'Queue contact' from generate_series(1, 120) n;
   insert into public.consented_contacts(tenant_id, phone) values
@@ -29,20 +32,27 @@ begin
     raise exception 'Cross-tenant template reference accepted';
   exception when foreign_key_violation then null; end;
   select jsonb_build_object('audience_filter', c.audience_filter, 'template_id', c.template_id,
-    'template_bindings', c.template_bindings,
+    'template_bindings', c.template_bindings, 'connection_id', connection_id,
+    'connection', jsonb_build_object('id', connection_id, 'waba_id', '777', 'phone_number_id', '7777'),
     'template', jsonb_build_object('name', t.name, 'language', t.language, 'components', t.components))
     into expected from public.campaigns c join public.templates t on t.id = c.template_id where c.id = fixture_campaign;
 
   count_before := public.count_campaign_audience(tenant_a, '{}');
   if count_before <> 121 then raise exception 'Canonical recipient count mismatch: %', count_before; end if;
   begin
-    perform public.enqueue_campaign(fixture_campaign, actor, '{}');
+    perform public.enqueue_campaign(fixture_campaign, actor, expected || '{"template_bindings":{"unexpected":{}}}');
     raise exception 'Stale configuration accepted';
   exception when serialization_failure then null; end;
   begin
     perform public.enqueue_campaign(fixture_campaign, gen_random_uuid(), expected);
     raise exception 'Nonmember actor accepted';
   exception when insufficient_privilege then null; end;
+  update public.templates set waba_id = '888' where id = template_id;
+  begin
+    perform public.enqueue_campaign(fixture_campaign, actor, expected);
+    raise exception 'Template from another WhatsApp account accepted';
+  exception when invalid_parameter_value then null; end;
+  update public.templates set waba_id = '777' where id = template_id;
   count_after := public.enqueue_campaign(fixture_campaign, actor, expected);
   if count_after <> count_before then raise exception 'Preview/snapshot mismatch'; end if;
   if public.enqueue_campaign(fixture_campaign, actor, expected) <> count_before then
@@ -68,6 +78,22 @@ begin
   select * into second_job from public.campaign_dispatches where id = claimed_ids[2];
   select * into third_job from public.campaign_dispatches where id = claimed_ids[3];
   select * into fourth_job from public.campaign_dispatches where id = claimed_ids[4];
+  select * into blocked_job from public.campaign_dispatches where id = claimed_ids[5];
+  update public.whatsapp_connections set status = 'inactive' where id = connection_id;
+  begin
+    perform public.start_campaign_dispatch(blocked_job.id, blocked_job.lease_token);
+    raise exception 'Disconnected connection dispatched';
+  exception when object_not_in_prerequisite_state then null; end;
+  if not public.defer_campaign_dispatch(blocked_job.id, blocked_job.lease_token, 'connection_inactive') then
+    raise exception 'Pre-send configuration failure not deferred';
+  end if;
+  if not exists (select 1 from public.campaign_dispatches d where d.id = blocked_job.id and d.state = 'blocked' and d.attempts = 0) then
+    raise exception 'Blocked configuration consumed provider attempt';
+  end if;
+  if public.start_campaign_dispatch(blocked_job.id, blocked_job.lease_token) then
+    raise exception 'Blocked job reused previous lease';
+  end if;
+  update public.whatsapp_connections set status = 'active' where id = connection_id;
   if public.start_campaign_dispatch(first_job.id, gen_random_uuid()) then raise exception 'Wrong lease accepted'; end if;
   if not public.start_campaign_dispatch(first_job.id, first_job.lease_token) then raise exception 'Start failed'; end if;
   if not public.finish_campaign_dispatch(first_job.id, first_job.lease_token, 'accepted', 'wamid.queue-test-1') then

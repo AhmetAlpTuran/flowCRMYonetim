@@ -10,6 +10,7 @@ export type WhatsAppConnection = {
   status: string;
   is_default: boolean;
   token_expires_at: string | null;
+  updated_at: string;
 };
 
 export function credentialKeys(): Keyring {
@@ -37,7 +38,7 @@ export async function resolveConnection(
 ): Promise<WhatsAppConnection> {
   let query = client.from("whatsapp_connections")
     .select(
-      "id, tenant_id, waba_id, phone_number_id, status, is_default, token_expires_at",
+      "id, tenant_id, waba_id, phone_number_id, status, is_default, token_expires_at, updated_at",
     )
     .eq("tenant_id", tenantId).eq("status", "active");
   if (connectionId) query = query.eq("id", connectionId);

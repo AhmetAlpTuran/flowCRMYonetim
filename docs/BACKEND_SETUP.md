@@ -32,9 +32,9 @@ for the elapsed-day bucket. Values accept `7` or legacy `7 gun`. Unknown last-co
 timestamps do not match date rules. Unsupported keys/fields/operators fail explicitly.
 Country and purchase-count predicates require future schema/integration work.
 
-Preview is live: contacts may change before dispatch. A future campaign snapshot
-milestone will freeze the recipients at enqueue time. Current sender still has its
-legacy 100-recipient cap; queue/pagination work remains before large campaigns ship.
+Preview is live: contacts may change before dispatch. The queue now freezes the
+recipients at enqueue time using the same matcher; the old 100-recipient sender cap
+has been removed. Queue deployment and deferred verification are still required.
 
 ## Template send-values milestone
 
@@ -73,17 +73,41 @@ require provider checks in the deferred integration phase.
 
 The UI loads manifests from the server instead of maintaining a second template
 parser. It persists values with draft/send requests. Draft listing/editing and
-durable dispatch are subsequent milestones. Existing campaigns receive `{}`;
+history/controller integration are subsequent milestones. Existing campaigns receive `{}`;
 static templates can still send, but variable templates require values before send.
 
-## Durable queue foundation (integration pending)
+## Durable queue deployment (implementation incomplete; not yet verified)
 
 `20261030092000_campaign_dispatch_queue.sql` introduces `campaign_dispatches` and
 service-only worker RPCs. See [CAMPAIGN_EXECUTION.md](CAMPAIGN_EXECUTION.md) for the
 protocol, unknown-send handling and required integration order. This is an incremental
-foundation: do not deploy it alone as the finished campaign upgrade. The enqueue
-endpoint, per-tenant connection resolution, scheduler/worker and UI progress must
-be deployed together after their implementation milestones.
+foundation: do not deploy it alone as the finished campaign upgrade. Apply migrations
+in timestamp order, including `20261030093000_whatsapp_connections.sql`,
+`20261030094000_campaign_worker_integration.sql`, and
+`20261030095000_template_account_sync.sql`. The replacement enqueue endpoint,
+tenant connection resolver, worker and template sync are implemented in source;
+client history/controller and verified receipt integration are still required.
+
+When the complete implementation reaches verification:
+
+1. Configure the connection secrets documented in `WHATSAPP_CONNECTIONS.md`.
+   Generate a separate random `CAMPAIGN_WORKER_SECRET` (32–256 characters); do not
+   reuse a service-role key, put it in Flutter, or commit it to source control.
+2. Deploy `campaign-worker`, `send-campaign`, `sync-templates`,
+   `campaign-template-inputs` and `manage-whatsapp-connection` with shared modules.
+   Only the worker disables platform JWT verification; it verifies its dedicated
+   bearer secret before reading input or touching the queue. User endpoints still
+   authenticate sessions and authorize tenant permissions.
+3. In Supabase Vault, store the HTTPS project base URL as `project_url` (no trailing
+   slash) and the same worker secret as `campaign_worker_secret`. Install/enable
+   pg_cron and pg_net and apply `supabase/ops/schedule_campaign_worker.sql` manually.
+   This optional operations script replaces only its own named schedule.
+4. Connect the intended WhatsApp account and synchronize templates before enqueueing.
+   Legacy unlinked rows remain preserved; ambiguous identities require selecting a
+   freshly synced scoped template. Multi-account picker UI is still pending.
+5. Monitor cron/pg_net invocation failures and queue age/blocked/unknown counts.
+   A healthy HTTP invocation is not proof of recipient delivery. Never automatically
+   replay an unknown dispatch. No schedules or sends have been enabled by this work.
 
 The new campaign/template composite foreign key rejects new cross-tenant references
 but is initially NOT VALID to preserve historical data. Before release, audit:

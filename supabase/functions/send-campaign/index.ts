@@ -1,130 +1,95 @@
-﻿import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  buildTemplateComponents,
+  ApiError,
+  endpoint,
+  jsonResponse,
+  readJson,
+  uuid,
+} from "../_shared/http.ts";
+import {
+  authenticate,
+  requirePermission,
+  serviceClient,
+} from "../_shared/supabase.ts";
+import {
   TemplateInputError,
   templateInputs,
   validateTemplateBindings,
 } from "../_shared/template_parameters.ts";
+import {
+  connectionToken,
+  resolveConnection,
+} from "../_shared/whatsapp_connections.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+// User requests only enqueue. External sends belong exclusively to campaign-worker.
+Deno.serve(endpoint(async (req) => {
+  const { client, userId } = await authenticate(req);
+  const body = await readJson(req, 4096);
+  const campaignId = uuid(body.campaign_id, "Campaign ID");
+  const { data: campaign, error: campaignError } = await client.from(
+    "campaigns",
+  )
+    .select(
+      "id, tenant_id, audience_filter, template_id, template_bindings, connection_id, queued_at",
+    )
+    .eq("id", campaignId).maybeSingle();
+  if (campaignError) {
+    throw new ApiError(503, "campaign_unavailable", "Campaign unavailable");
   }
+  if (!campaign) {
+    throw new ApiError(404, "campaign_not_found", "Campaign not found");
+  }
+  await requirePermission(client, campaign.tenant_id, "campaigns");
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+  async function progress() {
+    const { data, error } = await client.rpc("campaign_progress", {
+      p_campaign_id: campaignId,
+    });
+    if (error) {
+      throw new ApiError(
+        503,
+        "progress_unavailable",
+        "Campaign progress unavailable; refresh this campaign before retrying",
+      );
+    }
+    return data;
+  }
+  if (campaign.queued_at) {
+    return jsonResponse({
+      status: "already_queued",
+      campaign_id: campaignId,
+      progress: await progress(),
     });
   }
-
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+  const service = serviceClient();
+  const connection = await resolveConnection(
+    service,
+    campaign.tenant_id,
+    campaign.connection_id,
+  );
+  await connectionToken(service, connection); // Verify decryptability before queueing.
+  const { data: template, error: templateError } = await service.from(
+    "templates",
+  )
+    .select("name, language, components, status, waba_id").eq(
+      "id",
+      campaign.template_id,
+    )
+    .eq("tenant_id", campaign.tenant_id).maybeSingle();
+  if (templateError) {
+    throw new ApiError(503, "template_unavailable", "Template unavailable");
   }
-
-  const body = await req.json().catch(() => ({}));
-  const campaignId = body.campaign_id as string | undefined;
-  if (!campaignId) {
-    return new Response(JSON.stringify({ error: "campaign_id required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+  if (!template || String(template.status).toUpperCase() !== "APPROVED") {
+    throw new ApiError(
+      409,
+      "template_not_approved",
+      "Select an approved template",
+    );
   }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const supabaseServiceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
-  const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
-  const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
-  const whatsappApiVersion = Deno.env.get("WHATSAPP_API_VERSION") ?? "v20.0";
-  const whatsappBaseUrl =
-    Deno.env.get("WHATSAPP_BASE_URL") ?? "https://graph.facebook.com";
-  if (!whatsappToken || !whatsappPhoneNumberId) {
-    return new Response(JSON.stringify({ error: "WhatsApp config missing" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
-
-  const { data: userData } = await supabaseUser.auth.getUser();
-  const user = userData.user;
-  if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const { data: campaign, error: campaignError } = await supabaseUser
-    .from("campaigns")
-    .select("id, tenant_id, audience_filter, template_id, template_bindings")
-    .eq("id", campaignId)
-    .maybeSingle();
-
-  if (campaignError || !campaign) {
-    return new Response(JSON.stringify({ error: "Campaign not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const { data: membership } = await supabaseService
-    .from("tenant_memberships")
-    .select("role, permissions")
-    .eq("tenant_id", campaign.tenant_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const permissions = (membership?.permissions ?? []) as string[];
-  const hasAccess =
-    membership &&
-    (membership.role === "admin" || permissions.includes("campaigns"));
-  if (!hasAccess) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  const { data: template } = await supabaseService
-    .from("templates")
-    .select("name, language, components, status")
-    .eq("id", campaign.template_id)
-    .eq("tenant_id", campaign.tenant_id)
-    .maybeSingle();
-
-  if (!template) {
-    return new Response(JSON.stringify({ error: "Template not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  if (String(template.status).toUpperCase() !== "APPROVED") {
-    return new Response(
-      JSON.stringify({ error: "Template must be approved before sending" }),
-      {
-        status: 409,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      },
+  if (template.waba_id !== connection.waba_id) {
+    throw new ApiError(
+      409,
+      "template_account_mismatch",
+      "Sync and select a template from this WhatsApp account",
     );
   }
   try {
@@ -133,160 +98,69 @@ serve(async (req) => {
       campaign.template_bindings,
     );
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error:
-          error instanceof TemplateInputError
-            ? error.message
-            : "Invalid template bindings",
-      }),
-      {
-        status: 422,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      },
+    throw new ApiError(
+      422,
+      "invalid_template_values",
+      error instanceof TemplateInputError
+        ? error.message
+        : "Invalid template values",
     );
   }
-
-  const filter = (campaign.audience_filter ?? {}) as Record<string, unknown>;
-  const { data: contacts, error: audienceError } = await supabaseService
-    .rpc("campaign_audience", {
-      p_tenant_id: campaign.tenant_id,
-      p_filter: filter,
-    })
-    .limit(100);
-  if (audienceError) {
-    return new Response(
-      JSON.stringify({ error: "Invalid audience or audience unavailable" }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      },
-    );
-  }
-  const jobs = [];
-  let sent = 0;
-  let failed = 0;
-  const failures: Array<{ phone: string; error: string }> = [];
-
-  for (const contact of contacts ?? []) {
-    const to = String(contact.phone ?? "").replace(/\D/g, "");
-    if (!to) {
-      failed += 1;
-      jobs.push({
-        tenant_id: campaign.tenant_id,
-        campaign_id: campaign.id,
-        consented_contact_id: contact.id,
-        template_id: campaign.template_id,
-        status: "failed",
-        attempts: 1,
-        last_error: "Contact phone missing",
-      });
-      continue;
-    }
-
-    let components: Array<Record<string, unknown>>;
-    try {
-      components = buildTemplateComponents(
-        template.components,
-        campaign.template_bindings,
-        contact,
-      );
-    } catch (error) {
-      const message =
-        error instanceof TemplateInputError
-          ? error.message
-          : "Invalid contact parameters";
-      failed += 1;
-      jobs.push({
-        tenant_id: campaign.tenant_id,
-        campaign_id: campaign.id,
-        consented_contact_id: contact.id,
-        template_id: campaign.template_id,
-        status: "failed",
-        attempts: 0,
-        last_error: message,
-      });
-      failures.push({ phone: to, error: message });
-      continue;
-    }
-
-    const response = await fetch(
-      `${whatsappBaseUrl}/${whatsappApiVersion}/${whatsappPhoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${whatsappToken}`,
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to,
-          type: "template",
-          template: {
-            name: template.name,
-            language: { code: template.language },
-            ...(components.length > 0 ? { components } : {}),
-          },
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      failed += 1;
-      jobs.push({
-        tenant_id: campaign.tenant_id,
-        campaign_id: campaign.id,
-        consented_contact_id: contact.id,
-        template_id: campaign.template_id,
-        status: "failed",
-        attempts: 1,
-        last_error: errorText,
-      });
-      failures.push({ phone: to, error: errorText });
-      console.error("[send-campaign] WhatsApp send failed", {
-        phone: to,
-        error: errorText,
-      });
-      continue;
-    }
-
-    sent += 1;
-    jobs.push({
-      tenant_id: campaign.tenant_id,
-      campaign_id: campaign.id,
-      consented_contact_id: contact.id,
-      template_id: campaign.template_id,
-      status: "sent",
-      attempts: 1,
-    });
-
-    await supabaseService
-      .from("consented_contacts")
-      .update({ last_contacted_at: new Date().toISOString() })
-      .eq("id", contact.id);
-  }
-
-  if (jobs.length > 0) {
-    await supabaseService.from("message_jobs").insert(jobs);
-  }
-
-  await supabaseService
-    .from("campaigns")
-    .update({ status: "completed" })
-    .eq("id", campaign.id);
-
-  return new Response(
-    JSON.stringify({
-      status: "ok",
-      sent,
-      failed,
-      failures,
-    }),
-    {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+  const expected = {
+    audience_filter: campaign.audience_filter,
+    template_id: campaign.template_id,
+    template_bindings: campaign.template_bindings,
+    connection_id: connection.id,
+    connection: {
+      id: connection.id,
+      waba_id: connection.waba_id,
+      phone_number_id: connection.phone_number_id,
     },
-  );
-});
+    template: {
+      name: template.name,
+      language: template.language,
+      components: template.components,
+    },
+  };
+  const { error } = await service.rpc("enqueue_campaign", {
+    p_campaign_id: campaignId,
+    p_actor_id: userId,
+    p_expected: expected,
+  });
+  if (error) {
+    if (error.code === "42501") {
+      throw new ApiError(403, "forbidden", "Campaign permission required");
+    }
+    if (error.code === "40001") {
+      throw new ApiError(
+        409,
+        "campaign_changed",
+        "Campaign changed; review it again",
+      );
+    }
+    if (error.code === "55000") {
+      throw new ApiError(
+        409,
+        "campaign_previously_attempted",
+        "This campaign was already attempted; review its history",
+      );
+    }
+    if (error.code === "22023") {
+      throw new ApiError(
+        422,
+        "campaign_not_ready",
+        "Check the audience, approved template and WhatsApp connection",
+      );
+    }
+    throw new ApiError(
+      503,
+      "enqueue_unconfirmed",
+      "Queue result unavailable; refresh this campaign before retrying",
+    );
+  }
+  return jsonResponse({
+    status: "queued",
+    campaign_id: campaignId,
+    progress: await progress(),
+  }, 202);
+}));

@@ -1,10 +1,19 @@
 # Tenant WhatsApp connections
 
 Implemented foundation: metadata/credential tables, administration endpoint, token
-verification, encrypted storage and a reusable tenant-scoped resolver. Campaign,
-inbox, bot and template senders must be migrated to this resolver before release.
+verification, encrypted storage and a reusable tenant-scoped resolver. Campaign
+enqueue/worker and template synchronization now use it. Inbox, bot, template creation
+and template media upload still require migration before release.
 Embedded Signup UI/code exchange and signed webhook ingestion are still pending.
 Do not expose the existing unsigned bot webhook as a production receiver.
+
+Template synchronization reads one provider page at a time, pins the selected
+connection across pages, and imports exact WABA/name/language identities atomically.
+Repeated pages do not create duplicates. An old unlinked row is adopted only if its
+provider ID matches and the tenant has one known WABA; otherwise it is preserved and
+a scoped row is imported. Legacy rows without verified account association are not
+offered for new campaigns. Sync does not infer deletion from an incomplete paginated
+snapshot; removed templates can still be rejected by Meta at send time.
 
 ## Ownership and credentials
 

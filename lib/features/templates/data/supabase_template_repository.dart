@@ -41,19 +41,38 @@ class SupabaseTemplateRepository {
     if (templateId == null) {
       throw Exception('Sablon ID alinamadi.');
     }
-    final row = await _client
-        .from('templates')
-        .select()
-        .eq('id', templateId)
-        .single();
+    final row =
+        await _client.from('templates').select().eq('id', templateId).single();
     return _fromRow(row);
   }
 
-  Future<void> syncTemplates(String tenantId) async {
-    await _client.functions.invoke(
-      'sync-templates',
-      body: {'tenant_id': tenantId},
-    );
+  Future<void> syncTemplates(String tenantId, {String? connectionId}) async {
+    String? cursor;
+    var selectedConnection = connectionId;
+    final seenCursors = <String>{};
+    for (var page = 0; page < 100; page++) {
+      final response = await _client.functions.invoke(
+        'sync-templates',
+        body: {
+          'tenant_id': tenantId,
+          if (selectedConnection != null) 'connection_id': selectedConnection,
+          if (cursor != null) 'cursor': cursor,
+        },
+      );
+      final data = response.data;
+      if (data is! Map ||
+          data['connection_id'] is! String ||
+          (data['next_cursor'] != null && data['next_cursor'] is! String)) {
+        throw const FormatException(
+            'Şablon eşitleme yanıtı alınamadı. Tekrar deneyin.');
+      }
+      selectedConnection = data['connection_id'] as String;
+      cursor = data['next_cursor'] as String?;
+      if (cursor == null) return;
+      if (!seenCursors.add(cursor)) break;
+    }
+    throw StateError(
+        'Şablon eşitleme tamamlanamadı. Kaydedilen şablonlar korundu; tekrar deneyin.');
   }
 
   Future<String> uploadTemplateMedia({

@@ -53,3 +53,19 @@ version must be rechecked before release. No integration success is claimed.
 - Supabase official package registry metadata:
   https://registry.npmjs.org/@supabase/supabase-js/latest
   Resolved 2.118.0; new shared imports pin that release instead of floating @2.
+
+## Worker and account-scoped template sync (2026-10-31)
+
+- Meta-maintained template listing endpoint:
+  https://www.postman.com/meta/whatsapp-business-platform/request/qtgr0i7/get-all-templates-default-fields
+  GET `/{waba-id}/message_templates`. The page remains labeled MOVED; bundled official
+  collection examples supplement its response structure. Provider pagination hosts
+  are never followed: only cursors are passed back to the fixed Graph endpoint.
+- Meta error-code references were requested but returned HTTP 429:
+  https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes
+  https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/
+  Retry classification is deliberately conservative. Live conformance for error
+  codes, `biz_opaque_callback_data`, template fields and supported versions remains
+  pending; no successful provider integration is claimed.
+- The previously reviewed Supabase cron/pg_net/Vault guidance informs the optional
+  worker scheduling script. It has been authored, not installed or executed.
