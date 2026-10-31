@@ -32,7 +32,9 @@ class ConversationsNotifier extends AsyncNotifier<List<Conversation>> {
       conversationId: conversationId,
       tags: tags,
     );
-    state = AsyncValue.data(updated);
+    if (ref.read(selectedTenantProvider)?.id == tenant.id) {
+      state = AsyncValue.data(updated);
+    }
   }
 }
 

@@ -15,6 +15,7 @@ contract; a documented legacy gap is not evidence of completion.
 | Feedback | ScaffoldMessenger for confirmation, inline errors for correction | Turkish copy; no raw backend diagnostics |
 | Campaign save | CampaignActions Riverpod controller + versioned repository RPC | stable ID, immutable retry snapshot, conflict recovery |
 | Campaign history/results | CampaignHistory / CampaignProgressPanel | 20-row pages, explicit refresh, acceptance separate from delivery |
+| Inbox handoff | HandoffRequestSheet + SupabaseInboxRepository + atomic RPC | stable request ID, immutable retry note, tenant-change guard |
 | Server validation | shared template module + PostgreSQL audience function | authoritative even if client validation is bypassed |
 
 Date pickers and bulk table selection are outside this change; no new implementations
@@ -45,6 +46,21 @@ after save. Campaign history below the form supports draft reopening and result 
 
 ## Deferred verification and known drift
 
+Inbox handoff preserves the existing requirement for both inbox and handoff
+permissions. The Material bottom sheet wraps actions, owns its scroll area, accounts
+for the keyboard and retains the submitted note on uncertain results. Duplicate
+clicks are blocked while busy. Retrying reuses the same request ID and note.
+Confirmed success closes the sheet and refreshes both the inbox and handoff list.
+Conflicts and permission changes leave an inline message with recovery guidance.
+Changing businesses disables submission from the old sheet. Tests for these states
+are authored in `test/inbox_lifecycle_test.dart`, with execution deferred.
+
+Opening a chat records one shared-inbox opened marker through a server-authorized
+RPC. The server records the employee and time and resets the shared unread count at
+the conversation lock boundary. Per-agent unread cursors and viewport-level message
+read acknowledgement remain future work. This marker does not send a WhatsApp read
+receipt. Failed persistence offers a retry without inventing a successful marker.
+
 Widget regressions are authored in `test/widget_test.dart`; server cases are in
 `supabase/functions/_shared/template_parameters_test.ts`. Suites have not been run.
 Full-route focus/error scrolling, screen-reader announcements, 200% zoom, session
@@ -57,5 +73,5 @@ there are no purchase-count or campaign-response claims backed only by tags.
 Progress/failure panels refresh explicitly and do not imply live push updates.
 Unsaved form values remain in memory only; leaving the entire campaign tab or
 reloading can discard them. Global unsaved-navigation protection, refreshed-template
-preview confirmation, signed delivery reconciliation and cross-screen errors remain
+preview confirmation and cross-screen errors remain
 open. These are not approved release exceptions.

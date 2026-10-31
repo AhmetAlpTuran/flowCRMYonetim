@@ -139,9 +139,9 @@ updates through its existing messages/conversations realtime subscriptions.
 Legacy conversations retain null connection/customer identity. New verified messages
 create scoped threads even when an older unscoped thread exists for that contact.
 Historical mapping needs operator review of the actual business number. The migration
-does not infer the default number for historical threads. The legacy human sender,
-atomic read/handoff actions and bot worker must be completed before this integration
-is ready for deployment. See [WEBHOOKS.md](WEBHOOKS.md).
+does not infer the default number for historical threads. The legacy human sender
+and bot worker must be completed before this integration is ready for deployment.
+Read/handoff RPCs are now implemented in source. See [WEBHOOKS.md](WEBHOOKS.md).
 
 The new tenant foreign keys are initially `NOT VALID` to preserve old rows. Before
 release, review the following results in the isolated upgrade environment, repair
@@ -168,6 +168,35 @@ disconnect races and upgrade data in that phase. Static grammar parsing cannot p
 the behavior of these database privileges or transactions.
 
 ## Deferred verification commands
+
+The inbox lifecycle upgrade also requires `20261030103000_inbox_lifecycle_actions.sql`
+and its matching Flutter client. It revokes direct handoff writes and guards direct
+conversation lifecycle edits. Deploy the client with `mark_conversation_opened` and
+`request_conversation_handoff` RPC usage, including the explicitly named tenant
+foreign key in the handoff list query. Existing clients using direct writes need
+this coordinated upgrade.
+
+Handoff requires both inbox and handoff permissions, matching the earlier two-write
+workflow. IDs originate on the client and remain stable across retries. Employee
+identity, role and timestamps originate on the server. No handoff note is copied
+into the audit log. The shared unread reset remains a conversation-wide opened
+marker. Per-agent cursors and provider read acknowledgements remain pending.
+
+Audit historical handoff references and validate the new constraint after repair.
+
+```sql
+select h.id, h.tenant_id, h.conversation_id, c.tenant_id as conversation_tenant
+from public.handoff_requests h
+join public.conversations c on c.id = h.conversation_id
+where h.tenant_id <> c.tenant_id;
+
+alter table public.handoff_requests validate constraint handoff_conversation_tenant_fk;
+```
+
+Authored lifecycle fixtures are `supabase/tests/inbox_lifecycle_actions.sql` and
+`test/inbox_lifecycle_test.dart`. Run them in the later verification phase, including
+concurrent handoff/inbound events, lost responses, revoked permissions and tenant
+switching while a request is pending. They have not been executed.
 
 Apply the connection foundation migration `20261030093000_whatsapp_connections.sql`
 in order as part of the eventual complete deployment. Configuration and verification

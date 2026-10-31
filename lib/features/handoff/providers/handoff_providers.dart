@@ -14,7 +14,7 @@ final handoffRequestsProvider =
   final response = await client
       .from('handoff_requests')
       .select('id, conversation_id, status, note, created_at, created_by, '
-          'conversation:conversations(title)')
+          'conversation:conversations!handoff_conversation_tenant_fk(title)')
       .eq('tenant_id', tenant.id)
       .order('created_at', ascending: false);
 

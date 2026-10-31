@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/request_id.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../data/campaign_repository.dart';
 import '../data/supabase_campaign_repository.dart';
@@ -94,7 +95,7 @@ class CampaignActionState {
 
 class CampaignActions extends StateNotifier<CampaignActionState> {
   CampaignActions(this.repository, this.tenantId)
-      : super(CampaignActionState(id: newCampaignId()));
+      : super(CampaignActionState(id: newRequestId()));
   final CampaignRepository repository;
   final String tenantId;
   CampaignDraft? _pendingDraft;
@@ -111,7 +112,7 @@ class CampaignActions extends StateNotifier<CampaignActionState> {
     _pendingPersisted = null;
     _pendingSend = false;
     state = CampaignActionState(
-        id: draft?.id ?? newCampaignId(),
+        id: draft?.id ?? newRequestId(),
         revision: draft?.revision ?? 0,
         saved: draft,
         locked: draft != null && !draft.editable);

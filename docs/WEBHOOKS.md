@@ -64,9 +64,11 @@ reopen a closed conversation. Receiving a support message leaves campaign consen
 unchanged. Bot execution still needs conversation serialization, stale-input checks,
 handoff fencing, usage accounting and a scoped outbound queue.
 
-The legacy human sender and direct read/handoff operations remain integration work.
-They must be upgraded before deployment so all messages use the correct connection,
-the preview timestamp includes human replies, and lifecycle changes are atomic.
+Read/handoff actions now use atomic RPCs. Handoff also cancels queued, leased and ready
+bot jobs, clearing their lease tokens. The future bot worker must lock conversation
+before job and recheck ownership and token before creating an outbound response.
+The legacy human sender remains integration work so all messages use the correct
+connection and the preview timestamp includes human replies.
 Account labels in the inbox, per-agent unread state and historical channel mapping
 also remain pending. The protections added here cover incoming provider identity and
 content. The broader legacy client-write surface still requires its planned audit.
@@ -102,7 +104,8 @@ integration exists. No unscoped updates to legacy message IDs are performed.
 ## Deployment and operations (deferred)
 
 1. Apply `20261030101000_whatsapp_webhook_events.sql` and then
-   `20261030102000_whatsapp_inbound_conversations.sql` after the earlier migrations.
+   `20261030102000_whatsapp_inbound_conversations.sql` and
+   `20261030103000_inbox_lifecycle_actions.sql` after the earlier migrations.
    Audit and validate historical tenant foreign keys using the backend setup guide.
 2. Configure `META_APP_SECRET`, `WHATSAPP_WEBHOOK_TOKEN`, and a separate random
    `WEBHOOK_WORKER_SECRET` in Edge secrets. Keep all three out of Flutter/source.

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +10,7 @@ import '../../tenancy/providers/tenant_providers.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../providers/inbox_providers.dart';
+import '../widgets/handoff_request_sheet.dart';
 import '../widgets/tag_editor_sheet.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -47,6 +48,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final messages = ref.watch(messagesProvider(widget.conversation.id));
     final conversations = ref.watch(conversationsProvider);
+    final canHandoff = ref
+            .watch(currentMembershipProvider)
+            .valueOrNull
+            ?.hasPermission('handoff') ??
+        false;
     final updatedConversation = conversations.maybeWhen(
       data: (items) => items.firstWhere(
         (item) => item.id == widget.conversation.id,
@@ -94,7 +100,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Row(
@@ -118,9 +124,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Musteri temsilcisine yonlendir',
+            tooltip: canHandoff
+                ? 'Müşteri temsilcisine yönlendir'
+                : 'Yönlendirme yetkisi gerekli',
             icon: const Icon(Icons.support_agent_outlined),
-            onPressed: _openHandoverSheet,
+            onPressed: canHandoff ? _openHandoverSheet : null,
           ),
           IconButton(
             tooltip: 'Diger',
@@ -159,7 +167,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -363,16 +371,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _openHandoverSheet() {
+    final tenantId = ref.read(selectedTenantProvider)?.id;
+    if (tenantId == null) return;
     showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _HandoverSheet(
+      builder: (context) => HandoffRequestSheet(
+        tenantId: tenantId,
         conversationId: widget.conversation.id,
       ),
     ).then((value) {
-      if (value == true && mounted) {
+      if (value == true &&
+          mounted &&
+          ref.read(selectedTenantProvider)?.id == tenantId) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Yonlendirme olusturuldu.')),
+          const SnackBar(content: Text('Yönlendirme oluşturuldu.')),
         );
       }
     });
@@ -387,26 +400,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       case MessageStatus.sent:
         return const Icon(Icons.check, size: 16, color: Colors.black54);
       case MessageStatus.failed:
-        return const Icon(Icons.error_outline, size: 16, color: Colors.redAccent);
+        return const Icon(Icons.error_outline,
+            size: 16, color: Colors.redAccent);
       case MessageStatus.unknown:
         return const Icon(Icons.check, size: 16, color: Colors.black45);
     }
   }
 
   Future<void> _markConversationOpened() async {
-    final auth = ref.read(authControllerProvider).value;
-    if (auth == null) {
-      return;
+    if (!mounted) return;
+    final tenantId = ref.read(selectedTenantProvider)?.id;
+    if (tenantId == null) return;
+    try {
+      await ref.read(inboxRepositoryProvider).markOpened(
+            tenantId: tenantId,
+            conversationId: widget.conversation.id,
+          );
+      if (mounted && ref.read(selectedTenantProvider)?.id == tenantId) {
+        ref.invalidate(conversationsProvider);
+      }
+    } catch (_) {
+      if (!mounted || ref.read(selectedTenantProvider)?.id != tenantId) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Görülme bilgisi kaydedilemedi.'),
+        action: SnackBarAction(
+            label: 'Tekrar dene', onPressed: _markConversationOpened),
+      ));
     }
-    final membership = await ref.read(currentMembershipProvider.future);
-    final role = membership?.role ?? 'user';
-    await Supabase.instance.client.from('conversations').update({
-      'last_opened_at': DateTime.now().toIso8601String(),
-      'last_opened_by': auth.userId,
-      'last_opened_role': role,
-      'unread_count': 0,
-    }).eq('id', widget.conversation.id);
-    ref.invalidate(conversationsProvider);
   }
 }
 
@@ -458,121 +478,6 @@ class _OpenedInfoBanner extends StatelessWidget {
         return 'Temsilci';
       default:
         return null;
-    }
-  }
-}
-
-class _HandoverSheet extends ConsumerStatefulWidget {
-  const _HandoverSheet({required this.conversationId});
-
-  final String conversationId;
-
-  @override
-  ConsumerState<_HandoverSheet> createState() => _HandoverSheetState();
-}
-
-class _HandoverSheetState extends ConsumerState<_HandoverSheet> {
-  final TextEditingController _noteController = TextEditingController();
-  bool _sending = false;
-
-  @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.support_agent_outlined),
-                const SizedBox(width: 8),
-                Text(
-                  'Musteri temsilcisine yonlendir',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Konusmayi bir musteri temsilcisine yonlendirmek icin not ekleyin.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _noteController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Not',
-                alignLabelWithHint: true,
-                prefixIcon: Icon(Icons.sticky_note_2_outlined),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Vazgec'),
-                ),
-                const Spacer(),
-                FilledButton.icon(
-                  onPressed: _sending ? null : _submit,
-                  icon: _sending
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_outlined),
-                  label: const Text('Yonlendirmeyi baslat'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _submit() async {
-    final tenant = ref.read(selectedTenantProvider);
-    final auth = ref.read(authControllerProvider).value;
-    if (tenant == null || auth == null) {
-      return;
-    }
-    setState(() {
-      _sending = true;
-    });
-    try {
-      await Supabase.instance.client.from('handoff_requests').insert({
-        'tenant_id': tenant.id,
-        'conversation_id': widget.conversationId,
-        'note': _noteController.text.trim(),
-        'created_by': auth.userId,
-        'status': 'open',
-      });
-      await Supabase.instance.client.from('conversations').update({
-        'status': 'handoff',
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', widget.conversationId);
-      ref.invalidate(conversationsProvider);
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _sending = false;
-        });
-      }
     }
   }
 }

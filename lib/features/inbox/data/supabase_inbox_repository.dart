@@ -1,4 +1,4 @@
-﻿import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/conversation.dart';
 import '../models/message.dart';
@@ -8,7 +8,8 @@ class SupabaseInboxRepository {
 
   final SupabaseClient _client;
 
-  Future<List<Conversation>> fetchConversations({required String tenantId}) async {
+  Future<List<Conversation>> fetchConversations(
+      {required String tenantId}) async {
     final response = await _client
         .from('conversations')
         .select()
@@ -33,8 +34,34 @@ class SupabaseInboxRepository {
   }) async {
     await _client
         .from('conversations')
-        .update({'tags': tags}).eq('id', conversationId);
+        .update({'tags': tags})
+        .eq('tenant_id', tenantId)
+        .eq('id', conversationId);
     return fetchConversations(tenantId: tenantId);
+  }
+
+  Future<void> markOpened({
+    required String tenantId,
+    required String conversationId,
+  }) async {
+    await _client.rpc('mark_conversation_opened', params: {
+      'p_tenant_id': tenantId,
+      'p_conversation_id': conversationId,
+    }).timeout(const Duration(seconds: 20));
+  }
+
+  Future<void> requestHandoff({
+    required String tenantId,
+    required String conversationId,
+    required String requestId,
+    required String note,
+  }) async {
+    await _client.rpc('request_conversation_handoff', params: {
+      'p_tenant_id': tenantId,
+      'p_conversation_id': conversationId,
+      'p_request_id': requestId,
+      'p_note': note,
+    }).timeout(const Duration(seconds: 20));
   }
 
   Conversation _fromConversation(Map<String, dynamic> row) {

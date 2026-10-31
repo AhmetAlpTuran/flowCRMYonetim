@@ -19,11 +19,11 @@ modified when this work began; preserve it outside milestone commits.
 | Area | Implemented in source | Remaining work |
 |---|---|---|
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
-| Inbox | Existing chat UI, tags/realtime, signed inbound materialization per business number | Scoped resilient outbound sends, atomic lifecycle, assignment, pagination, attachments, account labels and per-agent unread state |
+| Inbox | Existing chat UI, tags/realtime, signed inbound materialization per business number, atomic opened/handoff actions | Scoped resilient outbound sends, assignment/resolution, pagination, attachments, account labels and per-agent unread state |
 | AI | Settings, knowledge CRUD, private input jobs with handoff preservation | Replacement AI worker, knowledge retrieval, human ownership fencing, usage accounting |
 | Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
-| Handoff | Request creation/list | Assignment, processing/closure, bot pause, response/resolution metrics |
+| Handoff | Atomic authorized request, idempotent retry, bot-job cancellation, list | Assignment, processing/closure, outbound bot fencing, response/resolution metrics |
 | Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
 | Billing | Absent | Provider integration, subscription lifecycle, entitlements, usage limits |
 | Operations | Additive migrations, growing setup guide, optional campaign/webhook scheduler scripts | Deployment, monitoring/alerts, retention, backup/restore and remaining worker schedules |
@@ -169,3 +169,16 @@ modified when this work began; preserve it outside milestone commits.
   them. SQL/PLpgSQL grammar parsing and Deno static checking passed. Human outbound
   sending, atomic read/handoff operations and the bot consumer remain next integration
   dependencies. No backend migration, schedule or external send was executed.
+- 2026-10-31: Inbox lifecycle sub-milestone adds authenticated opened/handoff RPCs
+  with server-owned employee identity and timestamps. Handoff request, conversation
+  status, bot-job cancellation and audit event commit together. Stable client IDs
+  make retries idempotent, including late retries after resolution. Direct lifecycle
+  writes are guarded and direct handoff writes are revoked. Preserved the existing
+  inbox plus handoff permission requirement. Moved the sheet into a reusable widget,
+  retained notes after uncertain results, added inline recovery, keyboard-aware
+  scrolling and tenant-change guards. Shared the existing UUID implementation with
+  campaign creation. Authored SQL and widget/repository regressions without running
+  suites. Targeted Dart analysis, SQL/PLpgSQL grammar parsing and diff checks passed.
+  Static UI contract audit reported zero findings. Runtime interaction,
+  concurrency and upgrade verification remain deferred. Shared unread semantics are
+  preserved, with per-agent read cursors still pending.
