@@ -1,9 +1,9 @@
 # Verified WhatsApp webhooks
 
-Implemented in source, not deployed or runtime-verified. This is the receipt and
-durable-ingestion slice. Incoming messages are queued but inbox materialization and
-the replacement AI worker are still pending. Do not deploy this slice alone as a
-finished replacement for the existing bot.
+Implemented in source, pending deployment and runtime verification. Verified inbound
+messages now materialize into account-scoped conversations and create durable bot
+input jobs. The replacement AI worker and scoped human outbound path remain pending.
+Deploy the completed inbound/outbound/bot integration together during verification.
 
 ## Receiver boundary
 
@@ -33,6 +33,43 @@ never fall back to a default tenant. No authenticated/anonymous role can read or
 write this ledger. A hash of provider identity deduplicates each message/status
 event. A 200 response is returned only after commit; a failed commit returns 503 so
 Meta can retry. Replaying a signed request does not create another event.
+
+## Incoming conversations
+
+The worker also calls `process_whatsapp_messages` in a separate bounded transaction.
+Each event materializes its contact, conversation, message, unread increment and
+optional bot input job atomically. A per-event failure rolls back those effects and
+records `message_processing_failed`. Processing retries after five minutes, with a
+20-attempt limit. Unknown account mappings retry for seven days. Disconnected accounts
+produce ignored events. Connections needing attention can still receive messages.
+
+Conversation identity is `(connection_id, customer_phone)`. The same customer can
+have separate conversations with each business number. Within a tenant, normalized
+phone matching reuses the earliest existing CRM contact and preserves its name.
+Concurrent inbound contact creation uses a tenant/customer transaction lock. Existing
+duplicate contacts and manual contact creation need the later contact-management
+deduplication workflow. Legacy conversations keep their original unscoped identity.
+
+Both ledger identity and `(connection_id, wa_message_id)` protect against replay.
+Older delayed messages remain visible and increment unread counts while preserving
+the newer preview. Customer service timestamps are capped at the server's original
+receipt time. Client roles cannot forge those timestamps or rewrite verified customer
+input. Media and structured input retain their provider content with a text/caption
+preview or `[type]` marker. Downloading and rendering media remain separate work.
+
+An active bot setting creates one private `bot_reply_jobs` row for a current text,
+button or interactive input in an open conversation. Missing settings disable job
+creation. Pending and handoff status preserve human ownership. A newer message can
+reopen a closed conversation. Receiving a support message leaves campaign consent
+unchanged. Bot execution still needs conversation serialization, stale-input checks,
+handoff fencing, usage accounting and a scoped outbound queue.
+
+The legacy human sender and direct read/handoff operations remain integration work.
+They must be upgraded before deployment so all messages use the correct connection,
+the preview timestamp includes human replies, and lifecycle changes are atomic.
+Account labels in the inbox, per-agent unread state and historical channel mapping
+also remain pending. The protections added here cover incoming provider identity and
+content. The broader legacy client-write surface still requires its planned audit.
 
 ## Campaign receipts
 
@@ -64,7 +101,9 @@ integration exists. No unscoped updates to legacy message IDs are performed.
 
 ## Deployment and operations (deferred)
 
-1. Apply `20261030101000_whatsapp_webhook_events.sql` after the earlier migrations.
+1. Apply `20261030101000_whatsapp_webhook_events.sql` and then
+   `20261030102000_whatsapp_inbound_conversations.sql` after the earlier migrations.
+   Audit and validate historical tenant foreign keys using the backend setup guide.
 2. Configure `META_APP_SECRET`, `WHATSAPP_WEBHOOK_TOKEN`, and a separate random
    `WEBHOOK_WORKER_SECRET` in Edge secrets. Keep all three out of Flutter/source.
 3. Deploy both receiver URLs, `webhook-worker`, and the updated `campaign-worker`.
@@ -74,7 +113,7 @@ integration exists. No unscoped updates to legacy message IDs are performed.
    own named schedule. No scheduler has been activated by development work.
 5. Monitor pending age, unmatched identities, signature failures and processing
    errors. Alert on growing queues; do not log message content to diagnose failures.
-6. Event retention/purge, tenant deletion, inbox/bot consumption, billing-related
+6. Event retention/purge, tenant deletion, bot execution, billing-related
    receipt metadata and operator replay controls remain operations/integration work.
    The current seven-day unmatched retry window is not a data-retention policy.
 
@@ -83,3 +122,10 @@ but unrun. They cover signatures, verification, storage failure, all-entry parsi
 deduplication, tenant boundaries, early receipts, unknown recovery and receipt order.
 Concurrent transaction tests, receiver load/latency, live subscriptions and provider
 payload conformance are required in the agreed verification phase.
+
+`supabase/tests/whatsapp_inbound_conversations.sql` is also authored and unrun. It
+covers separate business numbers/tenants, formatted contact reuse, duplicate side
+effects, handoff and pending preservation, inactive bots, delayed inputs, future
+timestamps, rollback after a bot-job failure, client-write guards and tenant RLS.
+SQL/PLpgSQL grammar parsing and worker type checking passed. Runtime constraints,
+privileges, deadlocks and concurrent worker behavior still need verification.

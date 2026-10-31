@@ -92,3 +92,14 @@ version must be rechecked before release. No integration success is claimed.
   business-scoped identity support and callback metadata require release verification.
 - Meta's maintained message collection documents status tracking by message ID:
   https://www.postman.com/meta/whatsapp-business-platform/folder/o48mro7/messages
+
+## Inbound database consistency (2026-10-31)
+
+- PostgreSQL's constraint documentation explains null-valued checks and composite
+  references. The channel identity check explicitly requires both identity fields
+  for scoped conversations. Historical tenant references require an audit followed
+  by validation. [PostgreSQL constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)
+- PL/pgSQL reports ambiguous variable/column references by default. The inbound
+  processor uses distinct sender-variable and customer-column names, with qualified
+  row references. Grammar-only checks leave database semantic validation pending.
+  [PL/pgSQL variable substitution](https://www.postgresql.org/docs/current/plpgsql-implementation.html)

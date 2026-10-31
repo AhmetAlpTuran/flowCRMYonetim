@@ -4,16 +4,17 @@ import { requireWorker } from "../_shared/worker_auth.ts";
 
 Deno.serve(endpoint(async (req) => {
   await requireWorker(req, "WEBHOOK_WORKER_SECRET");
-  const { data, error } = await serviceClient().rpc(
-    "process_whatsapp_receipts",
-    { p_limit: 50 },
-  );
-  if (error) {
+  const client = serviceClient();
+  const [receipts, messages] = await Promise.all([
+    client.rpc("process_whatsapp_receipts", { p_limit: 50 }),
+    client.rpc("process_whatsapp_messages", { p_limit: 50 }),
+  ]);
+  if (receipts.error || messages.error) {
     throw new ApiError(
       503,
-      "receipt_worker_unavailable",
-      "Receipt processing unavailable",
+      "webhook_worker_unavailable",
+      "Webhook processing unavailable",
     );
   }
-  return jsonResponse(data);
+  return jsonResponse({ receipts: receipts.data, messages: messages.data });
 }));

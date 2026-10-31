@@ -1,6 +1,6 @@
 # Flow CRM development status
 
-Updated: 2026-10-30. Baseline commit: `53437ce`.
+Updated 2026-10-31. Baseline commit `53437ce`.
 
 ## Product objective
 
@@ -19,26 +19,26 @@ modified when this work began; preserve it outside milestone commits.
 | Area | Implemented in source | Remaining work |
 |---|---|---|
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
-| Inbox | Conversations, text replies, tags, realtime, read events | Assignment, pagination, attachments, per-agent unread state, resilient sends |
-| AI | Settings, knowledge CRUD, webhook reply | Signed webhooks, phone-to-tenant routing, deduplication, human ownership, usage accounting |
-| Templates | Submit, sync, media upload, validated send bindings and form | Tenant-specific credentials, broader template families, provider verification |
-| Campaigns | Shared audience RPC, parameters, draft/create, queue schema/RPC foundation | Replace synchronous endpoint, wire workers, retries/progress UI and delivery events |
+| Inbox | Existing chat UI, tags/realtime, signed inbound materialization per business number | Scoped resilient outbound sends, atomic lifecycle, assignment, pagination, attachments, account labels and per-agent unread state |
+| AI | Settings, knowledge CRUD, private input jobs with handoff preservation | Replacement AI worker, knowledge retrieval, human ownership fencing, usage accounting |
+| Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
+| Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
 | Handoff | Request creation/list | Assignment, processing/closure, bot pause, response/resolution metrics |
 | Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
 | Billing | Absent | Provider integration, subscription lifecycle, entitlements, usage limits |
-| Operations | Migrations, local config | Deployment guide, observability, backup/restore and scheduled workers |
-| Tests | Audience/queue SQL fixtures, template builder cases, form regressions replacing counter test | Broader security/workflow suites; execution deferred by user |
+| Operations | Additive migrations, growing setup guide, optional campaign/webhook scheduler scripts | Deployment, monitoring/alerts, retention, backup/restore and remaining worker schedules |
+| Tests | Campaign, connection, webhook/inbound, controller, payload and UI regressions authored | Broader security/workflow suites and execution deferred by user |
 
 ## Confirmed defects and release risks
 
 - Fixed in source, runtime unverified: over-escaped audience date regex and ignored custom filters.
 - Fixed in source, runtime unverified: empty send components replaced by validated parameters.
-- Sender stops at 100 contacts, has no durable claim, and marks failures completed.
-- Jobs are recorded after external delivery: retries can duplicate dispatch.
+- Campaign sender replaced in source with durable snapshots, fenced claims and partial outcomes.
+- Legacy inbox sending still lacks durable idempotence and uses global credentials.
 - Some service-role queries retrieve related objects by ID without tenant equality.
-- Webhook POST lacks signature validation and accepts caller-selected/default tenant.
-- Bot resets conversation status to open and does not honor human ownership.
-- bot-reply uses Dart-style string `.isEmpty` in TypeScript.
+- Webhook signature validation and database-owned routing implemented in source, runtime unverified.
+- Old bot callback replaced with durable ingestion. Replacement bot execution remains pending.
+- Inbound materialization preserves pending/handoff status and deduplicates side effects, runtime unverified.
 - UI permissions alone are insufficient: RLS and cross-tenant foreign keys need audit.
 - Existing API credentials were exposed in earlier debugging; rotate before deployment.
 - Dashboard, invite delivery and some controls are prototypes/placeholders.
@@ -158,3 +158,14 @@ modified when this work began; preserve it outside milestone commits.
   Targeted Dart analysis and SQL/PLpgSQL grammar parsing passed. Deno static type
   checking covers receivers, both workers and authored security fixtures; no suites,
   migrations, live subscriptions or provider sends were executed.
+- 2026-10-31: Webhook sub-milestone 6b adds atomic inbound materialization into
+  tenant/business-number conversations. Provider IDs deduplicate messages and unread
+  increments. Normalized contact reuse preserves CRM names, support messages leave
+  marketing consent unchanged, and pending/handoff status suppresses new bot jobs.
+  Added client guards for provider identity, customer timestamps and inbound content,
+  tenant composite references, bounded processing and private bot input jobs. Legacy
+  threads remain unassigned to a sending number until an explicit mapping workflow.
+  Authored duplicate, routing, rollback, state and permission fixtures without running
+  them. SQL/PLpgSQL grammar parsing and Deno static checking passed. Human outbound
+  sending, atomic read/handoff operations and the bot consumer remain next integration
+  dependencies. No backend migration, schedule or external send was executed.

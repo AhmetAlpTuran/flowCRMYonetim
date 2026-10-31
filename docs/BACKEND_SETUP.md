@@ -128,6 +128,45 @@ Review any mismatches and repair their intended references before running
 Do not auto-delete campaigns or guess their intended template. Legacy jobs become
 read-only to clients; historical sends are not replayed into the new queue.
 
+## Inbound conversation deployment dependency
+
+Apply `20261030102000_whatsapp_inbound_conversations.sql` after the webhook ledger
+migration, and deploy its matching `webhook-worker` during the eventual complete
+upgrade. It adds account-scoped conversations, provider message deduplication,
+protected customer timestamps and private bot input jobs. The shared inbox receives
+updates through its existing messages/conversations realtime subscriptions.
+
+Legacy conversations retain null connection/customer identity. New verified messages
+create scoped threads even when an older unscoped thread exists for that contact.
+Historical mapping needs operator review of the actual business number. The migration
+does not infer the default number for historical threads. The legacy human sender,
+atomic read/handoff actions and bot worker must be completed before this integration
+is ready for deployment. See [WEBHOOKS.md](WEBHOOKS.md).
+
+The new tenant foreign keys are initially `NOT VALID` to preserve old rows. Before
+release, review the following results in the isolated upgrade environment, repair
+the intended references, and validate both constraints.
+
+```sql
+select c.id, c.tenant_id, c.contact_id, p.tenant_id as contact_tenant
+from public.conversations c
+join public.contacts p on p.id = c.contact_id
+where c.tenant_id <> p.tenant_id;
+
+select m.id, m.tenant_id, m.conversation_id, c.tenant_id as conversation_tenant
+from public.messages m
+join public.conversations c on c.id = m.conversation_id
+where m.tenant_id <> c.tenant_id;
+
+alter table public.conversations validate constraint conversations_contact_tenant_fk;
+alter table public.messages validate constraint messages_conversation_tenant_fk;
+```
+
+`supabase/tests/whatsapp_inbound_conversations.sql` is a transactional fixture for the
+later verification phase. Include concurrent workers, duplicate webhook delivery,
+disconnect races and upgrade data in that phase. Static grammar parsing cannot prove
+the behavior of these database privileges or transactions.
+
 ## Deferred verification commands
 
 Apply the connection foundation migration `20261030093000_whatsapp_connections.sql`
@@ -135,7 +174,8 @@ in order as part of the eventual complete deployment. Configuration and verifica
 requirements are in [WHATSAPP_CONNECTIONS.md](WHATSAPP_CONNECTIONS.md). Do not ship
 the connection endpoint with remaining global-credential senders as a finished
 multi-tenant integration. The old unsigned webhook has now been replaced by a signed
-receiver; its inbound inbox/bot consumer remains pending.
+receiver. Inbound inbox materialization is implemented in source and the replacement
+bot consumer remains pending.
 
 Test suites are authored but not executed at the owner's request. During verification,
 run `supabase/tests/campaign_audience.sql` against an isolated migrated database.
