@@ -19,6 +19,24 @@ void main() {
     maxLength: 2048,
   );
 
+  testWidgets('missing or malformed saved bindings render as required fields',
+      (tester) async {
+    for (final invalid in [
+      null,
+      'old-format',
+      {'source': 'unsupported'},
+      {'source': 'literal', 'value': 42}
+    ]) {
+      final form = GlobalKey<FormState>();
+      final bindings = <String, dynamic>{'body.1': invalid};
+      await tester.pumpWidget(_form(form, [textInput], bindings, (_) {}));
+      expect(form.currentState!.validate(), isFalse);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
   testWidgets('required values remain editable after validation at phone width',
       (tester) async {
     tester.view.physicalSize = const Size(360, 800);

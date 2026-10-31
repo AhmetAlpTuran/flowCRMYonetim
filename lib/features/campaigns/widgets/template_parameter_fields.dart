@@ -38,7 +38,7 @@ class TemplateParameterFields extends StatelessWidget {
             child: _BindingFields(
               key: ValueKey(input.key),
               input: input,
-              binding: Map<String, dynamic>.from(bindings[input.key] as Map),
+              binding: _safeBinding(input, bindings[input.key]),
               enabled: enabled,
               onChanged: (binding) =>
                   onChanged({...bindings, input.key: binding}),
@@ -47,6 +47,34 @@ class TemplateParameterFields extends StatelessWidget {
       ],
     );
   }
+}
+
+Map<String, dynamic> _safeBinding(CampaignTemplateInput input, dynamic raw) {
+  final fallback = {
+    'source': input.isMedia ? 'media_link' : 'literal',
+    'value': ''
+  };
+  if (raw is! Map) return fallback;
+  final source = raw['source'];
+  if (input.isMedia && !['media_link', 'media_id'].contains(source)) {
+    return fallback;
+  }
+  if (!input.isMedia && !['literal', 'contact'].contains(source)) {
+    return fallback;
+  }
+  if (source == 'contact') {
+    return {
+      'source': 'contact',
+      'field': ['full_name', 'phone', 'email'].contains(raw['field'])
+          ? raw['field']
+          : 'full_name',
+      if (raw['fallback'] is String) 'fallback': raw['fallback']
+    };
+  }
+  return {
+    'source': source,
+    'value': raw['value'] is String ? raw['value'] : ''
+  };
 }
 
 class _BindingFields extends StatelessWidget {

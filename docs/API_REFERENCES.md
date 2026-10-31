@@ -69,3 +69,12 @@ version must be rechecked before release. No integration success is claimed.
   pending; no successful provider integration is claimed.
 - The previously reviewed Supabase cron/pg_net/Vault guidance informs the optional
   worker scheduling script. It has been authored, not installed or executed.
+
+## Campaign client state (2026-10-31)
+
+- Riverpod provider families and disposal:
+  https://riverpod.dev/docs/concepts2/family
+  https://riverpod.dev/docs/concepts2/auto_dispose
+  Current docs describe Riverpod 3; this existing app remains on Riverpod 2.x.
+  Family/auto-dispose concepts apply, but implementation uses the installed 2.x
+  StateNotifier/FutureProvider APIs and static analysis rather than copying 3.x code.

@@ -131,3 +131,17 @@ modified when this work began; preserve it outside milestone commits.
   and extended queue fixtures; all remain unrun. Deno type checking, Dart analysis,
   SQL/PLpgSQL grammar parsing and diff whitespace checks passed. Next: Riverpod ownership, stable
   client campaign IDs, draft/history/progress UI and signed delivery reconciliation.
+- 2026-10-31: Campaign client milestone: added versioned draft persistence with
+  stable client-generated IDs, permission/account checks, optimistic conflicts and
+  direct-write revocation. Enqueue requires the reviewed draft revision. Riverpod
+  owns remote reads and save/enqueue state; uncertain retries retain one immutable
+  request and do not create another campaign. Added account-specific template
+  selection, draft reopening, paginated history/progress/failure views and honest
+  tag/recency labels. Consolidated template row parsing and guarded malformed saved
+  binding data. Authored controller, SQL and narrow-layout regression cases; no
+  suites run. Targeted Dart analysis and Deno type checking passed without issues;
+  migration/fixture SQL and PL/pgSQL grammar parsing and diff checks passed.
+  Remaining: verified inbound/status webhooks, tenant-scoped inbox/bot/template
+  creation, support flows, commercial onboarding/billing/usage and operational
+  hardening. Unsaved tab-navigation recovery and template-preview freshness remain
+  explicit UI follow-ups; the complete SaaS is not ready to deploy.

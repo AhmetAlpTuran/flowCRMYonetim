@@ -87,8 +87,11 @@ them without screen-local copies. Icons use the existing Material set.
 
 Rendering, keyboard, zoom, contrast and mobile checks are deferred by the owner's
 test schedule. Code review/static analysis is not visual verification. The wider
-app has known responsive drift, including campaign stat cards and template forms;
-these remain in the implementation plan.
+app has known responsive drift, including template creation forms. Campaign summary
+cards were replaced with truthful audience text and wrapping progress chips; account,
+filter and template controls stay within the existing Material form/card system.
+Campaign history/failures use bounded pages in the owning page scroll, with wrapped
+actions and explicit refresh. Runtime visual checks remain deferred.
 
 ## Do's and Don'ts
 

@@ -3,7 +3,7 @@
 Database foundation is implemented in `20261030092000_campaign_dispatch_queue.sql`,
 with connection fencing and blocked-state handling in `20261030094000_campaign_worker_integration.sql`.
 `send-campaign` now enqueues only; `campaign-worker` owns external sends. Client
-controller/history integration and verified delivery receipts remain unfinished.
+controller/history integration is implemented; verified delivery receipts remain unfinished.
 Deploy these as part of the complete, verified upgrade, not as independent patches.
 
 ## Snapshot and idempotency
@@ -25,8 +25,16 @@ An enqueue retry for the same campaign returns its original recipient count.
 One unique `(campaign_id, recipient_key)` record prevents duplicate recipients.
 Queued configuration is immutable. Legacy `message_jobs` are retained, protected
 from client writes, and prevent automatic replay of a previously attempted campaign.
-The UI must retain a stable campaign ID across network retries; creating a new
-campaign for the same button click is not covered by per-campaign idempotency.
+The Riverpod controller allocates a stable campaign ID before the first write.
+`save_campaign_draft` checks actor permission, tenant/account relations and an
+optimistic revision. Repeated identical saves return the stored record; stale
+different content conflicts. Direct client table writes are revoked. Enqueue takes
+the reviewed revision and rejects another editor's intervening changes.
+
+An uncertain request freezes its exact draft in memory. Retry uses that ID and
+payload; if saving was confirmed, only enqueue is retried. Creating a new campaign
+is explicit. Saved drafts can be reopened from history. Unsaved/pending state does
+not survive a browser reload; review server history after a disrupted session.
 
 ## Worker protocol
 
@@ -94,6 +102,11 @@ Delivery columns are reserved for verified webhook events; event deduplication,
 out-of-order receipt handling and reconciliation are not wired in this foundation.
 Legacy summaries are labeled so zero new-queue rows are not presented as a new send
 with zero recipients. An actually empty audience cannot be enqueued.
+
+The Flutter history and per-recipient failure views use 20-row pages. Progress is
+loaded from the authoritative RPC and refreshed explicitly. The account picker
+filters templates by WABA. Unsupported/malformed saved bindings remain correctable
+without null-cast rendering failures. No automatic resend is exposed for unknown jobs.
 
 ## Deferred verification
 

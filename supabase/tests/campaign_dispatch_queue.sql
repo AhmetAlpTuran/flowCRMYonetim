@@ -9,12 +9,12 @@ declare
   template_id uuid := gen_random_uuid(); fixture_campaign uuid := gen_random_uuid(); other_campaign uuid := gen_random_uuid();
   expected jsonb; count_before bigint; count_after bigint; first_job public.campaign_dispatches;
   second_job public.campaign_dispatches; third_job public.campaign_dispatches; fourth_job public.campaign_dispatches;
-  claimed_ids uuid[]; result jsonb; connection_id uuid := gen_random_uuid(); blocked_job public.campaign_dispatches;
+  claimed_ids uuid[]; result jsonb; fixture_connection uuid := gen_random_uuid(); blocked_job public.campaign_dispatches;
 begin
   insert into auth.users(id, email) values (actor, actor::text || '@example.invalid');
   insert into public.tenants(id, name) values (tenant_a, 'Queue test A'), (tenant_b, 'Queue test B');
   insert into public.tenant_memberships(tenant_id, user_id, role) values (tenant_a, actor, 'admin');
-  perform public.save_whatsapp_connection(tenant_a, actor, connection_id, '777', '7777',
+  perform public.save_whatsapp_connection(tenant_a, actor, fixture_connection, '777', '7777',
     '{"display_phone_number":"+90 555 000 0000","verified_name":"Queue fixture","token_expires_at":null}',
     jsonb_build_object('key_id', 'fixture', 'ciphertext', repeat('A', 24), 'iv', repeat('A', 16)), true);
   insert into public.templates(id, tenant_id, name, category, language, status, components, waba_id)
@@ -32,8 +32,8 @@ begin
     raise exception 'Cross-tenant template reference accepted';
   exception when foreign_key_violation then null; end;
   select jsonb_build_object('audience_filter', c.audience_filter, 'template_id', c.template_id,
-    'template_bindings', c.template_bindings, 'connection_id', connection_id,
-    'connection', jsonb_build_object('id', connection_id, 'waba_id', '777', 'phone_number_id', '7777'),
+    'template_bindings', c.template_bindings, 'connection_id', fixture_connection,
+    'connection', jsonb_build_object('id', fixture_connection, 'waba_id', '777', 'phone_number_id', '7777'),
     'template', jsonb_build_object('name', t.name, 'language', t.language, 'components', t.components))
     into expected from public.campaigns c join public.templates t on t.id = c.template_id where c.id = fixture_campaign;
 
@@ -79,7 +79,7 @@ begin
   select * into third_job from public.campaign_dispatches where id = claimed_ids[3];
   select * into fourth_job from public.campaign_dispatches where id = claimed_ids[4];
   select * into blocked_job from public.campaign_dispatches where id = claimed_ids[5];
-  update public.whatsapp_connections set status = 'inactive' where id = connection_id;
+  update public.whatsapp_connections set status = 'inactive' where id = fixture_connection;
   begin
     perform public.start_campaign_dispatch(blocked_job.id, blocked_job.lease_token);
     raise exception 'Disconnected connection dispatched';
@@ -93,7 +93,7 @@ begin
   if public.start_campaign_dispatch(blocked_job.id, blocked_job.lease_token) then
     raise exception 'Blocked job reused previous lease';
   end if;
-  update public.whatsapp_connections set status = 'active' where id = connection_id;
+  update public.whatsapp_connections set status = 'active' where id = fixture_connection;
   if public.start_campaign_dispatch(first_job.id, gen_random_uuid()) then raise exception 'Wrong lease accepted'; end if;
   if not public.start_campaign_dispatch(first_job.id, first_job.lease_token) then raise exception 'Start failed'; end if;
   if not public.finish_campaign_dispatch(first_job.id, first_job.lease_token, 'accepted', 'wamid.queue-test-1') then

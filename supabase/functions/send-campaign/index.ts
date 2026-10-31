@@ -29,7 +29,7 @@ Deno.serve(endpoint(async (req) => {
     "campaigns",
   )
     .select(
-      "id, tenant_id, audience_filter, template_id, template_bindings, connection_id, queued_at",
+      "id, tenant_id, audience_filter, template_id, template_bindings, connection_id, queued_at, revision",
     )
     .eq("id", campaignId).maybeSingle();
   if (campaignError) {
@@ -59,6 +59,23 @@ Deno.serve(endpoint(async (req) => {
       campaign_id: campaignId,
       progress: await progress(),
     });
+  }
+  if (
+    !Number.isSafeInteger(body.expected_revision) ||
+    (body.expected_revision as number) < 0
+  ) {
+    throw new ApiError(
+      400,
+      "revision_required",
+      "Review and save the campaign before starting it",
+    );
+  }
+  if (campaign.revision !== body.expected_revision) {
+    throw new ApiError(
+      409,
+      "campaign_changed",
+      "Campaign changed; reopen and review the current draft",
+    );
   }
   const service = serviceClient();
   const connection = await resolveConnection(

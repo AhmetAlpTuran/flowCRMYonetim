@@ -14,7 +14,7 @@ class SupabaseTemplateRepository {
         .eq('tenant_id', tenantId)
         .order('created_at', ascending: false);
 
-    return response.map<MessageTemplate>(_fromRow).toList();
+    return response.map<MessageTemplate>(MessageTemplate.fromRow).toList();
   }
 
   Future<MessageTemplate> createTemplate({
@@ -43,7 +43,7 @@ class SupabaseTemplateRepository {
     }
     final row =
         await _client.from('templates').select().eq('id', templateId).single();
-    return _fromRow(row);
+    return MessageTemplate.fromRow(row);
   }
 
   Future<void> syncTemplates(String tenantId, {String? connectionId}) async {
@@ -100,49 +100,5 @@ class SupabaseTemplateRepository {
       throw Exception('Medya handle alinamadi.');
     }
     return handle;
-  }
-
-  MessageTemplate _fromRow(Map<String, dynamic> row) {
-    final components = row['components'] as dynamic;
-    final body = _extractBodyText(components);
-    return MessageTemplate(
-      id: row['id'] as String,
-      name: row['name'] as String,
-      category: row['category'] as String,
-      language: row['language'] as String,
-      status: row['status'] as String? ?? 'PENDING',
-      body: body,
-      components: components is Map<String, dynamic>
-          ? components
-          : components is List
-              ? {'components': components}
-              : null,
-      waTemplateId: row['wa_template_id'] as String?,
-    );
-  }
-
-  String _extractBodyText(dynamic components) {
-    if (components is List) {
-      for (final item in components) {
-        if (item is Map<String, dynamic> &&
-            (item['type'] == 'BODY' || item['type'] == 'body')) {
-          final text = item['text'];
-          if (text is String) {
-            return text;
-          }
-        }
-      }
-    }
-    if (components is Map<String, dynamic>) {
-      final nested = components['components'];
-      if (nested is List) {
-        return _extractBodyText(nested);
-      }
-      final text = components['body'];
-      if (text is String) {
-        return text;
-      }
-    }
-    return '';
   }
 }

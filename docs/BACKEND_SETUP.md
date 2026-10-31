@@ -73,7 +73,7 @@ require provider checks in the deferred integration phase.
 
 The UI loads manifests from the server instead of maintaining a second template
 parser. It persists values with draft/send requests. Draft listing/editing and
-history/controller integration are subsequent milestones. Existing campaigns receive `{}`;
+history/controller integration are implemented in source. Existing campaigns receive `{}`;
 static templates can still send, but variable templates require values before send.
 
 ## Durable queue deployment (implementation incomplete; not yet verified)
@@ -86,7 +86,10 @@ in timestamp order, including `20261030093000_whatsapp_connections.sql`,
 `20261030094000_campaign_worker_integration.sql`, and
 `20261030095000_template_account_sync.sql`. The replacement enqueue endpoint,
 tenant connection resolver, worker and template sync are implemented in source;
-client history/controller and verified receipt integration are still required.
+client history/controller is implemented; verified receipt integration is still required.
+Apply `20261030100000_campaign_draft_identity.sql` before releasing the matching
+client and enqueue endpoint. It adds draft revisions, the save RPC and revokes direct
+client campaign writes. Older clients that insert campaigns directly must be upgraded.
 
 When the complete implementation reaches verification:
 
@@ -104,7 +107,8 @@ When the complete implementation reaches verification:
    This optional operations script replaces only its own named schedule.
 4. Connect the intended WhatsApp account and synchronize templates before enqueueing.
    Legacy unlinked rows remain preserved; ambiguous identities require selecting a
-   freshly synced scoped template. Multi-account picker UI is still pending.
+   freshly synced scoped template. The campaign form now selects its sending account;
+   template sync/creation still need their full multi-account management UI.
 5. Monitor cron/pg_net invocation failures and queue age/blocked/unknown counts.
    A healthy HTTP invocation is not proof of recipient delivery. Never automatically
    replay an unknown dispatch. No schedules or sends have been enabled by this work.

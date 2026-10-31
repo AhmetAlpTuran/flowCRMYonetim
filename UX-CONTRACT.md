@@ -13,12 +13,13 @@ contract; a documented legacy gap is not evidence of completion.
 | Form | Material Form/TextFormField | create/edit; TemplateParameterFields adapts the server manifest |
 | Scroll | owning ListView/SingleChildScrollView | no unbounded Expanded on scroll axis |
 | Feedback | ScaffoldMessenger for confirmation, inline errors for correction | Turkish copy; no raw backend diagnostics |
-| Campaign save | campaign repository, moving to Riverpod controller in milestone 5 | await persisted result, prevent duplicate clicks |
+| Campaign save | CampaignActions Riverpod controller + versioned repository RPC | stable ID, immutable retry snapshot, conflict recovery |
+| Campaign history/results | CampaignHistory / CampaignProgressPanel | 20-row pages, explicit refresh, acceptance separate from delivery |
 | Server validation | shared template module + PostgreSQL audience function | authoritative even if client validation is bypassed |
 
 Date pickers and bulk table selection are outside this change; no new implementations
 are introduced. Existing template creation and campaign creation both remain inline
-after save; campaign list/draft reopening is a required follow-up.
+after save. Campaign history below the form supports draft reopening and result review.
 
 ## Campaign form behavior
 
@@ -33,8 +34,10 @@ after save; campaign list/draft reopening is a required follow-up.
 - Media send values are an HTTPS link or WhatsApp media ID, separate from the
   resumable-upload handle used as a creation example.
 - Controls disable during a mutation. Confirmed persistence earns a saved notice.
-  Errors retain input. Unknown send results must direct users to campaign status;
-  durable status/retry/reconciliation screens remain milestone 4/5 work.
+  Errors retain input. Unknown request results freeze the exact pending draft and
+  expose a same-ID retry. Confirmed saved drafts are not saved again on enqueue retry.
+  Version conflicts require reopening history; no automatic overwrite or new ID.
+  Sending asks for confirmation of the account and template before queueing.
 - Required fields have labels and inline errors. Action rows wrap, dropdowns shrink
   safely, and form errors remain available without relying on a toast.
 - Draft filter/parameter values are transient and may contain customer data; do not
@@ -48,5 +51,11 @@ Full-route focus/error scrolling, screen-reader announcements, 200% zoom, sessio
 expiry, tenant switching during sends and deployed-function failure cases require
 the deferred verification phase. Dispatch now queues asynchronously and the submit
 notice reports queued recipients, never a fabricated zero-success completion.
-Stable client campaign identity across retries, history/progress, cross-screen error
-handling and controller ownership remain open; they are not approved exceptions.
+Stable campaign identity, versioned drafts, Riverpod ownership and paginated history/
+progress are now implemented. Default filter labels describe actual tags/recency;
+there are no purchase-count or campaign-response claims backed only by tags.
+Progress/failure panels refresh explicitly and do not imply live push updates.
+Unsaved form values remain in memory only; leaving the entire campaign tab or
+reloading can discard them. Global unsaved-navigation protection, refreshed-template
+preview confirmation, signed delivery reconciliation and cross-screen errors remain
+open. These are not approved release exceptions.
