@@ -145,3 +145,16 @@ modified when this work began; preserve it outside milestone commits.
   creation, support flows, commercial onboarding/billing/usage and operational
   hardening. Unsaved tab-navigation recovery and template-preview freshness remain
   explicit UI follow-ups; the complete SaaS is not ready to deploy.
+- 2026-10-31: Webhook sub-milestone 6a: replaced the unsigned bot callback with one
+  HMAC-verified receiver shared by the canonical and legacy URLs. Added a private,
+  deduplicated event ledger, database-owned account routing, a bounded receipt
+  processor and optional scheduler. Receipts reconcile only the correct tenant,
+  number, recipient and current attempt; read/delivered evidence survives delayed
+  failures. Delivery failures now appear in campaign recipient review. Added
+  signature/ingestion and database receipt fixtures; execution remains deferred.
+  Inbound messages are durably stored but not yet materialized into conversations;
+  the replacement bot worker and tenant-scoped inbox sends are next. This slice
+  must not be deployed by itself as a working bot replacement. See `docs/WEBHOOKS.md`.
+  Targeted Dart analysis and SQL/PLpgSQL grammar parsing passed. Deno static type
+  checking covers receivers, both workers and authored security fixtures; no suites,
+  migrations, live subscriptions or provider sends were executed.

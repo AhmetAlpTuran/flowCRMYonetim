@@ -288,6 +288,12 @@ deno_version = 2
 [functions.bot-reply]
 verify_jwt = false
 
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.webhook-worker]
+verify_jwt = false
+
 # Internal scheduled endpoint: authenticates CAMPAIGN_WORKER_SECRET itself.
 [functions.campaign-worker]
 verify_jwt = false

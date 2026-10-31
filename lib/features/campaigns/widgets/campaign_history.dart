@@ -16,6 +16,7 @@ String campaignStatusLabel(String status) =>
       'cancelled': 'İptal edildi',
       'unknown': 'Sonuç doğrulanamadı',
       'blocked': 'Bağlantı bekleniyor',
+      'delivery_failed': 'Teslim edilemedi',
     }[status] ??
     'Durum bilgisi bekleniyor';
 
@@ -213,8 +214,11 @@ class _CampaignProgressPanelState extends ConsumerState<CampaignProgressPanel> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SelectableText(
-                                '${row['recipient_phone']} · ${campaignStatusLabel(row['state'] as String)}'),
-                            Text(_failureMessage(row['error_code'] as String?)),
+                                '${row['recipient_phone']} · ${campaignStatusLabel(row['delivery_status'] == 'failed' ? 'delivery_failed' : row['state'] as String)}'),
+                            Text(_failureMessage(
+                                (row['delivery_status'] == 'failed'
+                                    ? row['delivery_error_code']
+                                    : row['error_code']) as String?)),
                             Text('Deneme: ${row['attempts'] ?? 0}'),
                           ])),
                 _PageControls(

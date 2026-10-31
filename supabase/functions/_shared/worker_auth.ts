@@ -1,27 +1,13 @@
 import { ApiError } from "./http.ts";
 import { requiredEnv } from "./supabase.ts";
 
-export async function secretEquals(
-  left: string,
-  right: string,
-): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const [a, b] = await Promise.all(
-    [left, right].map(async (value) =>
-      new Uint8Array(
-        await crypto.subtle.digest("SHA-256", encoder.encode(value)),
-      )
-    ),
-  );
-  let difference = 0;
-  for (let index = 0; index < a.length; index++) {
-    difference |= a[index] ^ b[index];
-  }
-  return difference === 0;
-}
+import { secretEquals } from "./secret_compare.ts";
 
-export async function requireWorker(req: Request): Promise<void> {
-  const configured = requiredEnv("CAMPAIGN_WORKER_SECRET");
+export async function requireWorker(
+  req: Request,
+  secretName = "CAMPAIGN_WORKER_SECRET",
+): Promise<void> {
+  const configured = requiredEnv(secretName);
   if (configured.length < 32 || configured.length > 256) {
     throw new ApiError(
       503,

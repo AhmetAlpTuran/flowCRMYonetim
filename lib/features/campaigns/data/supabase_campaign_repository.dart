@@ -134,10 +134,11 @@ class SupabaseCampaignRepository implements CampaignRepository {
       {int page = 0}) async {
     return await _client
         .from('campaign_dispatches')
-        .select('id,recipient_phone,state,error_code,error_detail,attempts')
+        .select(
+            'id,recipient_phone,state,error_code,error_detail,attempts,delivery_status,delivery_error_code')
         .eq('tenant_id', tenantId)
         .eq('campaign_id', campaignId)
-        .inFilter('state', ['failed', 'unknown', 'blocked', 'cancelled'])
+        .or('state.in.(failed,unknown,blocked,cancelled),delivery_status.eq.failed')
         .order('id')
         .range(page * 20, page * 20 + 19);
   }

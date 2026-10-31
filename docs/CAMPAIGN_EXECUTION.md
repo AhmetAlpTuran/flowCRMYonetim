@@ -3,7 +3,8 @@
 Database foundation is implemented in `20261030092000_campaign_dispatch_queue.sql`,
 with connection fencing and blocked-state handling in `20261030094000_campaign_worker_integration.sql`.
 `send-campaign` now enqueues only; `campaign-worker` owns external sends. Client
-controller/history integration is implemented; verified delivery receipts remain unfinished.
+controller/history integration and verified campaign receipts are implemented in
+source. Inbound inbox/bot integration and release verification remain unfinished.
 Deploy these as part of the complete, verified upgrade, not as independent patches.
 
 ## Snapshot and idempotency
@@ -98,8 +99,9 @@ unknown/blocked outcomes require attention once other work finishes.
 remains authoritative. An expiry sweep can leave the cached status stale when no
 new jobs from that campaign are returned; clients must read `campaign_progress`.
 
-Delivery columns are reserved for verified webhook events; event deduplication,
-out-of-order receipt handling and reconciliation are not wired in this foundation.
+Delivery columns are populated only by verified webhook event processing. Event
+deduplication, out-of-order handling and current-attempt reconciliation are described
+in `WEBHOOKS.md`; the receipt worker must be deployed/scheduled with the upgrade.
 Legacy summaries are labeled so zero new-queue rows are not presented as a new send
 with zero recipients. An actually empty audience cannot be enqueued.
 

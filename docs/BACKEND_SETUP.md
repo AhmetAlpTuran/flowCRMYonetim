@@ -86,7 +86,7 @@ in timestamp order, including `20261030093000_whatsapp_connections.sql`,
 `20261030094000_campaign_worker_integration.sql`, and
 `20261030095000_template_account_sync.sql`. The replacement enqueue endpoint,
 tenant connection resolver, worker and template sync are implemented in source;
-client history/controller is implemented; verified receipt integration is still required.
+client history/controller and campaign receipt integration are implemented in source.
 Apply `20261030100000_campaign_draft_identity.sql` before releasing the matching
 client and enqueue endpoint. It adds draft revisions, the save RPC and revokes direct
 client campaign writes. Older clients that insert campaigns directly must be upgraded.
@@ -133,8 +133,9 @@ read-only to clients; historical sends are not replayed into the new queue.
 Apply the connection foundation migration `20261030093000_whatsapp_connections.sql`
 in order as part of the eventual complete deployment. Configuration and verification
 requirements are in [WHATSAPP_CONNECTIONS.md](WHATSAPP_CONNECTIONS.md). Do not ship
-the connection endpoint with the legacy unsigned webhook or global-credential
-senders as a finished multi-tenant integration.
+the connection endpoint with remaining global-credential senders as a finished
+multi-tenant integration. The old unsigned webhook has now been replaced by a signed
+receiver; its inbound inbox/bot consumer remains pending.
 
 Test suites are authored but not executed at the owner's request. During verification,
 run `supabase/tests/campaign_audience.sql` against an isolated migrated database.

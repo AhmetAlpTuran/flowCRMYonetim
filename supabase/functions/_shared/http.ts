@@ -35,22 +35,26 @@ export function endpoint(handler: (req: Request) => Promise<Response>) {
     try {
       return await handler(req);
     } catch (error) {
-      const requestId = crypto.randomUUID();
-      const known = error instanceof ApiError;
-      // Never log request bodies, bearer tokens, provider URLs or raw fetch errors.
-      console.error(
-        JSON.stringify({
-          request_id: requestId,
-          code: known ? error.code : "internal_error",
-        }),
-      );
-      return jsonResponse({
-        code: known ? error.code : "internal_error",
-        error: known ? error.message : "Operation unavailable",
-        request_id: requestId,
-      }, known ? error.status : 500);
+      return errorResponse(error);
     }
   };
+}
+
+export function errorResponse(error: unknown): Response {
+  const requestId = crypto.randomUUID();
+  const known = error instanceof ApiError;
+  // Never log bodies, tokens, provider URLs or raw fetch/database errors.
+  console.error(
+    JSON.stringify({
+      request_id: requestId,
+      code: known ? error.code : "internal_error",
+    }),
+  );
+  return jsonResponse({
+    code: known ? error.code : "internal_error",
+    error: known ? error.message : "Operation unavailable",
+    request_id: requestId,
+  }, known ? error.status : 500);
 }
 
 export async function readJson(
@@ -64,22 +68,55 @@ export async function readJson(
   ) {
     throw new ApiError(415, "invalid_content_type", "JSON request required");
   }
+  const bytes = await readBytes(req, maxBytes);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+    );
+  } catch {
+    throw new ApiError(400, "invalid_json", "JSON object required");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new ApiError(400, "invalid_json", "JSON object required");
+  }
+  return parsed as Record<string, unknown>;
+}
+
+export async function readBytes(
+  req: Request,
+  maxBytes: number,
+  timeoutMs = 10000,
+): Promise<Uint8Array<ArrayBuffer>> {
   const reader = req.body?.getReader();
   if (!reader) throw new ApiError(400, "invalid_json", "JSON object required");
   let size = 0;
   const chunks: Uint8Array[] = [];
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new ApiError(408, "request_body_timeout", "Request body timed out"),
+        ),
+      timeoutMs,
+    );
+  });
   try {
     while (true) {
-      const { value, done } = await reader.read();
+      const { value, done } = await Promise.race([reader.read(), deadline]);
       if (done) break;
       size += value.byteLength;
       if (size > maxBytes) {
-        await reader.cancel();
         throw new ApiError(413, "request_too_large", "Request too large");
       }
       chunks.push(value);
     }
+  } catch (error) {
+    void reader.cancel().catch(() => {});
+    throw error;
   } finally {
+    clearTimeout(timer);
     reader.releaseLock();
   }
   const bytes = new Uint8Array(size);
@@ -88,16 +125,7 @@ export async function readJson(
     bytes.set(chunk, offset);
     offset += chunk.length;
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    throw new ApiError(400, "invalid_json", "JSON object required");
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new ApiError(400, "invalid_json", "JSON object required");
-  }
-  return parsed as Record<string, unknown>;
+  return bytes;
 }
 
 export function uuid(value: unknown, label: string): string {

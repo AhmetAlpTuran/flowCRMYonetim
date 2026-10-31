@@ -78,3 +78,17 @@ version must be rechecked before release. No integration success is claimed.
   Current docs describe Riverpod 3; this existing app remains on Riverpod 2.x.
   Family/auto-dispose concepts apply, but implementation uses the installed 2.x
   StateNotifier/FutureProvider APIs and static analysis rather than copying 3.x code.
+
+## Webhook authenticity and receipts (2026-10-31)
+
+- Meta's archived SDK documents exact-body app-secret signature verification and
+  subscription challenge handling:
+  https://whatsapp.github.io/WhatsApp-Nodejs-SDK/api-reference/webhooks/start/
+  It is primary historical evidence, not proof of current API version support.
+- Current Graph webhook validation and WhatsApp payload references were requested:
+  https://developers.facebook.com/docs/graph-api/webhooks/getting-started#validate-payloads
+  https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/components
+  The first returned 429 and the second was inaccessible. Current payload limits,
+  business-scoped identity support and callback metadata require release verification.
+- Meta's maintained message collection documents status tracking by message ID:
+  https://www.postman.com/meta/whatsapp-business-platform/folder/o48mro7/messages

@@ -154,7 +154,7 @@ Deno.serve(endpoint(async (req) => {
           recipient_type: "individual",
           to: job.recipient_phone,
           type: "template",
-          biz_opaque_callback_data: job.id,
+          biz_opaque_callback_data: `${job.id}:${job.lease_token}`,
           template: {
             name: snapshot.template.name,
             language: { code: snapshot.template.language },

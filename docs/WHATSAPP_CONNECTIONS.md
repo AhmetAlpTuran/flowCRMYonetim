@@ -4,8 +4,10 @@ Implemented foundation: metadata/credential tables, administration endpoint, tok
 verification, encrypted storage and a reusable tenant-scoped resolver. Campaign
 enqueue/worker and template synchronization now use it. Inbox, bot, template creation
 and template media upload still require migration before release.
-Embedded Signup UI/code exchange and signed webhook ingestion are still pending.
-Do not expose the existing unsigned bot webhook as a production receiver.
+Embedded Signup UI/code exchange and the scoped inbox/bot pipeline are still pending.
+Signed webhook ingestion and campaign receipt handling are now implemented in
+`WEBHOOKS.md`; inbound conversation/bot processing is not wired yet. The former
+unsigned bot endpoint now delegates to the verified receiver.
 
 Template synchronization reads one provider page at a time, pins the selected
 connection across pages, and imports exact WABA/name/language identities atomically.
