@@ -116,3 +116,23 @@ version must be rechecked before release. No integration success is claimed.
   Message sections provide the text payload, 4096-character limit and wamid response
   shape. Current provider/version conformance remains a live verification item.
   [Meta text-message reference](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/text-messages)
+
+## AI context and Responses adapter (2026-11-01)
+
+- Structured Outputs uses `text.format` in Responses, requires all schema fields
+  and closed objects, and exposes refusal/incomplete outcomes separately. The
+  adapter validates its parsed decision and source IDs before application use.
+  [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+- The existing `gpt-4o-mini` model supports Responses and Structured Outputs with a
+  128,000-token context window. The adapter retains the selected model and bounds
+  request data and output instead of silently upgrading models.
+  [GPT-4o mini](https://developers.openai.com/api/docs/models/gpt-4o-mini)
+- Responses application-state controls and provider abuse-monitoring retention are
+  distinct. Deployment documentation must account for both when handling customer
+  conversation data. [OpenAI data controls](https://developers.openai.com/api/docs/guides/your-data)
+- PostgreSQL stable functions use the calling query's snapshot across their reads.
+  This avoids assembling settings, versions and knowledge from different snapshots.
+  [Function volatility](https://www.postgresql.org/docs/current/xfunc-volatility.html)
+- PostgreSQL 15 supports a column subset for `ON DELETE SET NULL`. Deleting a current
+  input clears its pointer while preserving the conversation's tenant ID.
+  [PostgreSQL 15 constraints](https://www.postgresql.org/docs/15/ddl-constraints.html)

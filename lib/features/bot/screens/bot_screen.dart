@@ -18,7 +18,7 @@ class _BotScreenState extends ConsumerState<BotScreen> {
   final _toneController = TextEditingController();
   final _languageController = TextEditingController();
   final _promptController = TextEditingController();
-  bool _isActive = true;
+  bool _isActive = false;
   double _temperature = 0.3;
   String _model = 'gpt-4o-mini';
   int _memoryHours = 6;

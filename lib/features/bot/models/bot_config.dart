@@ -55,7 +55,7 @@ class BotConfig {
       temperature: 0.3,
       memoryHours: 6,
       maxHistoryMessages: 12,
-      isActive: true,
+      isActive: false,
     );
   }
 }

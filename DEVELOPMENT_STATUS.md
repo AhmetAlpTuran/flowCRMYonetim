@@ -20,7 +20,7 @@ modified when this work began; preserve it outside milestone commits.
 |---|---|---|
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
 | Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller | AI integration, assignment/resolution, pagination, attachments, historical account mapping, account labels and per-agent unread state |
-| AI | Settings, knowledge CRUD, private input jobs with handoff preservation | Replacement AI worker, knowledge retrieval, human ownership fencing, usage accounting |
+| AI | Settings, knowledge CRUD, private input jobs, scoped/versioned context retrieval and structured Responses adapter | Scheduled consumer, usage accounting, finalization/dispatch fencing, model-quality evaluation |
 | Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
 | Handoff | Atomic authorized request, idempotent retry, bot-job cancellation, list | Assignment, processing/closure, outbound bot fencing, response/resolution metrics |
@@ -196,3 +196,15 @@ modified when this work began; preserve it outside milestone commits.
   grammar parsing and static UI contract audit also passing. Backend setup and
   limitations are documented in `docs/INBOX_EXECUTION.md`. AI processing, historical
   mapping, attachments, operator recovery and commercial workflows remain pending.
+- 2026-11-01: AI context/adapter foundation adds exact latest-input identity,
+  automation revisions, private knowledge/settings versions and a service-only
+  consistent-snapshot context RPC. Retrieval uses bounded tenant-scoped lexical
+  snippets and conversation history. Added a strict Responses adapter with scoped
+  source-ID validation, response bounds, usage parsing and explicit uncertain/refused
+  outcomes. New bot configuration starts inactive, and opening settings performs no
+  implicit save. Existing activation values are preserved. SQL, adapter and config
+  regressions are authored with execution deferred. The scheduled consumer, usage
+  ledger and outbound finalization are still required to activate automated replies.
+  Deno type checking, targeted Dart analysis, SQL/PLpgSQL grammar parsing and diff
+  checks passed. The static UI contract audit reported zero findings.
+  The integration plan and limitations are in `docs/AI_WORKER.md`.

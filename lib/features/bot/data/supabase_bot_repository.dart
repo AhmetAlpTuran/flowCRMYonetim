@@ -15,9 +15,7 @@ class SupabaseBotRepository {
         .maybeSingle();
 
     if (response == null) {
-      final defaults = BotConfig.defaults();
-      await saveBotConfig(tenantId, defaults);
-      return defaults;
+      return BotConfig.defaults();
     }
 
     return _fromRow(response);
@@ -44,14 +42,13 @@ class SupabaseBotRepository {
       name: row['name'] as String? ?? 'Ava',
       tone: row['tone'] as String? ?? 'Profesyonel ve net',
       language: row['language'] as String? ?? 'Turkce',
-      systemPrompt:
-          row['system_prompt'] as String? ??
-              'Kisa, profesyonel bir musteri temsilcisi gibi yanit ver.',
+      systemPrompt: row['system_prompt'] as String? ??
+          'Kisa, profesyonel bir musteri temsilcisi gibi yanit ver.',
       model: row['model'] as String? ?? 'gpt-4o-mini',
       temperature: (row['temperature'] as num?)?.toDouble() ?? 0.3,
       memoryHours: (row['memory_hours'] as int?) ?? 6,
       maxHistoryMessages: (row['max_history_messages'] as int?) ?? 12,
-      isActive: row['is_active'] as bool? ?? true,
+      isActive: row['is_active'] as bool? ?? false,
     );
   }
 }

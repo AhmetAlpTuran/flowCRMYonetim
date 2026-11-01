@@ -84,7 +84,7 @@ export async function readJson(
 }
 
 export async function readBytes(
-  req: Request,
+  req: Request | Response,
   maxBytes: number,
   timeoutMs = 10000,
 ): Promise<Uint8Array<ArrayBuffer>> {

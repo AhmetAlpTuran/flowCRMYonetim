@@ -48,6 +48,10 @@ after save. Campaign history below the form supports draft reopening and result 
 
 ## Deferred verification and known drift
 
+Opening bot settings reads existing configuration or presents an inactive draft.
+Activation requires an explicit save. Existing saved activation is preserved.
+The worker/usage integration and its operational UI remain in progress.
+
 Inbox text replies use the scoped Supabase queue. The composer freezes during a
 pending or uncertain enqueue and retains its original text/ID for retries. Confirmed
 persistence clears the composer and reloads messages. A window or permission rejection

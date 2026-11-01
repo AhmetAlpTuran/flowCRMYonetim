@@ -169,6 +169,13 @@ the behavior of these database privileges or transactions.
 
 ## Deferred verification commands
 
+The AI context foundation is `20261101090000_bot_context.sql`. Deploy it as part of
+the complete AI worker integration described in [AI_WORKER.md](AI_WORKER.md).
+It adds settings/knowledge bounds requiring historical validation, exact input
+identity and context versions. New bot settings default to inactive, and the matching
+Flutter client stops implicitly saving defaults when the settings page opens.
+Worker execution and quota setup instructions will follow with that integration.
+
 The inbox sender upgrade requires `20261030104000_inbox_dispatch_queue.sql`, the
 updated Flutter client, `send-message` and `inbox-worker`. It revokes direct message
 writes and limits direct conversation updates to tags. Deploy the updated receipt
