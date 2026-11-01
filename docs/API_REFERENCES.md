@@ -103,3 +103,16 @@ version must be rechecked before release. No integration success is claimed.
   processor uses distinct sender-variable and customer-column names, with qualified
   row references. Grammar-only checks leave database semantic validation pending.
   [PL/pgSQL variable substitution](https://www.postgresql.org/docs/current/plpgsql-implementation.html)
+
+## Inbox replies (2026-11-01)
+
+- The current WhatsApp policy, dated September 23, 2026, defines a rolling 24-hour
+  customer service window for free-form replies and approved templates outside that
+  window. Enqueue and dispatch enforce it using verified incoming customer messages.
+  Queued replies also retain the original window's expiry to bound stale content.
+  [WhatsApp Business Messaging Policy](https://whatsappbusiness.com/policy/)
+- The current text-message developer page returned HTTP 429 during retrieval.
+  The bundled official Cloud API Postman collection's Text Object and Send Text
+  Message sections provide the text payload, 4096-character limit and wamid response
+  shape. Current provider/version conformance remains a live verification item.
+  [Meta text-message reference](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/text-messages)

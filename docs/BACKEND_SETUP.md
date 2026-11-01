@@ -139,9 +139,9 @@ updates through its existing messages/conversations realtime subscriptions.
 Legacy conversations retain null connection/customer identity. New verified messages
 create scoped threads even when an older unscoped thread exists for that contact.
 Historical mapping needs operator review of the actual business number. The migration
-does not infer the default number for historical threads. The legacy human sender
-and bot worker must be completed before this integration is ready for deployment.
-Read/handoff RPCs are now implemented in source. See [WEBHOOKS.md](WEBHOOKS.md).
+does not infer the default number for historical threads. The human sender and
+read/handoff RPCs are now implemented in source. The replacement bot worker remains
+an integration dependency. See [WEBHOOKS.md](WEBHOOKS.md).
 
 The new tenant foreign keys are initially `NOT VALID` to preserve old rows. Before
 release, review the following results in the isolated upgrade environment, repair
@@ -168,6 +168,14 @@ disconnect races and upgrade data in that phase. Static grammar parsing cannot p
 the behavior of these database privileges or transactions.
 
 ## Deferred verification commands
+
+The inbox sender upgrade requires `20261030104000_inbox_dispatch_queue.sql`, the
+updated Flutter client, `send-message` and `inbox-worker`. It revokes direct message
+writes and limits direct conversation updates to tags. Deploy the updated receipt
+worker and shared delivery module alongside both sender workers. Configure the
+dedicated worker secret and manual scheduler described in
+[INBOX_EXECUTION.md](INBOX_EXECUTION.md). This upgrade requires a coordinated client
+release because sends now require stable request IDs and return queued state.
 
 The inbox lifecycle upgrade also requires `20261030103000_inbox_lifecycle_actions.sql`
 and its matching Flutter client. It revokes direct handoff writes and guards direct

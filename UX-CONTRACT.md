@@ -16,6 +16,8 @@ contract; a documented legacy gap is not evidence of completion.
 | Campaign save | CampaignActions Riverpod controller + versioned repository RPC | stable ID, immutable retry snapshot, conflict recovery |
 | Campaign history/results | CampaignHistory / CampaignProgressPanel | 20-row pages, explicit refresh, acceptance separate from delivery |
 | Inbox handoff | HandoffRequestSheet + SupabaseInboxRepository + atomic RPC | stable request ID, immutable retry note, tenant-change guard |
+| Inbox send | InboxSendController + repository + enqueue RPC | stable message ID, immutable uncertain retry, authoritative dispatch state |
+| Delivery display | MessageDeliveryStatus | queue, acceptance, delivery, read and uncertainty are distinct |
 | Server validation | shared template module + PostgreSQL audience function | authoritative even if client validation is bypassed |
 
 Date pickers and bulk table selection are outside this change; no new implementations
@@ -45,6 +47,16 @@ after save. Campaign history below the form supports draft reopening and result 
   put them in URLs or browser storage. Persist only via an explicit draft save.
 
 ## Deferred verification and known drift
+
+Inbox text replies use the scoped Supabase queue. The composer freezes during a
+pending or uncertain enqueue and retains its original text/ID for retries. Confirmed
+persistence clears the composer and reloads messages. A window or permission rejection
+shows localized correction guidance. Pending, accepted and delivered labels reflect
+their separate backend states. Back navigation guards an unsaved draft or uncertain
+request. A changed session/business invalidates the chat and requires reopening it.
+These behaviors have authored controller/status fixtures in `test/inbox_send_test.dart`.
+Runtime interaction and browser reload recovery remain deferred. Attachments remain
+disabled pending their scoped upload/send implementation.
 
 Inbox handoff preserves the existing requirement for both inbox and handoff
 permissions. The Material bottom sheet wraps actions, owns its scroll area, accounts

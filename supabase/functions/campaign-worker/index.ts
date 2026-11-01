@@ -2,7 +2,7 @@ import {
   type DeliveryOutcome,
   dispatchOnce,
   type DispatchResult,
-} from "../_shared/campaign_delivery.ts";
+} from "../_shared/whatsapp_delivery.ts";
 import {
   ApiError,
   endpoint,

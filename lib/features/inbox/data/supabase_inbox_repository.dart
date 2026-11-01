@@ -3,6 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 
+class InboxSendFailure implements Exception {
+  const InboxSendFailure(this.code, {required this.uncertain});
+  final String code;
+  final bool uncertain;
+}
+
 class SupabaseInboxRepository {
   SupabaseInboxRepository(this._client);
 
@@ -18,10 +24,12 @@ class SupabaseInboxRepository {
     return response.map<Conversation>(_fromConversation).toList();
   }
 
-  Future<List<Message>> fetchMessages(String conversationId) async {
+  Future<List<Message>> fetchMessages(String conversationId,
+      {required String tenantId}) async {
     final response = await _client
         .from('messages')
         .select()
+        .eq('tenant_id', tenantId)
         .eq('conversation_id', conversationId)
         .order('sent_at', ascending: true);
     return response.map<Message>(_fromMessage).toList();
@@ -48,6 +56,56 @@ class SupabaseInboxRepository {
       'p_tenant_id': tenantId,
       'p_conversation_id': conversationId,
     }).timeout(const Duration(seconds: 20));
+  }
+
+  Future<void> queueMessage({
+    required String tenantId,
+    required String conversationId,
+    required String messageId,
+    required String body,
+  }) async {
+    try {
+      final response = await _client.functions.invoke('send-message', body: {
+        'tenant_id': tenantId,
+        'conversation_id': conversationId,
+        'message_id': messageId,
+        'body': body,
+      }).timeout(const Duration(seconds: 20));
+      final data = response.data;
+      if (response.status != 202 ||
+          data is! Map ||
+          data['message_id'] != messageId ||
+          !const {
+            'queued',
+            'leased',
+            'sending',
+            'retry_wait',
+            'blocked',
+            'accepted',
+            'failed',
+            'unknown',
+            'cancelled',
+          }.contains(data['state'])) {
+        throw const InboxSendFailure('enqueue_unconfirmed', uncertain: true);
+      }
+    } on FunctionException catch (error) {
+      final details = error.details;
+      final code = details is Map && details['code'] is String
+          ? details['code'] as String
+          : 'enqueue_unconfirmed';
+      const definitive = {
+        'forbidden',
+        'unauthorized',
+        'conversation_unavailable',
+        'conversation_unmapped',
+        'customer_service_window_closed',
+        'connection_unavailable',
+        'message_identity_conflict',
+        'invalid_message',
+      };
+      throw InboxSendFailure(code,
+          uncertain: error.status >= 500 || !definitive.contains(code));
+    }
   }
 
   Future<void> requestHandoff({
@@ -94,6 +152,8 @@ class SupabaseInboxRepository {
       waMessageId: row['wa_message_id'] as String?,
       deliveredAt: deliveredAt == null ? null : DateTime.parse(deliveredAt),
       readAt: readAt == null ? null : DateTime.parse(readAt),
+      outboundState: row['outbound_state'] as String?,
+      outboundErrorCode: row['outbound_error_code'] as String?,
     );
   }
 

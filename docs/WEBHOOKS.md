@@ -2,7 +2,8 @@
 
 Implemented in source, pending deployment and runtime verification. Verified inbound
 messages now materialize into account-scoped conversations and create durable bot
-input jobs. The replacement AI worker and scoped human outbound path remain pending.
+input jobs. Scoped human text delivery and receipt reconciliation are implemented.
+The replacement AI worker remains pending.
 Deploy the completed inbound/outbound/bot integration together during verification.
 
 ## Receiver boundary
@@ -67,8 +68,8 @@ handoff fencing, usage accounting and a scoped outbound queue.
 Read/handoff actions now use atomic RPCs. Handoff also cancels queued, leased and ready
 bot jobs, clearing their lease tokens. The future bot worker must lock conversation
 before job and recheck ownership and token before creating an outbound response.
-The legacy human sender remains integration work so all messages use the correct
-connection and the preview timestamp includes human replies.
+Human text replies now use the scoped inbox queue and update the preview atomically
+at enqueue. See [INBOX_EXECUTION.md](INBOX_EXECUTION.md) for ownership and delivery.
 Account labels in the inbox, per-agent unread state and historical channel mapping
 also remain pending. The protections added here cover incoming provider identity and
 content. The broader legacy client-write surface still requires its planned audit.
@@ -98,14 +99,15 @@ delivery stays separate from API rejection and appears in the recipient failure
 view. The authoritative progress RPC reflects receipts immediately; cached campaign
 list status can lag until refreshed by campaign processing.
 
-Inbox message receipts are retained as unmatched until the scoped outbound-message
-integration exists. No unscoped updates to legacy message IDs are performed.
+The receipt processor also reconciles scoped inbox dispatches. Historical unscoped
+message IDs remain unmatched pending explicit historical account resolution.
 
 ## Deployment and operations (deferred)
 
 1. Apply `20261030101000_whatsapp_webhook_events.sql` and then
    `20261030102000_whatsapp_inbound_conversations.sql` and
-   `20261030103000_inbox_lifecycle_actions.sql` after the earlier migrations.
+   `20261030103000_inbox_lifecycle_actions.sql` and
+   `20261030104000_inbox_dispatch_queue.sql` after the earlier migrations.
    Audit and validate historical tenant foreign keys using the backend setup guide.
 2. Configure `META_APP_SECRET`, `WHATSAPP_WEBHOOK_TOKEN`, and a separate random
    `WEBHOOK_WORKER_SECRET` in Edge secrets. Keep all three out of Flutter/source.

@@ -18,6 +18,8 @@ class Message {
     this.waMessageId,
     this.deliveredAt,
     this.readAt,
+    this.outboundState,
+    this.outboundErrorCode,
   });
 
   final String id;
@@ -30,4 +32,6 @@ class Message {
   final String? waMessageId;
   final DateTime? deliveredAt;
   final DateTime? readAt;
+  final String? outboundState;
+  final String? outboundErrorCode;
 }

@@ -298,6 +298,10 @@ verify_jwt = false
 [functions.campaign-worker]
 verify_jwt = false
 
+# Internal scheduled endpoint, authenticated with its own worker secret.
+[functions.inbox-worker]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

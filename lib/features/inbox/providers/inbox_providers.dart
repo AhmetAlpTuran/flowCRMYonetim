@@ -45,8 +45,10 @@ final conversationsProvider =
 
 final messagesProvider =
     FutureProvider.family<List<Message>, String>((ref, id) async {
+  final tenant = ref.watch(selectedTenantProvider);
+  if (tenant == null) return [];
   final repository = ref.watch(inboxRepositoryProvider);
-  return repository.fetchMessages(id);
+  return repository.fetchMessages(id, tenantId: tenant.id);
 });
 
 class InboxFilters {

@@ -52,7 +52,7 @@ export async function classifyWhatsAppResponse(
 
 export type DispatchDependencies = {
   prepare: () => Promise<() => Promise<Response>>;
-  failValidation: (detail: string) => Promise<boolean>;
+  failValidation?: (detail: string) => Promise<boolean>;
   defer: (code: string) => Promise<boolean>;
   start: () => Promise<boolean>;
   finish: (outcome: DeliveryOutcome) => Promise<boolean>;
@@ -74,7 +74,7 @@ export async function dispatchOnce(
     send = await deps.prepare();
   } catch (error) {
     try {
-      if (error instanceof TemplateInputError) {
+      if (error instanceof TemplateInputError && deps.failValidation) {
         return await deps.failValidation(error.message)
           ? "failed"
           : "unconfirmed";

@@ -7,7 +7,7 @@ import {
   type DeliveryOutcome,
   type DispatchDependencies,
   dispatchOnce,
-} from "./campaign_delivery.ts";
+} from "./whatsapp_delivery.ts";
 
 const reply = (body: unknown, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), { status, headers });
@@ -58,6 +58,13 @@ Deno.test("lost database acknowledgement retries persistence without another pro
   assertEquals(calls.sends, 1);
   assertEquals(calls.finishes.length, 2);
   assertEquals(calls.finishes[0], calls.finishes[1]);
+});
+
+Deno.test("text delivery shares acknowledgement safety without template validation", async () => {
+  const { calls, dependencies } = fixture({ failValidation: undefined });
+  assertEquals(await dispatchOnce(dependencies), "accepted");
+  assertEquals(calls.sends, 1);
+  assertEquals(calls.validation.length, 0);
 });
 
 Deno.test("two lost acknowledgements leave an unconfirmed outcome without resending", async () => {

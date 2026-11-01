@@ -1,6 +1,6 @@
 # Flow CRM development status
 
-Updated 2026-10-31. Baseline commit `53437ce`.
+Updated 2026-11-01. Baseline commit `53437ce`.
 
 ## Product objective
 
@@ -19,7 +19,7 @@ modified when this work began; preserve it outside milestone commits.
 | Area | Implemented in source | Remaining work |
 |---|---|---|
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
-| Inbox | Existing chat UI, tags/realtime, signed inbound materialization per business number, atomic opened/handoff actions | Scoped resilient outbound sends, assignment/resolution, pagination, attachments, account labels and per-agent unread state |
+| Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller | AI integration, assignment/resolution, pagination, attachments, historical account mapping, account labels and per-agent unread state |
 | AI | Settings, knowledge CRUD, private input jobs with handoff preservation | Replacement AI worker, knowledge retrieval, human ownership fencing, usage accounting |
 | Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
@@ -34,7 +34,7 @@ modified when this work began; preserve it outside milestone commits.
 - Fixed in source, runtime unverified: over-escaped audience date regex and ignored custom filters.
 - Fixed in source, runtime unverified: empty send components replaced by validated parameters.
 - Campaign sender replaced in source with durable snapshots, fenced claims and partial outcomes.
-- Legacy inbox sending still lacks durable idempotence and uses global credentials.
+- Inbox text sending now uses encrypted tenant connections and a durable queue, runtime unverified.
 - Some service-role queries retrieve related objects by ID without tenant equality.
 - Webhook signature validation and database-owned routing implemented in source, runtime unverified.
 - Old bot callback replaced with durable ingestion. Replacement bot execution remains pending.
@@ -182,3 +182,17 @@ modified when this work began; preserve it outside milestone commits.
   Static UI contract audit reported zero findings. Runtime interaction,
   concurrency and upgrade verification remain deferred. Shared unread semantics are
   preserved, with per-agent read cursors still pending.
+- 2026-11-01: Inbox outbound milestone replaces the global-credential synchronous
+  sender with authenticated enqueue, a private fenced queue and a scheduled worker.
+  The original customer service window bounds queued replies, with permission,
+  account and window checks again before dispatch. Human replies take ownership and
+  cancel pending bot jobs. Campaign and inbox workers share delivery classification
+  and acknowledgement safety. Verified receipts reconcile inbox outcomes through
+  realtime display fields. Flutter now retains stable request IDs/text on uncertain
+  results, distinguishes acceptance from delivery, guards back navigation and
+  invalidates chats after business/session changes. Direct message writes are revoked
+  and direct conversation updates are limited to tags. Authored SQL/controller/UI
+  fixtures remain unrun. Type checking and targeted Dart analysis passed, with SQL
+  grammar parsing and static UI contract audit also passing. Backend setup and
+  limitations are documented in `docs/INBOX_EXECUTION.md`. AI processing, historical
+  mapping, attachments, operator recovery and commercial workflows remain pending.
