@@ -43,6 +43,16 @@ Deno.serve(endpoint(async (req) => {
         "connection_unavailable",
         "Reconnect the WhatsApp account",
       ],
+      "P0007": [
+        409,
+        "conversation_closed",
+        "Reopen the conversation before replying",
+      ],
+      "P0008": [
+        409,
+        "conversation_assigned_elsewhere",
+        "Claim the conversation before replying",
+      ],
       "40001": [
         409,
         "message_identity_conflict",

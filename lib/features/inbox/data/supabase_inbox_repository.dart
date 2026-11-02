@@ -98,6 +98,8 @@ class SupabaseInboxRepository {
         'unauthorized',
         'conversation_unavailable',
         'conversation_unmapped',
+        'conversation_closed',
+        'conversation_assigned_elsewhere',
         'customer_service_window_closed',
         'connection_unavailable',
         'message_identity_conflict',

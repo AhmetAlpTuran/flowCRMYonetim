@@ -87,6 +87,22 @@ void main() {
     expect(await pending, isTrue);
   });
 
+  test('closed and assigned conversations show actionable definitive errors',
+      () async {
+    repository.result = () async =>
+        throw const InboxSendFailure('conversation_closed', uncertain: false);
+    expect(await controller.send('First'), isFalse);
+    expect(controller.state.locked, isFalse);
+    expect(controller.state.error, contains('yeniden açın'));
+    repository.result = () async => throw const InboxSendFailure(
+        'conversation_assigned_elsewhere',
+        uncertain: false);
+    expect(await controller.send('Second'), isFalse);
+    expect(controller.state.locked, isFalse);
+    expect(controller.state.error, contains('başka bir temsilciye'));
+    expect(repository.calls[1].id, isNot(repository.calls[0].id));
+  });
+
   testWidgets('accepted and unknown results never imply delivery',
       (tester) async {
     Message message(String state) => Message(

@@ -147,3 +147,13 @@ version must be rechecked before release. No integration success is claimed.
   limits. These produce a human handoff without automatic generation retries.
   Transport and ambiguous server outcomes retain uncertain usage for review.
   [API error codes](https://developers.openai.com/api/docs/guides/error-codes)
+
+## Support workflow transactions (2026-11-03)
+
+- Row locks serialize competing lifecycle transactions until transaction end.
+  Use a consistent conversation-before-dispatch lock order and handle rolled-back
+  conflicts through stable request identities.
+  [PostgreSQL 15 locking](https://www.postgresql.org/docs/15/explicit-locking.html)
+- Privileged action functions use an empty search path, schema-qualified objects,
+  explicit tenant/actor checks and restricted execute privileges.
+  [PostgreSQL 15 function security](https://www.postgresql.org/docs/15/sql-createfunction.html)

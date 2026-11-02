@@ -75,6 +75,9 @@ class InboxSendController extends StateNotifier<InboxSendState> {
           'Bu işletmenin gelen kutusunda mesaj gönderme yetkiniz yok.',
         'conversation_unavailable' =>
           'Konuşma kullanılamıyor. Gelen kutusunu yenileyin.',
+        'conversation_closed' => 'Yanıtlamak için önce konuşmayı yeniden açın.',
+        'conversation_assigned_elsewhere' =>
+          'Konuşma başka bir temsilciye atanmış. Yanıtlamak için yöneticinizden size atamasını isteyin.',
         'invalid_message' => 'Mesaj 1 ile 4096 karakter arasında olmalı.',
         _ => 'Mesaj kaydedilemedi. Konuşmayı yenileyip tekrar deneyin.',
       };

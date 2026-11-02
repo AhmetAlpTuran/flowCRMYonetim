@@ -3,6 +3,18 @@
 The SaaS backend is not ready for production deployment. This guide grows with each
 milestone. No migrations have been applied automatically by this implementation work.
 
+## Support workflow integration checkpoint
+
+`20261102090000_support_workflows.sql` follows the bot worker migration. It adds
+assignment, optimistic/idempotent lifecycle actions, queued-human-message
+cancellation and separate support episodes. The matching Flutter action controls
+are still being implemented. Deploy the complete integration together because
+closed conversations now require an explicit reopen before human sending.
+The updated `send-message` endpoint maps closed/assigned conflicts for the client.
+No additional external secrets or scheduler are required by this migration.
+See [SUPPORT_WORKFLOWS.md](SUPPORT_WORKFLOWS.md) for permissions, timing semantics,
+legacy data handling and deferred concurrency/upgrade verification.
+
 ## Audience filtering milestone
 
 Apply ordered migrations, including `20261030090000_campaign_audience.sql`, before
