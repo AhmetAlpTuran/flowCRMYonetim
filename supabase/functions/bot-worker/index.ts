@@ -1,0 +1,100 @@
+import { type BotContext, generateAiReply } from "../_shared/ai_reply.ts";
+import {
+  type BotExecutionResult,
+  executeBotReply,
+} from "../_shared/bot_execution.ts";
+import { ApiError, endpoint, jsonResponse } from "../_shared/http.ts";
+import { serviceClient } from "../_shared/supabase.ts";
+import { requireWorker } from "../_shared/worker_auth.ts";
+
+type Job = { id: string; lease_token: string };
+
+Deno.serve(endpoint(async (req) => {
+  await requireWorker(req, "BOT_WORKER_SECRET");
+  const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim() ?? "";
+  const limitText = Deno.env.get("AI_MONTHLY_TOKEN_LIMIT")?.trim() ?? "";
+  const limitValue = Number(limitText);
+  const validLimit = /^\d+$/.test(limitText) &&
+    Number.isSafeInteger(limitValue) &&
+    limitValue >= 0 && limitValue <= 1000000000000;
+  const defaultLimit = validLimit ? limitValue : 0;
+  // Configuration failure routes affected conversations to humans without a paid
+  // generation call. Deployment monitoring also receives the readiness flag.
+  const allowedModels = new Set(
+    apiKey && validLimit
+      ? (Deno.env.get("OPENAI_ALLOWED_MODELS") ?? "gpt-4o-mini").split(",").map(
+        (model) => model.trim(),
+      ).filter(Boolean)
+      : [],
+  );
+  const service = serviceClient();
+  async function rpc(name: string, parameters: Record<string, unknown>) {
+    const { data, error } = await service.rpc(name, parameters);
+    if (error) {
+      throw new ApiError(503, "bot_queue_unavailable", "Bot queue unavailable");
+    }
+    return data;
+  }
+  const staleReservations = await rpc("mark_stale_ai_reservations", {
+    p_limit: 100,
+  });
+  const deliveryReconciliation = await rpc("reconcile_bot_delivery_failures", {
+    p_limit: 20,
+  });
+  const settled = await Promise.allSettled(
+    Array.from(
+      { length: 3 },
+      async (): Promise<BotExecutionResult | "idle"> => {
+        const claimed = await rpc("claim_bot_reply", {}) as Job[];
+        const job = claimed?.[0];
+        if (!job) return "idle";
+        const identity = { p_job_id: job.id, p_lease_token: job.lease_token };
+        return await executeBotReply({
+          allowedModels,
+          context: async () =>
+            await rpc("bot_reply_context", identity) as BotContext | null,
+          prepare: async (context, request) =>
+            await rpc("prepare_bot_reply", {
+              ...identity,
+              p_automation_revision: context.automation_revision,
+              p_context_revision: context.context_revision,
+              p_model: request ? context.settings.model : null,
+              p_reserve_tokens: request?.reserveTokens ?? 0,
+              p_default_limit: defaultLimit,
+            }) as string,
+          generate: (request) => generateAiReply(request, apiKey),
+          settle: async (usage, rejected, responseId) =>
+            await rpc("settle_bot_usage", {
+              ...identity,
+              p_usage: usage,
+              p_rejected: rejected,
+              p_response_id: responseId ?? null,
+            }) === true,
+          complete: async (decision) =>
+            await rpc("complete_bot_reply", {
+              ...identity,
+              p_decision: decision,
+            }) === true,
+          retry: async (delaySeconds = 0) =>
+            await rpc("retry_bot_reply", {
+              ...identity,
+              p_retry_after_seconds: delaySeconds,
+            }) === true,
+          cancel: async () => await rpc("cancel_bot_reply", identity) === true,
+        });
+      },
+    ),
+  );
+  const outcomes = settled.map((result) =>
+    result.status === "fulfilled" ? result.value : "unconfirmed"
+  );
+  return jsonResponse({
+    delivery_reconciliation: deliveryReconciliation,
+    stale_reservations: staleReservations,
+    configuration_ready: Boolean(apiKey && validLimit && allowedModels.size),
+    outcomes: outcomes.reduce<Record<string, number>>((counts, outcome) => {
+      counts[outcome] = (counts[outcome] ?? 0) + 1;
+      return counts;
+    }, {}),
+  });
+}));

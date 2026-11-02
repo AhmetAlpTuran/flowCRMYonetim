@@ -204,7 +204,12 @@ Deno.test("transport errors and throttling never cause an internal generation re
   assertEquals(calls, 1);
   const throttled: typeof fetch = () => {
     calls++;
-    return Promise.resolve(new Response(null, { status: 429 }));
+    return Promise.resolve(
+      new Response(JSON.stringify({ error: { code: "rate_limit_exceeded" } }), {
+        status: 429,
+        headers: { "Retry-After": "120" },
+      }),
+    );
   };
   const rejection = await assertRejects(
     () => generateAiReply(prepared, "fixture", throttled),
@@ -212,7 +217,49 @@ Deno.test("transport errors and throttling never cause an internal generation re
   );
   assertEquals(rejection.rejected, true);
   assertEquals(rejection.retryable, true);
+  assertEquals(rejection.retryAfterSeconds, 120);
   assertEquals(calls, 2);
+});
+
+Deno.test("billing failures and excessive retry hints never trigger automatic generation retries", async () => {
+  const prepared = prepareAiRequest(context(), models);
+  for (
+    const code of [
+      "insufficient_quota",
+      "credit_balance_exhausted",
+      "organization_spend_limit_exceeded",
+      "project_spend_limit_exceeded",
+    ]
+  ) {
+    const transport: typeof fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ error: { code, type: "rate_limit_error" } }),
+          { status: 429 },
+        ),
+      );
+    const failure = await assertRejects(
+      () => generateAiReply(prepared, "fixture", transport),
+      AiReplyError,
+    );
+    assertEquals(failure.retryable, false);
+    assertEquals(failure.rejected, true);
+  }
+  for (const delay of ["7200", "9".repeat(400)]) {
+    const transport: typeof fetch = () =>
+      Promise.resolve(
+        new Response(JSON.stringify({ error: { code: "slow_down" } }), {
+          status: 429,
+          headers: { "Retry-After": delay },
+        }),
+      );
+    const failure = await assertRejects(
+      () => generateAiReply(prepared, "fixture", transport),
+      AiReplyError,
+      "ai_retry_delay_exceeded",
+    );
+    assertEquals(failure.retryable, false);
+  }
 });
 
 Deno.test("provider requests use the fixed host and never follow redirects", async () => {

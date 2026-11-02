@@ -1,8 +1,9 @@
 # Inbox outbound delivery
 
 Implemented in source on 2026-11-01. Deployment, runtime tests and provider checks
-remain deferred. The replacement AI consumer, attachments, account-management UI,
-operator recovery and commercial usage enforcement remain separate milestones.
+remain deferred. The AI consumer now uses this queue with additional ownership guards.
+Attachments, account-management UI, operator recovery and commercial usage enforcement
+remain separate milestones.
 
 ## Request and ownership
 

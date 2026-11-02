@@ -2,6 +2,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { ApiError } from "./http.ts";
 import { TemplateInputError } from "./template_parameters.ts";
+import { retryDelaySeconds } from "./retry_after.ts";
 import {
   classifyWhatsAppResponse,
   type DeliveryOutcome,
@@ -11,6 +12,18 @@ import {
 
 const reply = (body: unknown, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), { status, headers });
+
+Deno.test("retry hints preserve the provider minimum including excessive values", async () => {
+  const now = Date.parse("2026-11-02T00:00:00Z");
+  assertEquals(retryDelaySeconds("Mon, 02 Nov 2026 00:02:00 GMT", now), 120);
+  assertEquals(retryDelaySeconds("invalid", now), 0);
+  assertEquals(retryDelaySeconds("9".repeat(400), now), Infinity);
+  const result = await classifyWhatsAppResponse(
+    reply({ error: { code: 130429 } }, 429, { "Retry-After": "7200" }),
+  );
+  assertEquals(result.outcome, "failed");
+  assertEquals(result.errorCode, "provider_retry_delay_exceeded");
+});
 function fixture(overrides: Partial<DispatchDependencies> = {}) {
   const calls = {
     sends: 0,
@@ -136,11 +149,11 @@ Deno.test("explicit throttle rejection is bounded and errors never expose provid
     reply(
       { error: { code: 130429, message: "private token or customer detail" } },
       400,
-      { "Retry-After": "99999" },
+      { "Retry-After": "120" },
     ),
   );
   assertEquals(throttled.outcome, "retry");
-  assertEquals(throttled.retryAfterSeconds, 3600);
+  assertEquals(throttled.retryAfterSeconds, 120);
   assertEquals(throttled.detail, "WhatsApp rejected the message");
   const rejected = await classifyWhatsAppResponse(
     reply({ error: { code: 100, message: "private detail" } }, 400),

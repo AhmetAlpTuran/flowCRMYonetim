@@ -1,6 +1,6 @@
 # Flow CRM development status
 
-Updated 2026-11-01. Baseline commit `53437ce`.
+Updated 2026-11-02. Baseline commit `53437ce`.
 
 ## Product objective
 
@@ -20,7 +20,7 @@ modified when this work began; preserve it outside milestone commits.
 |---|---|---|
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
 | Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller | AI integration, assignment/resolution, pagination, attachments, historical account mapping, account labels and per-agent unread state |
-| AI | Settings, knowledge CRUD, private input jobs, scoped/versioned context retrieval and structured Responses adapter | Scheduled consumer, usage accounting, finalization/dispatch fencing, model-quality evaluation |
+| AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
 | Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
 | Handoff | Atomic authorized request, idempotent retry, bot-job cancellation, list | Assignment, processing/closure, outbound bot fencing, response/resolution metrics |
@@ -37,7 +37,7 @@ modified when this work began; preserve it outside milestone commits.
 - Inbox text sending now uses encrypted tenant connections and a durable queue, runtime unverified.
 - Some service-role queries retrieve related objects by ID without tenant equality.
 - Webhook signature validation and database-owned routing implemented in source, runtime unverified.
-- Old bot callback replaced with durable ingestion. Replacement bot execution remains pending.
+- Old bot callback replaced with durable ingestion and a scheduled scoped AI worker, runtime unverified.
 - Inbound materialization preserves pending/handoff status and deduplicates side effects, runtime unverified.
 - UI permissions alone are insufficient: RLS and cross-tenant foreign keys need audit.
 - Existing API credentials were exposed in earlier debugging; rotate before deployment.
@@ -208,3 +208,17 @@ modified when this work began; preserve it outside milestone commits.
   Deno type checking, targeted Dart analysis, SQL/PLpgSQL grammar parsing and diff
   checks passed. The static UI contract audit reported zero findings.
   The integration plan and limitations are in `docs/AI_WORKER.md`.
+- 2026-11-02: AI worker integration adds fenced claims, conservative token admission,
+  idempotent settlement, UTC monthly usage and service-managed cap overrides. Late
+  usage remains recordable after human takeover. Known temporary rate limits retry
+  with provider minimums/backoff, while unknown consumption retains a visible hold.
+  Bot replies use the inbox queue with current-input/ownership/configuration checks.
+  Automatic handoffs cover missing knowledge, unsupported media, budget/provider
+  failures and failed bot delivery. Reactions preserve pending questions and identical
+  settings saves preserve active context versions. Added the worker scheduler script
+  and authored DB/orchestration regressions. All suites, migrations and external
+  requests remain unexecuted. Configuration and remaining integration work are in
+  `docs/AI_WORKER.md`. The full SaaS still needs support lifecycle, commercial
+  onboarding/billing, analytics, management UI and operational verification.
+  Deno type checking covers the bot/inbox/campaign workers and their authored
+  orchestration/provider cases. SQL/PLpgSQL grammar parsing and diff checks passed.

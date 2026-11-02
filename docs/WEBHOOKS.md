@@ -3,7 +3,7 @@
 Implemented in source, pending deployment and runtime verification. Verified inbound
 messages now materialize into account-scoped conversations and create durable bot
 input jobs. Scoped human text delivery and receipt reconciliation are implemented.
-The replacement AI worker remains pending.
+The scoped AI worker and human handoff integration are also implemented in source.
 Deploy the completed inbound/outbound/bot integration together during verification.
 
 ## Receiver boundary
@@ -58,16 +58,17 @@ receipt time. Client roles cannot forge those timestamps or rewrite verified cus
 input. Media and structured input retain their provider content with a text/caption
 preview or `[type]` marker. Downloading and rendering media remain separate work.
 
-An active bot setting creates one private `bot_reply_jobs` row for a current text,
-button or interactive input in an open conversation. Missing settings disable job
-creation. Pending and handoff status preserve human ownership. A newer message can
+An active bot setting creates one private `bot_reply_jobs` row for current actionable
+input in an open conversation. Unsupported media routes to a local handoff. Reactions
+preserve the pending question. Missing settings disable job creation. Pending and
+handoff status preserve human ownership. A newer actionable message can
 reopen a closed conversation. Receiving a support message leaves campaign consent
-unchanged. Bot execution still needs conversation serialization, stale-input checks,
-handoff fencing, usage accounting and a scoped outbound queue.
+unchanged. The worker provides conversation claims, stale-input checks, handoff
+fencing, usage accounting and scoped outbound delivery. See [AI_WORKER.md](AI_WORKER.md).
 
 Read/handoff actions now use atomic RPCs. Handoff also cancels queued, leased and ready
-bot jobs, clearing their lease tokens. The future bot worker must lock conversation
-before job and recheck ownership and token before creating an outbound response.
+bot jobs, clearing their lease tokens. The bot worker locks conversation before job
+and rechecks ownership and token before creating an outbound response.
 Human text replies now use the scoped inbox queue and update the preview atomically
 at enqueue. See [INBOX_EXECUTION.md](INBOX_EXECUTION.md) for ownership and delivery.
 Account labels in the inbox, per-agent unread state and historical channel mapping

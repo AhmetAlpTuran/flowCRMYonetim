@@ -112,6 +112,10 @@ without null-cast rendering failures. No automatic resend is exposed for unknown
 
 ## Deferred verification
 
+Retry hints now share parsing with the AI worker. A provider minimum above the
+supported one-hour delay yields `provider_retry_delay_exceeded` for review. It is
+preserved as an excessive delay rather than clipped into an earlier automatic retry.
+
 `supabase/tests/campaign_dispatch_queue.sql` authors checks for >100 recipients,
 normalized duplicates, invalid numbers, repeated enqueue, configuration conflicts,
 worker-only privileges, lease fencing/reclamation, unknown outcomes, late acceptance,

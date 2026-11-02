@@ -1,5 +1,6 @@
 import { ApiError } from "./http.ts";
 import { TemplateInputError } from "./template_parameters.ts";
+import { retryDelaySeconds } from "./retry_after.ts";
 
 export type DeliveryOutcome = {
   outcome: "accepted" | "failed" | "retry" | "unknown";
@@ -28,18 +29,18 @@ export async function classifyWhatsAppResponse(
     // Only explicit provider throttling is retried. A transport/5xx response may
     // have happened after acceptance and must not trigger a duplicate send.
     const retry = response.status === 429 || code === 130429 || code === 131056;
-    const header = response.headers.get("Retry-After") ?? "";
-    const retryAfter = /^\d+$/.test(header)
-      ? Number(header)
-      : Math.ceil((Date.parse(header) - Date.now()) / 1000);
+    const retryAfter = retryDelaySeconds(response.headers.get("Retry-After"));
+    const excessiveDelay = retry && retryAfter > 3600;
     return {
-      outcome: retry ? "retry" : "failed",
-      errorCode: `meta_${code}`,
-      detail: "WhatsApp rejected the message",
+      outcome: retry && !excessiveDelay ? "retry" : "failed",
+      errorCode: excessiveDelay
+        ? "provider_retry_delay_exceeded"
+        : `meta_${code}`,
+      detail: excessiveDelay
+        ? "WhatsApp requested a longer retry delay. Review this recipient later."
+        : "WhatsApp rejected the message",
       authRejected: code === 190,
-      retryAfterSeconds: retry && Number.isFinite(retryAfter)
-        ? Math.max(0, Math.min(3600, retryAfter))
-        : 0,
+      retryAfterSeconds: retry && !excessiveDelay ? retryAfter : 0,
     };
   }
   return {

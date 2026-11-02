@@ -50,6 +50,11 @@ begin
   if public.bot_reply_context(job_id, gen_random_uuid()) is not null then
     raise exception 'Wrong lease read generation context';
   end if;
+  insert into public.messages(tenant_id, conversation_id, connection_id, sender, body, is_from_customer, message_type, sent_at)
+    values(tenant_a, conversation_a, connection_a, 'Customer', '👍', true, 'reaction', now());
+  if public.bot_reply_context(job_id, lease) is null then
+    raise exception 'An emoji reaction suppressed the pending question';
+  end if;
 
   update public.knowledge_base set content = repeat('Background ', 700) || 'Hours LATE_ANSWER_FIXTURE are nine to five.'
     where id = knowledge_id;

@@ -136,3 +136,14 @@ version must be rechecked before release. No integration success is claimed.
 - PostgreSQL 15 supports a column subset for `ON DELETE SET NULL`. Deleting a current
   input clears its pointer while preserving the conversation's tenant ID.
   [PostgreSQL 15 constraints](https://www.postgresql.org/docs/15/ddl-constraints.html)
+
+## AI worker retry policy (2026-11-02)
+
+- Current guidance distinguishes temporary throttling from billing/spend/quota
+  failures. Retry-After is a minimum, with bounded backoff and jitter. The worker
+  honors supported hints and hands off when the minimum exceeds its retry window.
+  [Rate-limit retries](https://developers.openai.com/api/docs/guides/rate-limits#retrying-with-exponential-backoff)
+- Billing error codes include exhausted credit and organization/project spend
+  limits. These produce a human handoff without automatic generation retries.
+  Transport and ambiguous server outcomes retain uncertain usage for review.
+  [API error codes](https://developers.openai.com/api/docs/guides/error-codes)

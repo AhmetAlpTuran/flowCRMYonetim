@@ -140,8 +140,8 @@ Legacy conversations retain null connection/customer identity. New verified mess
 create scoped threads even when an older unscoped thread exists for that contact.
 Historical mapping needs operator review of the actual business number. The migration
 does not infer the default number for historical threads. The human sender and
-read/handoff RPCs are now implemented in source. The replacement bot worker remains
-an integration dependency. See [WEBHOOKS.md](WEBHOOKS.md).
+read/handoff RPCs and scoped bot worker are now implemented in source.
+See [WEBHOOKS.md](WEBHOOKS.md) and [AI_WORKER.md](AI_WORKER.md).
 
 The new tenant foreign keys are initially `NOT VALID` to preserve old rows. Before
 release, review the following results in the isolated upgrade environment, repair
@@ -174,7 +174,11 @@ the complete AI worker integration described in [AI_WORKER.md](AI_WORKER.md).
 It adds settings/knowledge bounds requiring historical validation, exact input
 identity and context versions. New bot settings default to inactive, and the matching
 Flutter client stops implicitly saving defaults when the settings page opens.
-Worker execution and quota setup instructions will follow with that integration.
+The worker integration now follows in `20261101091000_bot_worker.sql`. Deploy the
+matching worker/shared modules and configure its dedicated secret, OpenAI key,
+model allowlist and default token cap as documented in `AI_WORKER.md`. Its optional
+Vault/cron setup is `supabase/ops/schedule_bot_worker.sql`. Usage periods currently
+follow UTC calendar months. Subscription-driven per-tenant overrides remain pending.
 
 The inbox sender upgrade requires `20261030104000_inbox_dispatch_queue.sql`, the
 updated Flutter client, `send-message` and `inbox-worker`. It revokes direct message

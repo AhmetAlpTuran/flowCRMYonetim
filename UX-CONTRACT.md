@@ -50,7 +50,8 @@ after save. Campaign history below the form supports draft reopening and result 
 
 Opening bot settings reads existing configuration or presents an inactive draft.
 Activation requires an explicit save. Existing saved activation is preserved.
-The worker/usage integration and its operational UI remain in progress.
+The worker and usage ledger are implemented in source. Their operational UI and
+subscription integration remain in progress.
 
 Inbox text replies use the scoped Supabase queue. The composer freezes during a
 pending or uncertain enqueue and retains its original text/ID for retries. Confirmed

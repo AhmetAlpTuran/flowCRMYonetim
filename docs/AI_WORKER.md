@@ -2,17 +2,19 @@
 
 ## Current implementation
 
-The tenant context reader and OpenAI Responses adapter are implemented in source.
-The scheduled consumer, usage reservation/settlement and bot outbound finalization
-remain under construction. This foundation alone does not resume automated replies.
-No AI requests, migrations or test suites were executed during development.
+The context reader, Responses adapter, scheduled consumer, usage ledger and guarded
+outbound integration are implemented in source. Deployment and runtime verification
+remain deferred. No AI requests, migrations or test suites were executed during
+development.
 
 `20261101090000_bot_context.sql` adds an exact latest-customer-message pointer and
 an automation revision to each conversation. Incoming provider messages update the
 pointer even when timestamps tie. Older delayed messages preserve the latest pointer.
+Emoji reactions remain visible but leave the latest actionable input intact.
 Human messages, human handoff requests and status changes invalidate the previous
 automation revision. Settings and knowledge edits advance a private tenant context
-version. Client writes cannot change these server-owned fields.
+version. Saving identical values with a new timestamp preserves that version.
+Client writes cannot change these server-owned fields.
 
 `bot_reply_context` is service-only and requires a current leased job, an open
 conversation, the exact latest customer input and active bot settings. Its stable
@@ -49,23 +51,94 @@ New bot configurations default to inactive. Fetching missing settings returns an
 inactive draft without a database write. Existing saved activation values are
 preserved. Enabling a new business's bot requires an explicit save.
 
-## Remaining worker integration
+## Claims, completion and human ownership
 
-1. Claim jobs with a consistent conversation-before-job lock order. Serialize one
-   active generation per conversation and invalidate superseded inputs.
-2. Reserve the conservative token estimate before generation, using a private
-   tenant-period usage ledger keyed by job and lease. Settle measured usage even
-   when a human takes over while generation runs. Keep uncertain usage accounted
-   for, and bound retries of definitive provider throttling.
-3. Recheck the input ID, automation revision, context version, active setting and
-   service window before accepting a generated result. Repeat relevant checks at
-   outbound dispatch. Human-owned conversations must suppress pending bot output.
-4. Queue bot replies through the existing inbox delivery path. Create human handoff
-   requests atomically for missing knowledge, requested humans and failed generation.
-   Use application-owned handoff notices. Route unsupported customer media to human
-   review through this same job flow.
-5. Add the scheduled worker, secrets/setup instructions, operational status and
-   usage reporting. Connect limits to the later subscription entitlement lifecycle.
+`bot-worker` authenticates its dedicated secret, performs bounded maintenance and
+processes up to three independently claimed jobs concurrently. Each claim locks one
+conversation before its job. A current lease excludes another claim for that
+conversation. Superseded queued inputs are cancelled. An unstarted expired lease
+can retry, with a maximum of three job attempts. An expired started generation
+becomes uncertain and hands the current conversation to a person.
+
+Preparation binds the exact input and context revisions before any model call.
+Completion checks them again. Context-version share locks establish the preparation,
+completion and dispatch boundaries relative to settings/knowledge edits. A human
+takeover or newer input suppresses old output. A changed configuration routes the
+current input to human review. Generation already in progress can still consume
+tokens after a takeover, so settlement is independent of the job's terminal state.
+
+One transaction finalizes the job, creates its message/dispatch or human handoff,
+and records the audit event. Repeated acknowledgements preserve that result. Bot
+messages use the same encrypted-account inbox transport as human messages, with
+source-specific ownership checks immediately before dispatch. Already-started
+external requests cannot be recalled by a later lifecycle change.
+
+Missing knowledge, unsupported media, model failures, budget exhaustion and explicit
+human requests create a handoff task. Application-owned notices use Turkish for the
+recognized Turkish language settings and English otherwise. Expired service windows
+create the task without an out-of-window notice. Handed-off conversations remain
+under human control when later customer messages arrive.
+
+`reconcile_bot_delivery_failures` routes a failed or uncertain queued bot answer to
+the human queue when it still belongs to the current input. It also handles settings
+changes after generation but before dispatch. It preserves existing human ownership
+and ignores superseded answers. A late positive receipt can update delivery evidence
+without undoing a human handoff already created.
+
+## Usage admission and retries
+
+Usage periods are UTC calendar months. `AI_MONTHLY_TOKEN_LIMIT` is the deployment's
+default per-tenant cap. A service-managed `tenant_ai_limits` row overrides that cap.
+Tenant administrators can read aggregate usage and limits but cannot increase them.
+Subscription-driven provisioning of those overrides remains billing integration work.
+
+Preparation atomically compares consumed plus reserved tokens against the cap and
+reserves a conservative request estimate. It stores one reservation per job/lease.
+Temporary pressure from active reservations can wait through the bounded retry path.
+Exhausted capacity routes to a person. Admission is based on token units, with pricing
+and invoice integration handled separately in the later billing milestone.
+
+Provider-reported usage replaces its reservation exactly once. Definitive rejected
+requests settle at zero. Unknown consumption retains its budget hold and remains
+separate from measured consumption. Abandoned reservations become explicitly unknown
+after five minutes when their lease is no longer active. They remain eligible for
+late measured settlement. Operator recovery and provider-usage reconciliation UI
+remain pending. Held estimates must not be presented as measured billable usage.
+
+Only identified temporary OpenAI rate limits automatically retry. Billing/spend/quota
+errors hand off immediately. Retry scheduling honors the provider minimum and adds
+exponential backoff with jitter. Delays over one hour or beyond the reply window
+hand off. Transport uncertainty and ambiguous server failures also hand off, with
+their usage held for review. Persistence acknowledgements retry independently from
+generation, preventing repeated model calls after a lost DB response.
+
+The shared retry-hint parser also fixes WhatsApp retries. Provider minimums over the
+supported delay now produce an explicit reviewable failure. The sender preserves the
+provider's requested minimum instead of clipping it to an earlier retry time.
+
+## Configuration and operations
+
+Apply `20261101091000_bot_worker.sql` after the context migration. Deploy `bot-worker`,
+the updated `inbox-worker` dependencies and the shared modules together. The new
+`inbox_dispatches.source` and source-specific start checks are required for bot sends.
+
+Configure server-side `OPENAI_API_KEY`, `BOT_WORKER_SECRET` and
+`AI_MONTHLY_TOKEN_LIMIT`. The worker secret must be a separate random 32–256 character
+value. Optional `OPENAI_ALLOWED_MODELS` is a comma-separated server allowlist with
+`gpt-4o-mini` as its default. Choose the default token cap for the intended service
+plan. Zero blocks generations for tenants without a positive override. Missing or
+invalid local configuration routes inputs to humans without a model call.
+
+Store `bot_worker_secret` and `project_url` in Supabase Vault, then manually apply
+`supabase/ops/schedule_bot_worker.sql` during backend setup. It invokes every ten
+seconds and replaces only its own named schedule. Development has not activated it.
+
+Monitor queue age, unknown reservations, handoff reasons and the worker response's
+`configuration_ready`, `delivery_reconciliation` and `outcomes` fields. Local readiness
+only confirms configuration presence/shape. Provider authentication is evaluated by
+actual requests. A successful scheduler HTTP response alone cannot establish healthy
+generation or delivery. Live alerts and operator-facing recovery remain operations
+milestone work.
 
 ## Upgrade and verification
 
@@ -75,9 +148,14 @@ of the complete AI integration. New settings/knowledge bounds are initially
 through the product before validating `bot_settings_bounds` and
 `knowledge_content_bounds`. Tenant identities become immutable on these records.
 
-`supabase/tests/bot_context.sql`, `_shared/ai_reply_test.ts` and
-`test/bot_config_test.dart` are authored and unrun. They cover scoped retrieval,
+`supabase/tests/bot_context.sql`, `supabase/tests/bot_worker.sql`, the shared
+`ai_reply_test.ts` and `bot_execution_test.ts`, and `test/bot_config_test.dart` are
+authored and unrun. They cover scoped retrieval,
 latest-input identity, human revision changes, inactive defaults, source validation,
 bounded history, refusals, incomplete responses and transport uncertainty.
-The completed worker still needs concurrent takeover, usage and delivery integration
-fixtures plus live model-quality/provider checks in the agreed verification phase.
+Additional authored cases cover reservation contention, settlement after takeover,
+lost acknowledgements, expiry, provider retry hints, stale queued answers, media
+handoffs and client privilege boundaries. Multi-session concurrency, model quality,
+provider conformance and full UI workflows still need the agreed verification phase.
+Assignment/resolution UI, usage/billing integration, historical account mapping and
+operator recovery remain product implementation work.

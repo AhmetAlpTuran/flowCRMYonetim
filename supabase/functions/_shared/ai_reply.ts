@@ -1,4 +1,5 @@
 import { readBytes } from "./http.ts";
+import { retryDelaySeconds } from "./retry_after.ts";
 
 export type BotContext = {
   tenant_id: string;
@@ -46,6 +47,7 @@ export class AiReplyError extends Error {
     readonly usage: AiUsage | null = null,
     readonly rejected = false,
     readonly retryable = false,
+    readonly retryAfterSeconds = 0,
   ) {
     super(code);
   }
@@ -275,7 +277,9 @@ export async function generateAiReply(
   apiKey: string,
   transport: typeof fetch = fetch,
 ): Promise<AiReply> {
-  if (!apiKey.trim()) throw new AiReplyError("ai_configuration_invalid");
+  if (!apiKey.trim()) {
+    throw new AiReplyError("ai_configuration_invalid", null, true);
+  }
   let response: Response;
   try {
     response = await transport("https://api.openai.com/v1/responses", {
@@ -292,14 +296,43 @@ export async function generateAiReply(
     throw new AiReplyError("ai_transport_unknown");
   }
   if (!response.ok) {
-    await response.body?.cancel().catch(() => {});
-    const rejected = response.status >= 400 && response.status < 500 &&
-      response.status !== 408;
+    let providerCode: unknown;
+    let providerType: unknown;
+    try {
+      const bytes = await readBytes(response, 16384);
+      const payload = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+      );
+      providerCode = payload?.error?.code;
+      providerType = payload?.error?.type;
+    } catch { /* Unknown error bodies never authorize a retry. */ }
+    const rejected = [400, 401, 402, 403, 404, 405, 413, 415, 422, 429]
+      .includes(response.status);
+    const temporary = response.status === 429 && (
+      providerCode === "rate_limit_exceeded" || providerCode === "slow_down" ||
+      (providerCode == null && providerType === "rate_limit_error")
+    );
+    const billing = new Set([
+      "insufficient_quota",
+      "credit_balance_exhausted",
+      "organization_spend_limit_exceeded",
+      "project_spend_limit_exceeded",
+      "organization_usage_limit_exceeded",
+    ]).has(String(providerCode));
+    const retryAfterSeconds = retryDelaySeconds(
+      response.headers.get("Retry-After"),
+    );
+    const excessiveDelay = temporary && retryAfterSeconds > 3600;
+    let code = rejected ? "ai_provider_rejected" : "ai_provider_unknown";
+    if (billing) code = "ai_provider_budget_unavailable";
+    else if (excessiveDelay) code = "ai_retry_delay_exceeded";
+    else if (temporary) code = "ai_provider_rate_limited";
     throw new AiReplyError(
-      rejected ? "ai_provider_rejected" : "ai_provider_unknown",
+      code,
       null,
       rejected,
-      response.status === 429,
+      temporary && !excessiveDelay,
+      excessiveDelay ? 0 : retryAfterSeconds,
     );
   }
   let raw: unknown;

@@ -1,14 +1,12 @@
 # Tenant WhatsApp connections
 
-Implemented foundation: metadata/credential tables, administration endpoint, token
-verification, encrypted storage and a reusable tenant-scoped resolver. Campaign
-enqueue/worker and template synchronization now use it. Inbox, bot, template creation
-and template media upload still require migration before release.
-Scoped inbox text delivery is implemented in source. Embedded Signup UI/code exchange
-and the replacement bot worker remain pending.
-Signed webhook ingestion and campaign receipt handling are now implemented in
-`WEBHOOKS.md`; inbound conversation/bot processing is not wired yet. The former
-unsigned bot endpoint now delegates to the verified receiver.
+The implemented foundation includes metadata/credential tables, an administration
+endpoint, token verification, encrypted storage and a tenant-scoped resolver.
+Campaigns, template synchronization, human replies and bot delivery now use it.
+Template creation/media upload and Embedded Signup UI/code exchange remain pending.
+Signed webhook ingestion, inbound conversations and receipt processing are documented
+in `WEBHOOKS.md`, with bot processing in `AI_WORKER.md`. The former unsigned callback
+delegates to the verified receiver. Deployment and runtime verification remain pending.
 
 Template synchronization reads one provider page at a time, pins the selected
 connection across pages, and imports exact WABA/name/language identities atomically.
