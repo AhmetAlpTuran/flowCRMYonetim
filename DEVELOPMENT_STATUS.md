@@ -412,3 +412,12 @@ modified when this work began; preserve it outside milestone commits.
   `20261107110000_industry_packs.sql` (`industry_pack_definition`, `industry_packs`,
   `apply_industry_pack`) and a two-step setup sheet in the Katalog and Bot screens. Verified:
   22/22 SQL fixtures (new `industry_packs.sql`), 80/80 Flutter tests (2 new), live PostgREST run.
+
+- 2026-11-07: Roadmap Phase 2e, booking confirm buttons. A bot reply after a new hold carries
+  WhatsApp "Onayla"/"İptal" reply buttons; `complete_bot_reply` validates and stores them
+  (migration `20261107120000_bot_reply_buttons.sql`), `inbox-worker` sends interactive button
+  messages, and a tap confirms or cancels the hold directly with a fixed Turkish reply and no AI
+  call. Verified: 73/73 Deno tests (5 new), 23/23 SQL fixtures (new `bot_reply_buttons.sql`),
+  80/80 Flutter tests, and a live local webhook → bot-worker run where a tap confirmed the hold
+  with zero tokens. Delivery to a real phone is runtime unverified (needs a Meta test number).
+  Next: documents and pgvector search (2f), then multiple bots (2g).

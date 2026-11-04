@@ -1,9 +1,16 @@
 import { type BotContext, generateAiReply } from "../_shared/ai_reply.ts";
 import {
+  bookingButtons,
+  buttonReplyText,
+  type ButtonTap,
   catalogToolDefinitions,
   type CatalogType,
   createToolRunner,
   istanbulToday,
+  parseButtonTap,
+  parsePeriod,
+  type ToolRunner,
+  trackHolds,
 } from "../_shared/bot_tools.ts";
 import {
   type BotExecutionResult,
@@ -56,10 +63,17 @@ Deno.serve(endpoint(async (req) => {
         if (!job) return "idle";
         const identity = { p_job_id: job.id, p_lease_token: job.lease_token };
         let scope: { tenantId: string; conversationId: string } | null = null;
+        let tap: ButtonTap | null = null;
+        let held: () => string[] = () => [];
         return await executeBotReply({
           allowedModels,
           toolset: async (context) => {
             scope = { tenantId: context.tenant_id, conversationId: context.conversation_id };
+            if (context.input.type === "interactive") {
+              const { data: input } = await service.from("messages").select("provider_content")
+                .eq("tenant_id", context.tenant_id).eq("id", context.input_message_id).maybeSingle();
+              tap = parseButtonTap((input as { provider_content?: unknown } | null)?.provider_content);
+            }
             const { data, error } = await service.from("resource_types")
               .select("key, name, kind, booking_unit, fields")
               .eq("tenant_id", context.tenant_id).limit(20);
@@ -80,34 +94,58 @@ Deno.serve(endpoint(async (req) => {
               p_reserve_tokens: request?.reserveTokens ?? 0,
               p_default_limit: defaultLimit,
             }) as string,
-          generate: (request) =>
-            generateAiReply(
-              request,
-              apiKey,
-              fetch,
-              scope && request.toolsEnabled
-                ? createToolRunner({
-                  rpc: async (name, params) => {
-                    const { data, error } = await service.rpc(name, params);
-                    return { data, error };
-                  },
-                  resourceUnit: async (resourceId) => {
-                    const { data } = await service.from("resources")
-                      .select("type:resource_types(kind, booking_unit)")
-                      .eq("tenant_id", scope!.tenantId).eq("id", resourceId).maybeSingle();
-                    const type = (data as { type?: { kind?: string; booking_unit?: string } } | null)?.type;
-                    return type?.kind === "bookable" ? type.booking_unit : null;
-                  },
-                  conversationBookings: async () => {
-                    const { data } = await service.from("bookings")
-                      .select("id, status, period, hold_expires_at, resource:resources(name)")
-                      .eq("tenant_id", scope!.tenantId).eq("conversation_id", scope!.conversationId)
-                      .neq("status", "cancelled").order("created_at", { ascending: false }).limit(5);
-                    return data ?? [];
-                  },
-                }, { ...scope, jobId: job.id })
-                : undefined,
-            ),
+          generate: async (request) => {
+            const base: ToolRunner | undefined = scope && request.toolsEnabled
+              ? createToolRunner({
+                rpc: async (name, params) => {
+                  const { data, error } = await service.rpc(name, params);
+                  return { data, error };
+                },
+                resourceUnit: async (resourceId) => {
+                  const { data } = await service.from("resources")
+                    .select("type:resource_types(kind, booking_unit)")
+                    .eq("tenant_id", scope!.tenantId).eq("id", resourceId).maybeSingle();
+                  const type = (data as { type?: { kind?: string; booking_unit?: string } } | null)?.type;
+                  return type?.kind === "bookable" ? type.booking_unit : null;
+                },
+                conversationBookings: async () => {
+                  const { data } = await service.from("bookings")
+                    .select("id, status, period, hold_expires_at, resource:resources(name)")
+                    .eq("tenant_id", scope!.tenantId).eq("conversation_id", scope!.conversationId)
+                    .neq("status", "cancelled").order("created_at", { ascending: false }).limit(5);
+                  return data ?? [];
+                },
+              }, { ...scope, jobId: job.id })
+              : undefined;
+            if (tap && base) {
+              // A tapped Onayla/İptal button is applied directly, without a model call.
+              const result = await base({
+                call_id: "button",
+                name: tap.action === "confirm" ? "confirm_booking" : "cancel_booking",
+                arguments: JSON.stringify({ booking_id: tap.bookingId }),
+              });
+              const { data: booking } = await service.from("bookings")
+                .select("period, resource:resources(name)")
+                .eq("tenant_id", scope!.tenantId).eq("id", tap.bookingId).maybeSingle();
+              const row = booking as { period?: string; resource?: { name?: string } } | null;
+              return {
+                decision: {
+                  action: "reply",
+                  text: buttonReplyText(tap, result, {
+                    name: row?.resource?.name,
+                    ...(parsePeriod(row?.period) ?? {}),
+                  }),
+                  reason: "tool_answer",
+                  knowledge_ids: [],
+                },
+                usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
+                responseId: "button_tap",
+              };
+            }
+            const tracked = base ? trackHolds(base) : undefined;
+            held = tracked?.held ?? (() => []);
+            return await generateAiReply(request, apiKey, fetch, tracked?.runner);
+          },
           settle: async (usage, rejected, responseId) =>
             await rpc("settle_bot_usage", {
               ...identity,
@@ -115,11 +153,15 @@ Deno.serve(endpoint(async (req) => {
               p_rejected: rejected,
               p_response_id: responseId ?? null,
             }) === true,
-          complete: async (decision) =>
-            await rpc("complete_bot_reply", {
+          complete: async (decision) => {
+            const buttons = decision.action === "reply" && [...decision.text].length <= 1024
+              ? bookingButtons(held())
+              : undefined;
+            return await rpc("complete_bot_reply", {
               ...identity,
-              p_decision: decision,
-            }) === true,
+              p_decision: buttons ? { ...decision, buttons } : decision,
+            }) === true;
+          },
           retry: async (delaySeconds = 0) =>
             await rpc("retry_bot_reply", {
               ...identity,

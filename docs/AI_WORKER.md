@@ -198,3 +198,31 @@ SQL fixture `bot_tool_answers.sql`; and the real runner executed against the loc
 database (search, availability, hold, idempotent re-hold, overlap refusal, my_bookings,
 confirm, lead with the conversation's phone). A live OpenAI tool conversation is runtime
 unverified until an API key is configured.
+
+## Booking confirm buttons (roadmap Phase 2e, 2026-11-07)
+
+When a reply follows exactly one new hold in that job, the worker attaches WhatsApp
+reply buttons "Onayla" (`booking:confirm:<id>`) and "İptal" (`booking:cancel:<id>`).
+
+- `complete_bot_reply` (`20261107120000_bot_reply_buttons.sql`) accepts an optional
+  `buttons` array: 1-3 items, titles 1-20 characters, ids only of the form
+  `booking:(confirm|cancel):<uuid>` for a booking of the same tenant and conversation,
+  and a reply text of at most 1024 characters. Anything else is refused (`22023`). The
+  outbound message is stored as `message_type = 'interactive'` with the buttons in
+  `provider_content.interactive.buttons`; replies without buttons stay plain text.
+- `inbox-worker` sends such a message as an interactive `button` message
+  (`_shared/inbox_payload.ts`) and falls back to text when the buttons or body are invalid.
+- A customer's tap arrives as an `interactive` `button_reply`. The bot worker reads its id
+  (`parseButtonTap`) and runs `confirm_booking`/`cancel_booking` directly, without calling
+  the model: no tokens are spent, and the reply is fixed Turkish text (confirmed with item and
+  dates, expired hold, cancelled, or a fallback that points to a representative).
+  The booking must still belong to the conversation, so a forwarded or forged id fails.
+- Typed confirmations ("evet") still go through the model and `confirm_booking`.
+
+Verified: Deno tests (`booking_buttons_test.ts`: button building, tap parsing, reply
+texts, hold tracking, interactive payload), SQL fixture `bot_reply_buttons.sql`
+(foreign-conversation, over-long and arbitrary ids refused; valid buttons stored as
+interactive; plain replies unchanged), and a live local run through the webhook,
+webhook-worker and bot-worker: a tapped "Onayla" confirmed the hold, queued the fixed
+confirmation reply and consumed no AI tokens. Delivery to a real phone is runtime
+unverified until a Meta test number is connected.

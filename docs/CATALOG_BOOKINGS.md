@@ -48,6 +48,9 @@ never from model output):
 Errors: `P0015` overlap, `P0016` hold expired or cancelled, `P0002` not found, `22023`
 invalid input, `42501` permission.
 
+Customers confirm a bot hold by tapping the "Onayla" WhatsApp button the bot attaches to
+the hold message, or "İptal" to release it (see `docs/AI_WORKER.md`, Booking confirm buttons).
+
 ## Verified
 
 Fixture covers field/attribute validation, search filters, tenant isolation, hold

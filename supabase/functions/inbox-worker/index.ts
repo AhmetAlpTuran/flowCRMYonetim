@@ -71,7 +71,7 @@ Deno.serve(endpoint(async (req) => {
         currentConnection = connection;
         const token = await connectionToken(service, connection);
         const { data: message, error } = await service.from("messages").select(
-          "body",
+          "body, provider_content",
         )
           .eq("tenant_id", job.tenant_id).eq(
             "conversation_id",
@@ -84,11 +84,16 @@ Deno.serve(endpoint(async (req) => {
         // Media is uploaded to Meta here, before the fenced send starts, so an
         // upload failure defers the job without consuming a send attempt.
         const media = await prepareMedia(api, connection.phone_number_id, job);
+        // Bot booking replies carry confirm/cancel buttons (complete_bot_reply).
+        const buttons = (message.provider_content as {
+          interactive?: { buttons?: { id: string; title: string }[] };
+        } | null)?.interactive?.buttons;
         const payload = inboxMessagePayload(
           job.recipient_phone,
           message.body,
           `${job.id}:${job.lease_token}`,
           media,
+          Array.isArray(buttons) ? buttons : undefined,
         );
         return () =>
           api.request(`${connection.phone_number_id}/messages`, "POST", payload);

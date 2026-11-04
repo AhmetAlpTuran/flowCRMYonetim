@@ -16,6 +16,7 @@ export function inboxMessagePayload(
   body: string,
   callbackData: string,
   media?: OutboundMedia,
+  buttons?: { id: string; title: string }[],
 ): Record<string, unknown> {
   const base = {
     messaging_product: "whatsapp",
@@ -23,6 +24,22 @@ export function inboxMessagePayload(
     to: recipient,
     biz_opaque_callback_data: callbackData,
   };
+  // Reply buttons (1-3, titles up to 20 characters, body up to 1024 characters).
+  const validButtons = !media && buttons && buttons.length >= 1 && buttons.length <= 3 &&
+    [...body].length <= 1024 &&
+    buttons.every((b) => typeof b.id === "string" && b.id.length <= 256 &&
+      typeof b.title === "string" && [...b.title].length >= 1 && [...b.title].length <= 20);
+  if (validButtons) {
+    return {
+      ...base,
+      type: "interactive",
+      interactive: {
+        type: "button",
+        body: { text: body },
+        action: { buttons: buttons!.map((b) => ({ type: "reply", reply: { id: b.id, title: b.title } })) },
+      },
+    };
+  }
   if (!media) {
     return { ...base, type: "text", text: { body, preview_url: false } };
   }

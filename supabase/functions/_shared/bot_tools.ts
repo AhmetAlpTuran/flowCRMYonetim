@@ -342,3 +342,87 @@ export function istanbulToday(now = new Date()): string {
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
   return `${local.toISOString().slice(0, 10)} (${days[local.getUTCDay()]})`;
 }
+
+// --- Booking confirmation buttons --------------------------------------------
+
+export type ReplyButton = { id: string; title: string };
+export type ButtonTap = { action: "confirm" | "cancel"; bookingId: string };
+
+/** Buttons for a reply that placed exactly one fresh hold; none otherwise. */
+export function bookingButtons(heldBookingIds: string[]): ReplyButton[] | undefined {
+  const unique = [...new Set(heldBookingIds)];
+  if (unique.length !== 1 || !UUID.test(unique[0])) return undefined;
+  return [
+    { id: `booking:confirm:${unique[0]}`, title: "Onayla" },
+    { id: `booking:cancel:${unique[0]}`, title: "İptal" },
+  ];
+}
+
+/** Reads a tapped reply button from the stored inbound message. */
+export function parseButtonTap(providerContent: unknown): ButtonTap | null {
+  const content = providerContent as { interactive?: { button_reply?: { id?: unknown } } } | null;
+  const id = content?.interactive?.button_reply?.id;
+  if (typeof id !== "string") return null;
+  const match = /^booking:(confirm|cancel):([0-9a-f-]{36})$/i.exec(id);
+  if (!match || !UUID.test(match[2])) return null;
+  return { action: match[1].toLowerCase() as ButtonTap["action"], bookingId: match[2].toLowerCase() };
+}
+
+function istanbulDate(iso: string): string {
+  const local = new Date(new Date(iso).getTime() + 3 * 3600000);
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${two(local.getUTCDate())}.${two(local.getUTCMonth() + 1)}.${local.getUTCFullYear()}`;
+}
+
+/** Fixed Turkish reply after a button tap (no model call). */
+export function buttonReplyText(
+  tap: ButtonTap,
+  result: unknown,
+  booking?: { name?: string; start?: string; end?: string },
+): string {
+  const error = (result as { error?: string } | null)?.error;
+  if (error === "hold_expired_or_cancelled") {
+    return "Bu ön rezervasyonun süresi dolmuş. Tarihler hâlâ uygunsa yeniden ayırmamı ister misiniz?";
+  }
+  if (error) return "Bu rezervasyonu şu anda güncelleyemedim. Bir temsilcimiz kısa süre içinde yardımcı olacak.";
+  if (tap.action === "cancel") {
+    return "Ön rezervasyonunuz iptal edildi. Başka bir tarih için yardımcı olabilirim.";
+  }
+  const when = booking?.start && booking?.end
+    ? ` (${istanbulDate(booking.start)} – ${istanbulDate(booking.end)})`
+    : "";
+  return `Rezervasyonunuz onaylandı${booking?.name ? `: ${booking.name}` : ""}${when}. Teşekkür ederiz!`;
+}
+
+/** Postgres tstzrange text -> ISO start/end, e.g. ["2026-11-21 11:00:00+00","...") */
+export function parsePeriod(value: unknown): { start: string; end: string } | null {
+  if (typeof value !== "string") return null;
+  const parts = value.slice(1, -1).split(",").map((p) => p.trim().replaceAll('"', ""));
+  if (parts.length !== 2) return null;
+  const iso = (text: string) => {
+    const fixed = text.replace(" ", "T").replace(/([+-]\d\d)$/, "$1:00");
+    const date = new Date(fixed);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  };
+  const start = iso(parts[0]);
+  const end = iso(parts[1]);
+  return start && end ? { start, end } : null;
+}
+
+/**
+ * Wraps a runner to remember holds placed during one reply, so the reply can carry
+ * confirmation buttons. Confirming or cancelling in the same reply removes the hold.
+ */
+export function trackHolds(runner: ToolRunner): { runner: ToolRunner; held: () => string[] } {
+  const held = new Set<string>();
+  return {
+    held: () => [...held],
+    runner: async (call) => {
+      const result = await runner(call) as Record<string, unknown> | null;
+      const id = typeof result?.booking_id === "string" ? result.booking_id : null;
+      if (id && call.name === "hold_booking" && result?.status === "hold") held.add(id);
+      if (id && (call.name === "confirm_booking" || call.name === "cancel_booking")) held.delete(id);
+      return result;
+    },
+  };
+}
