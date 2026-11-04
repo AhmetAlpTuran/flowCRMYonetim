@@ -35,8 +35,16 @@ bundle ID in App Store Connect.
 
 ### Store listing requirements
 
-- **Privacy policy URL** (both stores) — host it (for example on your landing page) and
-  pass it at build time; the app shows it on the login screen and in the account menu.
+- **Privacy policy URL** (both stores) — the policy lives in `docs/gizlilik/index.html`
+  (Turkish, prevails) and `docs/privacy/index.html` (English). Before publishing, replace
+  every highlighted placeholder (company name, address, MERSİS, KVKK/KEP addresses, hosting
+  region, email provider, backup retention, dates) and have a lawyer review it. To host it
+  free: GitHub repository Settings > Pages > "Deploy from a branch", branch `main`, folder
+  `/docs`. It is then served at
+  `https://ahmetalpturan.github.io/flowCRMYonetim/gizlilik/` (English: `/privacy/`), which
+  the app already links to on the login screen and in the account menu. Use that URL in
+  both store listings; override it with `--dart-define=PRIVACY_POLICY_URL=...` if you host
+  it elsewhere.
 - **Account deletion** — built in: account menu > "Hesabı sil". Point both stores'
   account-deletion questions to it. Deletion removes the account, businesses where the
   user is the only member (with their stored files) and the user's memberships; a sole
@@ -52,11 +60,11 @@ bundle ID in App Store Connect.
 ## Building a release
 
 ```bash
-flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon key> --dart-define=PRIVACY_POLICY_URL=https://<your site>/gizlilik --dart-define=SUPPORT_EMAIL=<support address>
+flutter build appbundle --release --dart-define=SUPABASE_URL=https://<project>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon key> --dart-define=SUPPORT_EMAIL=<support address>
 ```
 
 ```bash
-flutter build ipa --release --dart-define=SUPABASE_URL=https://<project>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon key> --dart-define=PRIVACY_POLICY_URL=https://<your site>/gizlilik --dart-define=SUPPORT_EMAIL=<support address>
+flutter build ipa --release --dart-define=SUPABASE_URL=https://<project>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon key> --dart-define=SUPPORT_EMAIL=<support address>
 ```
 
 The anon key is public by design; never pass the service role key to Flutter. Bump
