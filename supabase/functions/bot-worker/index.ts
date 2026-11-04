@@ -1,5 +1,11 @@
 import { type BotContext, generateAiReply } from "../_shared/ai_reply.ts";
 import {
+  catalogToolDefinitions,
+  type CatalogType,
+  createToolRunner,
+  istanbulToday,
+} from "../_shared/bot_tools.ts";
+import {
   type BotExecutionResult,
   executeBotReply,
 } from "../_shared/bot_execution.ts";
@@ -49,8 +55,20 @@ Deno.serve(endpoint(async (req) => {
         const job = claimed?.[0];
         if (!job) return "idle";
         const identity = { p_job_id: job.id, p_lease_token: job.lease_token };
+        let scope: { tenantId: string; conversationId: string } | null = null;
         return await executeBotReply({
           allowedModels,
+          toolset: async (context) => {
+            scope = { tenantId: context.tenant_id, conversationId: context.conversation_id };
+            const { data, error } = await service.from("resource_types")
+              .select("key, name, kind, booking_unit, fields")
+              .eq("tenant_id", context.tenant_id).limit(20);
+            if (error || !data?.length) return undefined;
+            return {
+              definitions: catalogToolDefinitions(data as CatalogType[]),
+              today: istanbulToday(),
+            };
+          },
           context: async () =>
             await rpc("bot_reply_context", identity) as BotContext | null,
           prepare: async (context, request) =>
@@ -62,7 +80,34 @@ Deno.serve(endpoint(async (req) => {
               p_reserve_tokens: request?.reserveTokens ?? 0,
               p_default_limit: defaultLimit,
             }) as string,
-          generate: (request) => generateAiReply(request, apiKey),
+          generate: (request) =>
+            generateAiReply(
+              request,
+              apiKey,
+              fetch,
+              scope && request.toolsEnabled
+                ? createToolRunner({
+                  rpc: async (name, params) => {
+                    const { data, error } = await service.rpc(name, params);
+                    return { data, error };
+                  },
+                  resourceUnit: async (resourceId) => {
+                    const { data } = await service.from("resources")
+                      .select("type:resource_types(kind, booking_unit)")
+                      .eq("tenant_id", scope!.tenantId).eq("id", resourceId).maybeSingle();
+                    const type = (data as { type?: { kind?: string; booking_unit?: string } } | null)?.type;
+                    return type?.kind === "bookable" ? type.booking_unit : null;
+                  },
+                  conversationBookings: async () => {
+                    const { data } = await service.from("bookings")
+                      .select("id, status, period, hold_expires_at, resource:resources(name)")
+                      .eq("tenant_id", scope!.tenantId).eq("conversation_id", scope!.conversationId)
+                      .neq("status", "cancelled").order("created_at", { ascending: false }).limit(5);
+                    return data ?? [];
+                  },
+                }, { ...scope, jobId: job.id })
+                : undefined,
+            ),
           settle: async (usage, rejected, responseId) =>
             await rpc("settle_bot_usage", {
               ...identity,

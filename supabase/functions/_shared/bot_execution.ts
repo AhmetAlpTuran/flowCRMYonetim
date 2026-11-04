@@ -3,6 +3,7 @@ import {
   AiReplyError,
   type AiUsage,
   type BotContext,
+  type BotToolset,
   localBotDecision,
   prepareAiRequest,
 } from "./ai_reply.ts";
@@ -21,6 +22,8 @@ export type BotExecutionResult =
   | "unconfirmed";
 export type BotExecutionDependencies = {
   allowedModels: ReadonlySet<string>;
+  /** Catalog tools for this business, loaded after the context is known. */
+  toolset?: (context: BotContext) => Promise<BotToolset | undefined>;
   context: () => Promise<BotContext | null>;
   prepare: (
     context: BotContext,
@@ -64,11 +67,18 @@ export async function executeBotReply(
   if (!context) {
     return await acknowledge(deps.cancel) ? "cancelled" : "unconfirmed";
   }
-  let decision: Decision | null = localBotDecision(context);
+  let toolset: BotToolset | undefined;
+  try {
+    toolset = await deps.toolset?.(context);
+  } catch {
+    toolset = undefined; // Answer from knowledge only rather than fail the job.
+  }
+  const hasTools = (toolset?.definitions.length ?? 0) > 0;
+  let decision: Decision | null = localBotDecision(context, hasTools);
   let request: PreparedRequest | null = null;
   if (!decision) {
     try {
-      request = prepareAiRequest(context, deps.allowedModels);
+      request = prepareAiRequest(context, deps.allowedModels, hasTools ? toolset : undefined);
     } catch (error) {
       decision = handoff(
         error instanceof AiReplyError ? error.code : "ai_configuration_invalid",

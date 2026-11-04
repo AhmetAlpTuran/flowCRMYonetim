@@ -159,3 +159,42 @@ handoffs and client privilege boundaries. Multi-session concurrency, model quali
 provider conformance and full UI workflows still need the agreed verification phase.
 Assignment/resolution UI, usage/billing integration, historical account mapping and
 operator recovery remain product implementation work.
+
+## Catalog tools (roadmap Phase 2a, 2026-11-07)
+
+When a business has catalog types (`resource_types`), the worker offers the model
+strict function tools built by `_shared/bot_tools.ts` from that catalog:
+
+| Tool | Database function | Notes |
+|---|---|---|
+| `search_catalog` | `bot_search_resources` | type, text, field filters (`equals` or `min`/`max`), price range; active items only |
+| `check_availability` | `bot_check_availability` | bookable types only |
+| `hold_booking` | `bot_create_booking_hold` | 15-minute hold bound to the conversation |
+| `confirm_booking` / `cancel_booking` | `bot_set_booking_status` | only bookings of this conversation |
+| `my_bookings` | `bookings` (service read) | this conversation's live holds/bookings |
+| `create_lead` | `bot_create_lead` | test drive, trade-in, financing, callback, other |
+
+- The model passes dates as `YYYY-MM-DD` (and `HH:MM` + hours for hourly services); the
+  server converts them to Istanbul times (nightly stays 14:00 check-in, 11:00 check-out).
+- The customer's phone always comes from the conversation; the model cannot supply one.
+- Holds and leads use request keys derived from job + tool + arguments, so a retried
+  job never doubles a side effect; a different job (a later customer message) creates a
+  new hold, and the overlap constraint refuses conflicting ones (`not_available`).
+- Tool errors return structured results (`not_available`, `hold_expired_or_cancelled`,
+  `not_found`, `invalid_input`) for the model to explain instead of failing the reply.
+- `generateAiReply` loops at most `MAX_TOOL_ROUNDS` (4) within a 100 s budget (the job
+  lease is 120 s), sends tool calls back without stored item ids (`store: false`), keeps
+  encrypted reasoning for reasoning models, and sums usage across rounds, including when
+  a later round fails. Reservations for tool-enabled requests scale with the rounds.
+- Replies based on tool results use reason `tool_answer`
+  (`20261107100000_bot_tool_answers.sql`); a business with a catalog but no knowledge
+  entries is no longer handed off automatically.
+- The prompt requires an explicit customer confirmation in a later message before
+  `confirm_booking`, forbids invented items or prices, and treats tool output as data.
+
+Verified: Deno unit tests for definitions, date conversion, runner mapping, request
+keys, error mapping and the loop (round trip, usage sums, round limit, failure billing);
+SQL fixture `bot_tool_answers.sql`; and the real runner executed against the local
+database (search, availability, hold, idempotent re-hold, overlap refusal, my_bookings,
+confirm, lead with the conversation's phone). A live OpenAI tool conversation is runtime
+unverified until an API key is configured.

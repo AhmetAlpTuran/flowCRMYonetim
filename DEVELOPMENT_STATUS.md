@@ -398,3 +398,12 @@ modified when this work began; preserve it outside milestone commits.
   78/78 Flutter tests (8 new), 20/20 SQL fixtures, and a live PostgREST run of the app's exact
   queries (type/item insert, create_booking, P0015 on overlap, bookings range filter with
   resource embed, leads embed).
+
+- 2026-11-07: Roadmap Phase 2a, bot tool calling. `_shared/bot_tools.ts` (strict tool definitions
+  from the business's catalog, Istanbul date conversion, idempotent request keys, structured tool
+  errors), a bounded multi-round loop in `generateAiReply` (4 rounds, 100 s, usage summed incl.
+  failures, store=false-safe echo), tool-aware prompt and `tool_answer` reason (migration
+  `20261107100000_bot_tool_answers.sql`), and bot-worker wiring. See `docs/AI_WORKER.md`.
+  Verified: 68/68 Deno tests (7 new), 21/21 SQL fixtures (new `bot_tool_answers.sql`), and the real
+  tool runner against the local database. Live OpenAI tool use runtime unverified (needs a key).
+  Next: industry packs (2c) and interactive confirm buttons (2e).
