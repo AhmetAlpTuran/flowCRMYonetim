@@ -26,7 +26,7 @@ Deno.test("a stalled request body is cancelled at its deadline", async () => {
 const secret = "fixture-app-secret-never-real";
 const verifyToken = "fixture-webhook-token-with-at-least-32-characters";
 const encode = (value: unknown) =>
-  new TextEncoder().encode(JSON.stringify(value));
+  new Uint8Array(new TextEncoder().encode(JSON.stringify(value)));
 const status = {
   id: "wamid.fixture-status",
   recipient_id: "905550000001",

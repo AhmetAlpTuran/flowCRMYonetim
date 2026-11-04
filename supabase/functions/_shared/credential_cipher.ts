@@ -21,12 +21,13 @@ function encode(value: Uint8Array): string {
   return btoa(binary);
 }
 function contextBytes(context: CredentialContext): Uint8Array<ArrayBuffer> {
-  return new TextEncoder().encode(JSON.stringify([
+  // Copy so the result is typed as ArrayBuffer-backed on every TypeScript lib.
+  return new Uint8Array(new TextEncoder().encode(JSON.stringify([
     "whatsapp-token-v1",
     context.tenantId,
     context.connectionId,
     context.phoneNumberId,
-  ]));
+  ])));
 }
 async function importKey(keyring: Keyring, keyId: string) {
   const encoded = keyring.keys[keyId];
