@@ -50,3 +50,8 @@ MockWhatsapp/
 
 # Local database backups (may contain personal data)
 supabase/.backups/
+
+# Release signing secrets (never commit)
+android/key.properties
+*.jks
+*.keystore

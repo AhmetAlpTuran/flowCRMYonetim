@@ -23,7 +23,7 @@ class App extends ConsumerWidget {
     final headlineTextTheme = GoogleFonts.manropeTextTheme();
 
     return MaterialApp(
-      title: 'WPapp',
+      title: 'Flow CRM',
       theme: ThemeData(
         colorScheme: colorScheme,
         useMaterial3: true,
