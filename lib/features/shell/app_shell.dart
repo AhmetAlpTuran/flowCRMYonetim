@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../bot/screens/bot_screen.dart';
 import '../campaigns/screens/campaigns_screen.dart';
 import '../connections/screens/connections_screen.dart';
+import '../contacts/screens/contacts_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../handoff/screens/handoff_screen.dart';
 import '../inbox/screens/inbox_list_screen.dart';
@@ -292,6 +293,14 @@ List<_ShellDestination> _destinationsFor(
       icon: Icons.inbox_outlined,
       selectedIcon: Icons.inbox,
       screen: InboxListScreen(),
+      feature: TenantFeature.inbox,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.contacts,
+      label: 'Kişiler',
+      icon: Icons.contacts_outlined,
+      selectedIcon: Icons.contacts,
+      screen: ContactsScreen(),
       feature: TenantFeature.inbox,
     ),
     const _ShellDestination(

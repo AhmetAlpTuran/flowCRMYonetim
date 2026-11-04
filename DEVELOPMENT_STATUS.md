@@ -321,3 +321,14 @@ modified when this work began; preserve it outside milestone commits.
   a local run of the function's 401/403/400/409 paths plus RLS hiding connection rows from
   non-admins. A live connect against Meta is runtime unverified (needs the test number).
   Not built yet: changing the default number without reconnecting, Embedded Signup.
+
+- 2026-11-05: Roadmap Phase 1, contacts and consent. Migration
+  `20261105100000_contacts_consent.sql`: consent source/basis/actor and opt-out evidence on
+  `consented_contacts`, direct client consent writes revoked, CRM tag sync into the
+  audience, opt-outs excluded from audience matching and re-checked at dispatch, and RPCs
+  `upsert_contact`, `list_contacts`, `set_marketing_consent`, `import_contacts`. New
+  "Kişiler" screen with search, paging, editing, consent with basis, and CSV import
+  (Turkish Excel formats, chunked, explicit consent confirmation). See
+  `docs/CONTACTS_CONSENT.md`. Verified: 15/15 SQL fixtures (new `contacts_consent.sql`),
+  54/54 Flutter tests (7 new), live PostgREST run of import, list, opt-out and audience.
+  Next: keyword opt-out from inbound messages, xlsx import.

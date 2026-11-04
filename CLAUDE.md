@@ -10,7 +10,7 @@ risks. Read it before starting work and append a dated milestone log entry after
 ## Layout
 
 - `lib/features/<feature>/{data,models,providers,screens,widgets}`: feature-first Flutter.
-  Features: app, shell, tenancy, onboarding, users, connections, inbox, handoff,
+  Features: app, shell, tenancy, onboarding, users, connections, contacts, inbox, handoff,
   campaigns, templates, bot, knowledge, dashboard (dashboard is still a mock repository).
 - `lib/config/supabase_config.dart`: Supabase URL/anon key from `--dart-define`
   (`SUPABASE_URL`, `SUPABASE_ANON_KEY`); defaults target the local `supabase start` stack.
@@ -42,6 +42,8 @@ risks. Read it before starting work and append a dated milestone log entry after
   RPCs/Edge Functions. Direct client writes to lifecycle tables are revoked; don't add new ones.
 - Every query and FK must be tenant-scoped (composite tenant references). Never trust
   UI permissions alone; enforce in RLS/RPC.
+- Marketing sends only to `consented_contacts` rows without `opted_out_at`; consent is
+  written only through `set_marketing_consent`/`import_contacts` with a recorded basis.
 - Sends go through durable queues with fenced claims. An uncertain provider outcome
   is never blindly retried. Clients retain one immutable request ID on uncertain results.
 - WhatsApp tokens live encrypted per tenant connection; no global credentials.

@@ -5,6 +5,7 @@ enum ShellDestinationId {
   bot,
   knowledge,
   inbox,
+  contacts,
   handoff,
   custom,
   campaigns,
