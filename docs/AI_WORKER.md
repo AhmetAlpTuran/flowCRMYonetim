@@ -234,3 +234,42 @@ After `bot_reply_context`, the worker replaces the context's knowledge with
 full-text search (Turkish letters folded) fused with vector search over embeddings of
 the customer's message. Embedding or search failures fall back to full text and then to
 the context's own notes. See `docs/KNOWLEDGE_DOCUMENTS.md`.
+
+## Multiple bots (roadmap Phase 2g, `20261108100000_multiple_bots.sql`)
+
+`bot_settings` remains the business's main bot ("Ana bot"). `bot_profiles` holds up to ten
+extra bots, each with its own name, tone, language, instructions, model and memory. They are
+managed only through `save_bot_profile` (with a stable client ID) and `delete_bot_profile`,
+using the bot permission. Each WhatsApp number has `bot_profile_id` (null means the main bot)
+and `bot_enabled` (false means humans only), changed through `set_connection_bot`.
+
+- `effective_bot_settings(tenant, connection)` returns the bot of a number, shaped like
+  `bot_settings`. Enqueueing (`materialize_whatsapp_message`), `claim_bot_reply`,
+  `prepare_bot_reply`, `bot_reply_context`, `complete_bot_reply` and
+  `bot_dispatch_allowed` all use it. An extra bot works even when the main bot is off or
+  missing.
+- Changing a bot or a number's assignment bumps the bot context version, so an
+  in-flight reply hands off instead of answering with stale settings.
+- Replies and handoff notices carry the answering bot's name and language. The handoff
+  notice is Turkish or English, depending on the bot's language.
+- `bot_reply_jobs.bot_profile_id` records which bot finalized a job, for per-bot
+  reporting. Null means the main bot. Deleting a bot moves its numbers back to the main
+  bot and keeps job history.
+- Knowledge and catalog tools are shared by all bots of a business; per-bot knowledge
+  scopes are a possible follow-up. Industry packs configure the main bot.
+
+App: the Bot screen lists the main bot and the extra bots, each opening the same editor
+(the main bot cannot be deleted). It also shows a "Yanıt veren bot" picker for each number:
+the main bot, an extra bot, or "Bot kapalı".
+
+Verified:
+- SQL fixture `multiple_bots.sql` covers:
+  - permissions, the 10-bot limit, validation and tenant isolation
+  - the revoked direct writes
+  - routing and enqueueing through the real webhook path, and the context and job
+    attribution
+  - switching a number off, and delete fallback
+- 5 Flutter widget tests.
+- A live local run: a member managed bots and assignments through PostgREST, and a
+  webhook message on an English extra bot's number was handled by that bot through the
+  bot worker.

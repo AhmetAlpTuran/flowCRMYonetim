@@ -1,276 +1,228 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../tenancy/providers/tenant_providers.dart';
-import '../models/bot_config.dart';
-import '../providers/bot_providers.dart';
 import '../../catalog/widgets/industry_pack_sheet.dart';
+import '../../tenancy/providers/tenant_providers.dart';
+import '../data/supabase_bot_repository.dart';
+import '../models/bot_config.dart';
+import '../models/bot_profile.dart';
+import '../providers/bot_providers.dart';
+import 'bot_editor_page.dart';
 
-class BotScreen extends ConsumerStatefulWidget {
+/// "Botlar": the main bot, extra bots, and which bot answers on each WhatsApp number.
+class BotScreen extends ConsumerWidget {
   const BotScreen({super.key});
 
+  Future<void> _open(BuildContext context, Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute<bool>(builder: (_) => page));
+
   @override
-  ConsumerState<BotScreen> createState() => _BotScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final main = ref.watch(botConfigProvider);
+    final profiles = ref.watch(botProfilesProvider);
+    final numbers = ref.watch(botNumbersProvider);
+    final firstError = [main, profiles, numbers].where((v) => v.hasError).firstOrNull;
+    if (firstError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(botErrorMessage(firstError.error!), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => ref
+                ..invalidate(botConfigProvider)
+                ..invalidate(botProfilesProvider)
+                ..invalidate(botNumbersProvider),
+              child: const Text('Tekrar dene'),
+            ),
+          ]),
+        ),
+      );
+    }
+    if (!main.hasValue || !profiles.hasValue || !numbers.hasValue) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final mainBot = main.value!;
+    final extra = profiles.value!;
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref
+          ..invalidate(botConfigProvider)
+          ..invalidate(botProfilesProvider)
+          ..invalidate(botNumbersProvider);
+        await ref.read(botNumbersProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Align(alignment: Alignment.centerLeft, child: IndustryPackButton()),
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              Text('Botlar', style: theme.textTheme.titleLarge),
+              FilledButton.icon(
+                onPressed: () => _open(context, const BotEditorPage.create()),
+                icon: const Icon(Icons.add),
+                label: const Text('Yeni bot'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Örneğin satış ve servis için ayrı botlar kurun. Her numara kendi botuyla yanıt verir; '
+            'bot seçilmeyen numaralar ana botu kullanır.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          _BotTile(
+            config: mainBot,
+            badge: 'Ana bot',
+            onTap: () => _open(context, BotEditorPage.main(initial: mainBot)),
+          ),
+          for (final profile in extra)
+            _BotTile(
+              config: profile.config,
+              onTap: () => _open(context, BotEditorPage.profile(profile: profile)),
+            ),
+          const SizedBox(height: 24),
+          Text('Numaralar', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('Her WhatsApp numarasında hangi botun yanıt vereceğini seçin.', style: theme.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          if (numbers.value!.isEmpty)
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Henüz WhatsApp numarası bağlanmadı. Numara eklemek için WhatsApp bağlantıları ekranını kullanın.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          for (final number in numbers.value!)
+            NumberBotCard(number: number, mainBot: mainBot, profiles: extra),
+        ],
+      ),
+    );
+  }
 }
 
-class _BotScreenState extends ConsumerState<BotScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _toneController = TextEditingController();
-  final _languageController = TextEditingController();
-  final _promptController = TextEditingController();
-  bool _isActive = false;
-  double _temperature = 0.3;
-  String _model = 'gpt-4o-mini';
-  int _memoryHours = 6;
-  int _maxHistoryMessages = 12;
-  BotConfig? _current;
+class _BotTile extends StatelessWidget {
+  const _BotTile({required this.config, required this.onTap, this.badge});
+
+  final BotConfig config;
+  final VoidCallback onTap;
+  final String? badge;
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _toneController.dispose();
-    _languageController.dispose();
-    _promptController.dispose();
-    super.dispose();
-  }
-
-  bool _sameConfig(BotConfig a, BotConfig b) {
-    return a.name == b.name &&
-        a.tone == b.tone &&
-        a.language == b.language &&
-        a.systemPrompt == b.systemPrompt &&
-        a.model == b.model &&
-        a.temperature == b.temperature &&
-        a.isActive == b.isActive;
-  }
-
-  void _syncFromConfig(BotConfig config) {
-    if (_current != null && _sameConfig(_current!, config)) {
-      return;
-    }
-    _current = config;
-    _nameController.text = config.name;
-    _toneController.text = config.tone;
-    _languageController.text = config.language;
-    _promptController.text = config.systemPrompt;
-    _isActive = config.isActive;
-    _temperature = config.temperature;
-    _model = config.model;
-    _memoryHours = config.memoryHours;
-    _maxHistoryMessages = config.maxHistoryMessages;
-  }
-
-  Future<void> _save() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
-    final tenant = ref.read(selectedTenantProvider);
-    if (tenant == null) {
-      return;
-    }
-    final repository = ref.read(botRepositoryProvider);
-    final config = BotConfig(
-      name: _nameController.text.trim(),
-      tone: _toneController.text.trim(),
-      language: _languageController.text.trim(),
-      systemPrompt: _promptController.text.trim(),
-      model: _model,
-      temperature: _temperature,
-      memoryHours: _memoryHours,
-      maxHistoryMessages: _maxHistoryMessages,
-      isActive: _isActive,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final state = config.isActive ? 'Aktif' : 'Kapalı';
+    return Card(
+      elevation: 0,
+      child: ListTile(
+        leading: Icon(
+          Icons.smart_toy_outlined,
+          color: config.isActive ? theme.colorScheme.primary : theme.colorScheme.outline,
+        ),
+        title: Text(config.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text([if (badge != null) badge!, state, config.language].join(' · '),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
     );
-    await repository.saveBotConfig(tenant.id, config);
-    ref.invalidate(botConfigProvider);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bot ayarlari kaydedildi.')),
-      );
+  }
+}
+
+/// One number with a picker: the main bot, an extra bot, or no bot.
+class NumberBotCard extends ConsumerStatefulWidget {
+  const NumberBotCard({super.key, required this.number, required this.mainBot, required this.profiles});
+
+  final BotNumber number;
+  final BotConfig mainBot;
+  final List<BotProfile> profiles;
+
+  @override
+  ConsumerState<NumberBotCard> createState() => _NumberBotCardState();
+}
+
+class _NumberBotCardState extends ConsumerState<NumberBotCard> {
+  bool _saving = false;
+
+  Future<void> _assign(String value) async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null || value == widget.number.assignment) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(botRepositoryProvider).setNumberBot(
+            tenant.id,
+            widget.number.id,
+            enabled: value != 'off',
+            profileId: value == 'off' || value == 'main' ? null : value,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Numaranın botu güncellendi.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(botErrorMessage(error))));
+      }
+    } finally {
+      ref.invalidate(botNumbersProvider);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final config = ref.watch(botConfigProvider);
-
-    return config.when(
-      data: (bot) {
-        _syncFromConfig(bot);
-        return Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Align(alignment: Alignment.centerLeft, child: IndustryPackButton()),
-              ),
-              Card(
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bot kimligi',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Bot adi',
-                          prefixIcon: Icon(Icons.smart_toy_outlined),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Bot adi zorunludur.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _toneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Ton',
-                          prefixIcon: Icon(Icons.tune_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _languageController,
-                        decoration: const InputDecoration(
-                          labelText: 'Dil',
-                          prefixIcon: Icon(Icons.language_outlined),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI ayarlari',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _promptController,
-                        maxLines: 4,
-                        decoration: const InputDecoration(
-                          labelText: 'System prompt',
-                          alignLabelWithHint: true,
-                          prefixIcon: Icon(Icons.text_snippet_outlined),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Prompt zorunludur.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _model,
-                        decoration: const InputDecoration(
-                          labelText: 'Model',
-                          prefixIcon: Icon(Icons.auto_awesome_outlined),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'gpt-4o-mini',
-                            child: Text('gpt-4o-mini'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() => _model = value);
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Yaraticilik (temperature): ${_temperature.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      Slider(
-                        value: _temperature,
-                        min: 0,
-                        max: 1,
-                        divisions: 10,
-                        onChanged: (value) {
-                          setState(() => _temperature = value);
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Hafiza suresi (saat): $_memoryHours',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      Slider(
-                        value: _memoryHours.toDouble(),
-                        min: 1,
-                        max: 24,
-                        divisions: 23,
-                        label: '$_memoryHours',
-                        onChanged: (value) {
-                          setState(() => _memoryHours = value.round());
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Hafizada tutulacak mesaj: $_maxHistoryMessages',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      Slider(
-                        value: _maxHistoryMessages.toDouble(),
-                        min: 4,
-                        max: 40,
-                        divisions: 9,
-                        label: '$_maxHistoryMessages',
-                        onChanged: (value) {
-                          setState(() => _maxHistoryMessages = value.round());
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                elevation: 0,
-                child: SwitchListTile(
-                  value: _isActive,
-                  onChanged: (value) => setState(() => _isActive = value),
-                  title: const Text('Bot aktif'),
-                  secondary: const Icon(Icons.power_settings_new_outlined),
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Kaydet'),
-              ),
+    final number = widget.number;
+    final known = {'main', 'off', ...widget.profiles.map((p) => p.id)};
+    final value = known.contains(number.assignment) ? number.assignment : 'main';
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            const Icon(Icons.phone_iphone_outlined),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(number.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall),
+                if (number.title != number.displayPhone) Text(number.displayPhone),
+              ]),
+            ),
+            if (_saving) const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+          ]),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            key: ValueKey('${number.id}:$value'),
+            initialValue: value,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Yanıt veren bot'),
+            items: [
+              DropdownMenuItem(value: 'main', child: Text('Ana bot: ${widget.mainBot.name}', overflow: TextOverflow.ellipsis)),
+              for (final profile in widget.profiles)
+                DropdownMenuItem(value: profile.id, child: Text(profile.config.name, overflow: TextOverflow.ellipsis)),
+              const DropdownMenuItem(value: 'off', child: Text('Bot kapalı (yalnızca temsilciler)')),
             ],
+            onChanged: _saving ? null : (selected) => selected == null ? null : _assign(selected),
           ),
-        );
-      },
-      error: (error, _) => Center(
-        child: Text('Bot ayarlari yuklenemedi: $error'),
+        ]),
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
     );
   }
 }

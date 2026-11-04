@@ -438,3 +438,19 @@ modified when this work began; preserve it outside milestone commits.
   member's upload/register/list/delete went through Storage and PostgREST. Live OpenAI
   embeddings and the hosted CPU limit for large PDFs are runtime unverified. See
   `docs/KNOWLEDGE_DOCUMENTS.md`. Next: multiple bots per business (2g).
+
+- 2026-11-08: Roadmap Phase 2g, multiple bots per business. Migration
+  `20261108100000_multiple_bots.sql`:
+  - `bot_profiles` holds up to 10 extra bots, managed through the `save_bot_profile` and
+    `delete_bot_profile` RPCs.
+  - Each WhatsApp number gets a bot (`bot_profile_id`, `bot_enabled`) through
+    `set_connection_bot`.
+  - `effective_bot_settings` is used by the six bot job functions, so an extra bot works
+    on its numbers even when the main bot is off.
+  - Bot and routing changes bump the context version, and jobs record their bot.
+  App: the Bot screen lists the main and extra bots with a shared editor (Turkish
+  diacritics fixed, save errors shown, a stable ID for new bots) and a bot picker for each
+  number. Fixed narrow-width overflow in the model picker. Verified: 25/25 SQL fixtures
+  (new `multiple_bots.sql`), 90/90 Flutter tests (5 new), 84/84 Deno tests, and a live local
+  webhook → bot-worker run where an English extra bot handled its number. Next: Phase 3
+  billing.
