@@ -3,6 +3,17 @@
 The SaaS backend is not ready for production deployment. This guide grows with each
 milestone. No migrations have been applied automatically by this implementation work.
 
+## Authentication/profile integration
+
+`20261104090000_auth_profiles.sql` follows the support workflow migration. Apply it
+before the matching client, which relies on server-owned profile creation and
+email synchronization. It backfills existing users while preserving their names
+and restricts authenticated profile writes to `display_name`. Verify Auth signup
+and email changes in an isolated database because the trigger shares their
+transaction. Configure confirmation redirects and SMTP during owner setup.
+See [AUTH_ONBOARDING.md](AUTH_ONBOARDING.md) for session behavior, deferred tests
+and the remaining self-service onboarding work.
+
 ## Support workflow integration checkpoint
 
 `20261102090000_support_workflows.sql` follows the bot worker migration. It adds

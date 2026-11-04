@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shell/app_shell.dart';
@@ -39,14 +39,37 @@ class AppEntry extends ConsumerWidget {
             }
             return const AppShell();
           },
-          error: (_, __) => const _NoTenantScreen(),
+          error: (_, __) => _EntryError(
+              message:
+                  'İşletmeler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.',
+              onRetry: () => ref.invalidate(accessibleTenantsProvider)),
           loading: () => const Center(child: CircularProgressIndicator()),
         );
       },
-      error: (_, __) => const _NoTenantScreen(),
+      error: (_, __) => _EntryError(
+          message: 'Oturum bilgisi yüklenemedi. Tekrar deneyin.',
+          onRetry: () => ref.invalidate(authControllerProvider)),
       loading: () => const Center(child: CircularProgressIndicator()),
     );
   }
+}
+
+class _EntryError extends StatelessWidget {
+  const _EntryError({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+          body: Center(
+              child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: const Text('Tekrar dene')),
+        ]),
+      )));
 }
 
 class _NoTenantScreen extends ConsumerStatefulWidget {
@@ -212,8 +235,7 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
                     ],
                   );
                 },
-                error: (error, _) =>
-                    Text('Basvurular yuklenemedi: $error'),
+                error: (error, _) => Text('Basvurular yuklenemedi: $error'),
                 loading: () => const LinearProgressIndicator(minHeight: 2),
               ),
             ],

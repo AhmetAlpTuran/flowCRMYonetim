@@ -157,3 +157,16 @@ version must be rechecked before release. No integration success is claimed.
 - Privileged action functions use an empty search path, schema-qualified objects,
   explicit tenant/actor checks and restricted execute privileges.
   [PostgreSQL 15 function security](https://www.postgresql.org/docs/15/sql-createfunction.html)
+
+## Authentication sessions and profiles (2026-11-04)
+
+- Auth streams include sign-in, sign-out, token refresh and user update events.
+  An explicit error handler is required for refresh/network failures.
+  [Supabase Flutter auth events](https://supabase.com/docs/reference/dart/auth-onauthstatechange)
+- With email confirmation enabled, signup can return a user and no session.
+  Duplicate-user responses can be obfuscated, so a returned user alone cannot
+  establish signed-in app state.
+  [Supabase Flutter signup](https://supabase.com/docs/reference/dart/auth-signup)
+- Public profiles can be maintained by an Auth-user trigger with a restricted
+  search path. Trigger failures affect signup and require backend verification.
+  [Supabase user management](https://supabase.com/docs/guides/auth/managing-user-data)

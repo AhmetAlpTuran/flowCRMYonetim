@@ -20,6 +20,7 @@ contract; a documented legacy gap is not evidence of completion.
 | Conversation workflow | ConversationWorkflowSheet + ConversationWorkflowController + repository | shared chat/handoff controls, expected revision, stable retry identity, refreshed results |
 | Handoff list | HandoffScreen + repository-backed handoff provider | scoped in-memory filters, 20-row pages, explicit refresh and chat navigation |
 | Queued reply cancellation | CancelMessageButton + repository + cancellation RPC | explicit confirmation, own-message/admin controls, worker-start conflict recovery |
+| Auth routing and credentials | AuthController + LoginScreen + AppEntry | session events, confirmation-required state, preserved password text, inline recovery |
 | Delivery display | MessageDeliveryStatus | queue, acceptance, delivery, read and uncertainty are distinct |
 | Server validation | shared template module + PostgreSQL audience function | authoritative even if client validation is bypassed |
 
@@ -50,6 +51,16 @@ after save. Campaign history below the form supports draft reopening and result 
   put them in URLs or browser storage. Persist only via an explicit draft save.
 
 ## Deferred verification and known drift
+
+Auth routing follows [AUTH_ONBOARDING.md](docs/AUTH_ONBOARDING.md). Signup without a
+session stays on the form with confirmation guidance. Successful session events
+return a pushed login route to the root, including delayed completion. Profile
+persistence is server owned. The form preserves password whitespace and input on
+errors, blocks duplicate actions, focuses invalid fields and owns a vertical
+scroll area. Auth errors have localized correction text. A tenant-list fetch
+failure presents a retry state without claiming that memberships are absent.
+Real confirmation links, cross-tab transitions and runtime accessibility remain
+deferred. Password recovery and business onboarding are still unfinished.
 
 Conversation management follows the domain contract in
 [SUPPORT_WORKFLOWS.md](docs/SUPPORT_WORKFLOWS.md). The sheet owns a bounded vertical

@@ -18,7 +18,7 @@ modified when this work began; preserve it outside milestone commits.
 
 | Area | Implemented in source | Remaining work |
 |---|---|---|
-| Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
+| Auth/tenancy | Session-driven password auth, confirmation-aware signup, server-owned profiles, memberships, tenant picker, module permissions | Business onboarding, tenant boundary audit, invitations, recovery and runtime verification |
 | Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
 | AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
 | Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
@@ -244,3 +244,14 @@ modified when this work began; preserve it outside milestone commits.
   Chat tag/handoff actions moved into the overflow menu to fit the management action.
   Browser layout, keyboard, deployed-RPC and concurrency checks remain outstanding.
   Targeted Dart analysis and diff checks passed. The strict UI contract audit reported zero findings. Test suites, live provider operations and backend migrations remain unexecuted.
+
+- 2026-11-04: Authentication foundation now follows SDK session events, including
+  sign-out and delayed sign-in, with stream error handling and stable identity on
+  routine refresh. Signup without a session stays in confirmation state. Removed
+  the client profile-write dependency from login and added a server-owned profile
+  migration/backfill. Login preserves password whitespace, adds inline validation
+  and bounded scrolling, and separates membership fetch failure from no membership.
+  Added mocked auth/UI and database profile fixtures without running suites.
+  Self-service business creation, invitations and recovery remain next requirements.
+  Setup and deferred verification are documented in `docs/AUTH_ONBOARDING.md`.
+  Targeted Dart analysis, SQL/PLpgSQL grammar parsing and diff checks passed. The strict UI contract audit reported zero findings. Test suites and live auth/backend operations remain unexecuted.

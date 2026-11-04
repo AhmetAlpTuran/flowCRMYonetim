@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,52 +20,80 @@ class AuthState {
   final String email;
 }
 
+final authClientProvider =
+    Provider<GoTrueClient>((ref) => Supabase.instance.client.auth);
+
 class AuthController extends AsyncNotifier<AuthState?> {
+  int _generation = 0;
+
   @override
-  Future<AuthState?> build() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      return null;
+  FutureOr<AuthState?> build() {
+    final client = ref.watch(authClientProvider);
+    final generation = ++_generation;
+    final subscription = client.onAuthStateChange.listen(
+      (_) {
+        if (generation == _generation) _publish(client);
+      },
+      onError: (Object error, StackTrace stack) {
+        // Offline refresh errors must not escape as unhandled stream errors.
+        // The SDK session remains the source of truth for local routing.
+        if (generation == _generation) _publish(client);
+      },
+    );
+    ref.onDispose(() {
+      _generation++;
+      subscription.cancel();
+    });
+    return _current(client);
+  }
+
+  AuthState? _current(GoTrueClient client) {
+    final session = client.currentSession;
+    if (session == null || session.isExpired) return null;
+    return AuthState(userId: session.user.id, email: session.user.email ?? '');
+  }
+
+  void _publish(GoTrueClient client) {
+    final next = _current(client);
+    final previous = state.valueOrNull;
+    // Token refresh must not reset tenant-scoped drafts and pagination.
+    if (state is AsyncData<AuthState?> &&
+        previous?.userId == next?.userId &&
+        previous?.email == next?.email) {
+      return;
     }
-    return AuthState(userId: user.id, email: user.email ?? '');
+    state = AsyncValue.data(next);
   }
 
   Future<void> login(String email, String password) async {
-    final response = await Supabase.instance.client.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
-    final user = response.user;
-    if (user == null) {
-      throw const AuthException('Giris basarisiz.');
+    final client = ref.read(authClientProvider);
+    final generation = _generation;
+    final response = await client
+        .signInWithPassword(email: email, password: password)
+        .timeout(const Duration(seconds: 20));
+    if (response.session == null) {
+      throw const AuthException('Session unavailable',
+          code: 'session_unavailable');
     }
-    await _upsertProfile(user.id, email);
-    state = AsyncValue.data(AuthState(userId: user.id, email: email));
+    if (generation == _generation) _publish(client);
   }
 
-  Future<void> signUp(String email, String password) async {
-    final response = await Supabase.instance.client.auth.signUp(
-      email: email,
-      password: password,
-    );
-    final user = response.user;
-    if (user == null) {
-      throw const AuthException('Kayit basarisiz.');
-    }
-    await _upsertProfile(user.id, email);
-    state = AsyncValue.data(AuthState(userId: user.id, email: email));
+  /// True means confirmation is still needed and no signed-in session was issued.
+  Future<bool> signUp(String email, String password) async {
+    final client = ref.read(authClientProvider);
+    final generation = _generation;
+    final response = await client
+        .signUp(email: email, password: password)
+        .timeout(const Duration(seconds: 20));
+    if (generation == _generation) _publish(client);
+    return response.session == null;
   }
 
   Future<void> logout() async {
-    await Supabase.instance.client.auth.signOut();
-    state = const AsyncValue.data(null);
-  }
-
-  Future<void> _upsertProfile(String userId, String email) async {
-    await Supabase.instance.client.from('user_profiles').upsert({
-      'id': userId,
-      'email': email,
-    });
+    final client = ref.read(authClientProvider);
+    final generation = _generation;
+    await client.signOut().timeout(const Duration(seconds: 20));
+    if (generation == _generation) _publish(client);
   }
 }
 
@@ -155,7 +185,8 @@ final selectedTenantProvider = Provider<Tenant?>((ref) {
   );
 });
 
-final currentMembershipProvider = FutureProvider<TenantMembership?>((ref) async {
+final currentMembershipProvider =
+    FutureProvider<TenantMembership?>((ref) async {
   final auth = await ref.watch(authControllerProvider.future);
   final tenant = ref.watch(selectedTenantProvider);
   if (auth == null || tenant == null) {
