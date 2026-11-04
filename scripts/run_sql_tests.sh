@@ -23,6 +23,10 @@ for file in "${files[@]}"; do
   else
     echo "FAIL $file"
     echo "$output" | grep -E "ERROR|DETAIL|CONTEXT|HINT" | head -8 | sed 's/^/    /'
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
+      # Annotations are readable through the public API without signing in.
+      echo "::error file=$file,title=SQL fixture failed::$(echo "$output" | grep -E "ERROR|CONTEXT" | head -3 | tr '\n' ' ' | cut -c1-900)"
+    fi
     failed=$((failed + 1))
   fi
 done

@@ -47,8 +47,17 @@ jobs:
           # Pinned to the version the stack is verified with locally; upgrade deliberately.
           version: 2.20.8
       - name: Start database and apply all migrations from scratch
-        # Auth (gotrue) stays up because the fixtures rely on its auth schema.
-        run: >-
-          supabase start -x realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        # Auth (gotrue) stays up because the fixtures rely on its auth schema. One retry
+        # absorbs transient image-pull or health-check failures; the cause is published
+        # as an annotation, which is readable without signing in to GitHub.
+        run: |
+          for attempt in 1 2; do
+            if supabase start -x realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor 2>&1 | tee start.log; then
+              grep -q "Started supabase" start.log && exit 0
+            fi
+            echo "::warning title=supabase start failed (attempt $attempt)::$(grep -iE 'error|failed|unhealthy' start.log | tail -3 | tr '\n' ' ' | cut -c1-900)"
+            supabase stop --no-backup || true
+          done
+          exit 1
       - name: Run SQL fixtures
         run: bash scripts/run_sql_tests.sh
