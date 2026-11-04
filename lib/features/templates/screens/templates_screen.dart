@@ -10,6 +10,7 @@ import '../../tenancy/providers/tenant_providers.dart';
 import '../data/supabase_template_repository.dart';
 import '../models/message_template.dart';
 import '../models/template_draft.dart';
+import '../models/template_header_media.dart';
 
 class TemplatesScreen extends ConsumerStatefulWidget {
   const TemplatesScreen({super.key});
@@ -473,21 +474,17 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
   }
 
   Future<void> _pickAttachment(String type, String label) async {
-    FileType pickerType = FileType.any;
-    if (type == 'IMAGE') {
-      pickerType = FileType.image;
-    } else if (type == 'VIDEO') {
-      pickerType = FileType.video;
-    } else if (type == 'DOCUMENT') {
-      pickerType = FileType.custom;
+    final limits = templateHeaderMediaLimits[type];
+    if (limits == null) {
+      return;
     }
 
+    // Matches the server: WhatsApp template headers accept JPEG/PNG images,
+    // MP4 video and PDF documents only.
     final result = await FilePicker.platform.pickFiles(
-      type: pickerType,
+      type: FileType.custom,
       withData: true,
-      allowedExtensions: type == 'DOCUMENT'
-          ? ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']
-          : null,
+      allowedExtensions: limits.extensions,
     );
 
     if (result == null || result.files.isEmpty) {
@@ -499,6 +496,13 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
     if (bytes == null) {
       setState(() {
         _error = 'Dosya okunamadi.';
+      });
+      return;
+    }
+    final mediaError = templateHeaderMediaError(type, file.extension, bytes.length);
+    if (mediaError != null) {
+      setState(() {
+        _error = mediaError;
       });
       return;
     }
@@ -793,34 +797,12 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen>
   String _inferMimeType(String type, String? extension) {
     final ext = (extension ?? '').toLowerCase();
     if (type == 'IMAGE') {
-      if (ext == 'png') {
-        return 'image/png';
-      }
-      return 'image/jpeg';
+      return ext == 'png' ? 'image/png' : 'image/jpeg';
     }
     if (type == 'VIDEO') {
       return 'video/mp4';
     }
-    switch (ext) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'doc':
-        return 'application/msword';
-      case 'docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      case 'xls':
-        return 'application/vnd.ms-excel';
-      case 'xlsx':
-        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      case 'ppt':
-        return 'application/vnd.ms-powerpoint';
-      case 'pptx':
-        return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-      case 'txt':
-        return 'text/plain';
-      default:
-        return 'application/octet-stream';
-    }
+    return 'application/pdf';
   }
 
   String _attachmentStatusLabel(TemplateAttachmentStatus status) {

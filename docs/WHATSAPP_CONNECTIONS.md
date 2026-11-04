@@ -2,8 +2,18 @@
 
 The implemented foundation includes metadata/credential tables, an administration
 endpoint, token verification, encrypted storage and a tenant-scoped resolver.
-Campaigns, template synchronization, human replies and bot delivery now use it.
-Template creation/media upload and Embedded Signup UI/code exchange remain pending.
+Campaigns, template synchronization, template submission, template header media
+upload, human replies and bot delivery all use it; no function reads a platform-wide
+WhatsApp token any more. Embedded Signup UI/code exchange remains pending.
+
+`submit-template` validates the name, language, category and components, posts to the
+resolved connection's own WABA, then records the result through
+`apply_whatsapp_template_page`, so a later sync updates the same row. If the provider
+accepted but recording failed it returns `template_record_unconfirmed`; syncing records
+it. `upload-template-media` accepts JPEG/PNG (5 MB) or MP4/PDF (16 MB), runs Meta's
+Resumable Upload API with the tenant token against this SaaS's `META_APP_ID`, accepts
+only `upload:<id>?sig=<sig>` session paths, and returns the header handle without
+storing the file. Both take an optional `connection_id` (default connection otherwise).
 Signed webhook ingestion, inbound conversations and receipt processing are documented
 in `WEBHOOKS.md`, with bot processing in `AI_WORKER.md`. The former unsigned callback
 delegates to the verified receiver. Deployment and runtime verification remain pending.

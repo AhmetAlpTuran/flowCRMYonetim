@@ -21,7 +21,7 @@ modified when this work began; preserve it outside milestone commits.
 | Auth/tenancy | Session-driven password auth, confirmation-aware signup, server-owned profiles, memberships, tenant picker, module permissions | Business onboarding, tenant boundary audit, invitations, recovery and runtime verification |
 | Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
 | AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
-| Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
+| Templates | Scoped encrypted-connection sync, submission and header media upload; validated send bindings and form | Multi-account picker UI, broader template families (OTP, Flow, catalog), live provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
 | Handoff | Atomic request, shared ownership controls, queue cancellation, support episode timing backend, paginated/filterable list | Metrics presentation and runtime verification |
 | Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
@@ -37,8 +37,8 @@ modified when this work began; preserve it outside milestone commits.
 - Inbox text sending now uses encrypted tenant connections and a durable queue, runtime unverified.
 - Audited 2026-11-04: every Edge Function service-role query filters by tenant, and the
   nine user-callable security-definer RPCs check `auth.uid()` plus tenant permission.
-- Open: `submit-template` and `upload-template-media` still use the global Meta token, so
-  every tenant would submit into one shared WABA. Port before onboarding a second business.
+- Fixed 2026-11-04: `submit-template` and `upload-template-media` used the global Meta token
+  (every tenant would submit into one shared WABA); both now use the tenant's own connection.
 - Webhook signature validation and database-owned routing implemented in source, runtime unverified.
 - Old bot callback replaced with durable ingestion and a scheduled scoped AI worker, runtime unverified.
 - Inbound materialization preserves pending/handoff status and deduplicates side effects, runtime unverified.
@@ -285,3 +285,15 @@ modified when this work began; preserve it outside milestone commits.
     (`.github/workflows/ci.yml`) for Flutter, Deno and migrations + SQL fixtures.
   Remaining Phase 0: hosted staging project and worker schedules, Meta test-number run of the
   outbound path, credential rotation (owner), validating the six `NOT VALID` constraints.
+
+- 2026-11-04: Roadmap Phase 1, per-tenant templates. `submit-template` and
+  `upload-template-media` were rewritten on the shared endpoint/auth/connection helpers and
+  no longer read `WHATSAPP_ACCESS_TOKEN`/`WHATSAPP_WABA_ID`/`WHATSAPP_APP_ID` (removed from
+  `.env.example`). Submission validates name/language/category/components
+  (`_shared/template_submission.ts`), posts to the resolved connection's WABA and records the
+  result via `apply_whatsapp_template_page`; upload uses Meta's Resumable Upload API with the
+  tenant token and `META_APP_ID`, accepting only `upload:<id>?sig=<sig>` session paths.
+  The Flutter picker now offers only JPEG/PNG, MP4 and PDF with matching size limits.
+  Verified: 53/53 Deno tests (5 new), 36/36 Flutter tests (1 new), and a local edge-runtime
+  smoke run of auth (401), membership/permission (403), validation (400/415) and connection
+  resolution. Live Meta submission/upload is runtime unverified (needs a test number).

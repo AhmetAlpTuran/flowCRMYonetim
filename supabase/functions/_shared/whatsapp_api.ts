@@ -1,4 +1,5 @@
 import { ApiError, metaId } from "./http.ts";
+import { uploadSessionPath } from "./template_submission.ts";
 
 export class GraphApiError extends ApiError {
   constructor(
@@ -83,6 +84,54 @@ export class WhatsAppApi {
       );
     }
     return data;
+  }
+
+  // Resumable Upload API: returns the header handle used in template examples.
+  // The session belongs to this SaaS's Meta app; the tenant token authorizes it.
+  async uploadTemplateMedia(
+    appId: string,
+    media: { fileName: string; mimeType: string; bytes: Uint8Array<ArrayBuffer> },
+  ): Promise<string> {
+    const session = await this.data(`${metaId(appId)}/uploads`, "POST", undefined, {
+      file_name: media.fileName,
+      file_length: String(media.bytes.length),
+      file_type: media.mimeType,
+    });
+    const sessionPath = uploadSessionPath(session.id);
+    let response: Response;
+    try {
+      response = await this.transport(
+        `https://graph.facebook.com/${this.version}/${sessionPath}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `OAuth ${this.accessToken}`,
+            file_offset: "0",
+            "Content-Type": "application/octet-stream",
+          },
+          body: media.bytes,
+          redirect: "error",
+          signal: AbortSignal.timeout(60000),
+        },
+      );
+    } catch {
+      throw new ApiError(503, "whatsapp_transport", "WhatsApp response unavailable");
+    }
+    const result: unknown = await response.json().catch(() => null);
+    const data = result && typeof result === "object" && !Array.isArray(result)
+      ? result as Record<string, unknown>
+      : null;
+    if (!response.ok || !data || data.error) {
+      const error = data?.error as { code?: unknown } | undefined;
+      throw new GraphApiError(
+        response.status,
+        typeof error?.code === "number" ? error.code : null,
+      );
+    }
+    if (typeof data.h !== "string" || !data.h || data.h.length > 4096) {
+      throw new ApiError(502, "whatsapp_invalid_response", "WhatsApp upload handle unavailable");
+    }
+    return data.h;
   }
 
   async findPhone(
