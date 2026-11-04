@@ -28,10 +28,11 @@ void main() {
     final client = SupabaseClient(
       'https://example.invalid',
       'fixture',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
       httpClient: MockClient((request) async {
         requests.add(request);
         return http.Response('null', 200,
-            headers: {'content-type': 'application/json'});
+            headers: {'content-type': 'application/json'}, request: request);
       }),
     );
     addTearDown(client.dispose);
@@ -67,12 +68,14 @@ void main() {
     final client = SupabaseClient(
       'https://example.invalid',
       'fixture',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
       httpClient: MockClient((request) async {
         requests.add(jsonDecode(request.body) as Map<String, dynamic>);
         throw TimeoutException('Fixture uncertain response');
       }),
     );
-    addTearDown(client.dispose);
+    // dispose() awaits a real isolate, which never settles under the fake clock.
+    addTearDown(() => unawaited(client.dispose()));
     await tester.pumpWidget(ProviderScope(
       overrides: [
         selectedTenantProvider.overrideWithValue(tenant),
@@ -112,12 +115,13 @@ void main() {
     final client = SupabaseClient(
       'https://example.invalid',
       'fixture',
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
       httpClient: MockClient((request) {
         requests.add(jsonDecode(request.body) as Map<String, dynamic>);
         return response.future;
       }),
     );
-    addTearDown(client.dispose);
+    addTearDown(() => unawaited(client.dispose()));
     final selection = StateProvider<Tenant?>((ref) => tenant);
     final container = ProviderContainer(overrides: [
       selectedTenantProvider.overrideWith((ref) => ref.watch(selection)),

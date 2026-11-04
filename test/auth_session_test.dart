@@ -108,7 +108,7 @@ void main() {
         httpClient: MockClient((request) async {
           requests.add(request);
           return http.Response(jsonEncode(user.toJson()), 200,
-              headers: {'content-type': 'application/json'});
+              headers: {'content-type': 'application/json'}, request: request);
         }));
     final container = ProviderContainer(
         overrides: [authClientProvider.overrideWithValue(client)]);
@@ -154,7 +154,7 @@ void main() {
                 'user': user.toJson()
               }),
               200,
-              headers: {'content-type': 'application/json'});
+              headers: {'content-type': 'application/json'}, request: request);
         }));
     final container = ProviderContainer(
         overrides: [authClientProvider.overrideWithValue(client)]);

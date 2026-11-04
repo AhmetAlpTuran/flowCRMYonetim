@@ -23,7 +23,7 @@ void main() {
                     ]
                   : []),
               200,
-              headers: {'content-type': 'application/json'});
+              headers: {'content-type': 'application/json'}, request: request);
         }),
       );
       addTearDown(client.dispose);

@@ -166,7 +166,7 @@ void main() {
               ? 'true'
               : '[]';
       return http.Response(body, 200,
-          headers: {'content-type': 'application/json'});
+          headers: {'content-type': 'application/json'}, request: request);
     }));
     addTearDown(scopedClient.dispose);
     final repo = SupabaseInboxRepository(scopedClient);
@@ -198,7 +198,7 @@ void main() {
     expect(requests[2].url.queryParameters['status'], 'eq.open');
     expect(requests[2].url.queryParameters['offset'], '40');
     expect(requests[2].url.queryParameters['limit'], '21');
-    expect(requests[2].url.queryParameters['order'], 'created_at.desc,id.desc');
+    expect(requests[2].url.queryParameters['order'], 'created_at.desc.nullslast,id.desc.nullslast');
   });
 
   Future<ProviderContainer> container(
