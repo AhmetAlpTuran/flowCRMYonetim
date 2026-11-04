@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../onboarding/widgets/create_business_card.dart';
+import '../../onboarding/widgets/pending_invites_section.dart';
 import '../../shell/app_shell.dart';
 import '../../users/providers/tenant_admin_providers.dart';
 import '../providers/tenant_providers.dart';
@@ -104,23 +106,27 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
             shrinkWrap: true,
             children: [
               Icon(
-                Icons.lock_outline,
+                Icons.storefront_outlined,
                 size: 48,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 12),
               Text(
-                'Bu kullanici icin tenant atamasi yok.',
+                'Flow CRM\'e hoş geldiniz',
                 style: Theme.of(context).textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'Yoneticiye ulasabilir veya asagidan tenant basvurusu yapabilirsiniz.',
+                'Kendi işletmenizi oluşturun veya size gönderilen bir daveti kabul edin.',
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
+              const PendingInvitesSection(),
+              const CreateBusinessCard(),
+              const SizedBox(height: 20),
+              if (tenants.valueOrNull?.isNotEmpty ?? false)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -128,7 +134,7 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tenant basvurusu',
+                        'Herkese açık bir işletmeye katılma isteği',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 12),
@@ -203,19 +209,20 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Basvurularim',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
               requests.when(
                 data: (items) {
                   if (items.isEmpty) {
-                    return const Text('Henuz basvurunuz yok.');
+                    return const SizedBox.shrink();
                   }
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
+                      Text(
+                        'Katılma isteklerim',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
                       for (final request in items) ...[
                         Card(
                           child: ListTile(
@@ -235,8 +242,8 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
                     ],
                   );
                 },
-                error: (error, _) => Text('Basvurular yuklenemedi: $error'),
-                loading: () => const LinearProgressIndicator(minHeight: 2),
+                error: (_, __) => const SizedBox.shrink(),
+                loading: () => const SizedBox.shrink(),
               ),
             ],
           ),
@@ -271,6 +278,13 @@ class _NoTenantScreenState extends ConsumerState<_NoTenantScreen> {
         );
       }
       ref.invalidate(myJoinRequestsProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('İstek gönderilemedi. Tekrar deneyin.')),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

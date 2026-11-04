@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../onboarding/data/onboarding_errors.dart';
 
 import '../../tenancy/providers/tenant_providers.dart';
 import '../providers/tenant_admin_providers.dart';
@@ -440,7 +443,7 @@ class _InviteFormCardState extends ConsumerState<_InviteFormCard> {
               children: [
                 Expanded(
                   child: Text(
-                    'Davet e-postasi gonderimi mock olarak kaydedilir.',
+                    'Davet 14 gün geçerlidir. Kişi bu e-postayla giriş yaptığında daveti görür.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -469,8 +472,7 @@ class _InviteFormCardState extends ConsumerState<_InviteFormCard> {
       return;
     }
     final tenant = ref.read(selectedTenantProvider);
-    final auth = await ref.read(authControllerProvider.future);
-    if (tenant == null || auth == null) {
+    if (tenant == null) {
       return;
     }
     setState(() {
@@ -483,19 +485,22 @@ class _InviteFormCardState extends ConsumerState<_InviteFormCard> {
         email: email,
         role: _role,
         permissions: _role == 'admin' ? _PermissionOption.keys.toSet() : _permissions,
-        invitedBy: auth.userId,
       );
       _emailController.clear();
       setState(() {
         _role = 'user';
         _permissions = {'inbox'};
       });
+      ref.invalidate(tenantInvitesProvider);
+      if (mounted) {
+        await _showShareDialog(tenant.name, email.toLowerCase());
+      }
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Davet olusturuldu.')),
+          SnackBar(content: Text(onboardingErrorMessage(error))),
         );
       }
-      ref.invalidate(tenantInvitesProvider);
     } finally {
       if (mounted) {
         setState(() {
@@ -503,6 +508,40 @@ class _InviteFormCardState extends ConsumerState<_InviteFormCard> {
         });
       }
     }
+  }
+}
+
+extension on _InviteFormCardState {
+  Future<void> _showShareDialog(String tenantName, String email) {
+    final message = inviteShareMessage(tenantName: tenantName, email: email);
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Davet oluşturuldu'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Bu mesajı davet ettiğiniz kişiye iletin:'),
+            const SizedBox(height: 12),
+            SelectableText(message),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: message));
+              if (context.mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Kopyala'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -541,16 +580,21 @@ class _InviteCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 12),
-            _StatusChip(status: invite.status),
+            _StatusChip(status: invite.displayStatus),
             if (invite.isPending) ...[
               const SizedBox(width: 8),
               TextButton(
                 onPressed: () async {
                   final repository = ref.read(tenantAdminRepositoryProvider);
-                  await repository.updateInviteStatus(
-                    inviteId: invite.id,
-                    status: 'revoked',
-                  );
+                  try {
+                    await repository.revokeInvite(invite.id);
+                  } catch (error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(onboardingErrorMessage(error))),
+                      );
+                    }
+                  }
                   ref.invalidate(tenantInvitesProvider);
                 },
                 child: const Text('Iptal'),
@@ -910,6 +954,8 @@ class _StatusChip extends StatelessWidget {
         return 'Iptal';
       case 'expired':
         return 'Suresi doldu';
+      case 'declined':
+        return 'Reddedildi';
       default:
         return value;
     }
@@ -947,7 +993,6 @@ class _PermissionOption {
     _PermissionOption('handoff', 'Yonlendirme'),
     _PermissionOption('campaigns', 'Kampanyalar'),
     _PermissionOption('templates', 'Sablonlar'),
-    _PermissionOption('custom', 'Ozel Moduller'),
     _PermissionOption('users', 'Kullanicilar'),
   ];
 

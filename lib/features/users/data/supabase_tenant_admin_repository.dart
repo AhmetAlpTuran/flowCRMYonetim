@@ -48,7 +48,7 @@ class SupabaseTenantAdminRepository {
   Future<List<TenantInvite>> fetchInvites(String tenantId) async {
     final response = await _client
         .from('tenant_invites')
-        .select('id, email, role, permissions, status, created_at')
+        .select('id, email, role, permissions, status, created_at, expires_at')
         .eq('tenant_id', tenantId)
         .order('created_at', ascending: false);
 
@@ -60,34 +60,37 @@ class SupabaseTenantAdminRepository {
         permissions: _permissionsFrom(row['permissions']),
         status: row['status'] as String? ?? 'pending',
         createdAt: DateTime.parse(row['created_at'] as String),
+        expiresAt: row['expires_at'] is String
+            ? DateTime.parse(row['expires_at'] as String)
+            : null,
       );
     }).toList();
   }
 
-  Future<void> createInvite({
+  /// Creates or refreshes the pending invite for [email]. The server records
+  /// the inviter, enforces role/module limits and sets a 14-day expiry.
+  Future<String> createInvite({
     required String tenantId,
     required String email,
     required String role,
     required Set<String> permissions,
-    required String invitedBy,
   }) async {
-    await _client.from('tenant_invites').insert({
-      'tenant_id': tenantId,
-      'email': email,
-      'role': role,
-      'permissions': permissions.toList(),
-      'invited_by': invitedBy,
-    });
+    final id = await _client.rpc('create_tenant_invite', params: {
+      'p_tenant_id': tenantId,
+      'p_email': email.trim(),
+      'p_role': role,
+      'p_permissions': permissions.toList(),
+    }).timeout(const Duration(seconds: 20));
+    if (id is! String) {
+      throw const FormatException('Davet yanıtı alınamadı.');
+    }
+    return id;
   }
 
-  Future<void> updateInviteStatus({
-    required String inviteId,
-    required String status,
-  }) async {
-    await _client.from('tenant_invites').update({
-      'status': status,
-      'responded_at': DateTime.now().toIso8601String(),
-    }).eq('id', inviteId);
+  Future<void> revokeInvite(String inviteId) async {
+    await _client.rpc('revoke_tenant_invite', params: {
+      'p_invite_id': inviteId,
+    }).timeout(const Duration(seconds: 20));
   }
 
   Future<List<TenantJoinRequest>> fetchJoinRequests(String tenantId) async {
