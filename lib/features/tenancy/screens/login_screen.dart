@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../providers/tenant_providers.dart';
+import 'password_reset_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -108,6 +109,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 icon: Icon(_showPassword
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined)))),
+                    Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                            onPressed: _loading
+                                ? null
+                                : () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                        builder: (_) => PasswordResetScreen(
+                                            initialEmail:
+                                                _emailController.text.trim()))),
+                            child: const Text('Şifremi unuttum'))),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Semantics(

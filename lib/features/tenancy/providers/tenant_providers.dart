@@ -25,6 +25,9 @@ final authClientProvider =
 
 class AuthController extends AsyncNotifier<AuthState?> {
   int _generation = 0;
+  // Recovery signs the user in before the new password is saved; routing waits
+  // until the password update finishes so the reset form can report errors.
+  bool _holdPublish = false;
 
   @override
   FutureOr<AuthState?> build() {
@@ -32,7 +35,7 @@ class AuthController extends AsyncNotifier<AuthState?> {
     final generation = ++_generation;
     final subscription = client.onAuthStateChange.listen(
       (_) {
-        if (generation == _generation) _publish(client);
+        if (generation == _generation && !_holdPublish) _publish(client);
       },
       onError: (Object error, StackTrace stack) {
         // Offline refresh errors must not escape as unhandled stream errors.
@@ -87,6 +90,46 @@ class AuthController extends AsyncNotifier<AuthState?> {
         .timeout(const Duration(seconds: 20));
     if (generation == _generation) _publish(client);
     return response.session == null;
+  }
+
+  /// Sends a recovery email containing a one-time code.
+  Future<void> requestPasswordReset(String email) async {
+    await ref
+        .read(authClientProvider)
+        .resetPasswordForEmail(email.trim())
+        .timeout(const Duration(seconds: 20));
+  }
+
+  /// Verifies the emailed recovery code, then sets [newPassword]. A retry after
+  /// a failed password update reuses the session the code already created.
+  Future<void> completePasswordReset({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final client = ref.read(authClientProvider);
+    final generation = _generation;
+    _holdPublish = true;
+    try {
+      final current = client.currentSession;
+      if (current == null ||
+          current.user.email?.toLowerCase() != email.trim().toLowerCase()) {
+        final response = await client
+            .verifyOTP(
+                type: OtpType.recovery, email: email.trim(), token: code.trim())
+            .timeout(const Duration(seconds: 20));
+        if (response.session == null) {
+          throw const AuthException('Session unavailable',
+              code: 'session_unavailable');
+        }
+      }
+      await client
+          .updateUser(UserAttributes(password: newPassword))
+          .timeout(const Duration(seconds: 20));
+    } finally {
+      _holdPublish = false;
+    }
+    if (generation == _generation) _publish(client);
   }
 
   Future<void> logout() async {

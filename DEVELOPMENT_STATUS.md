@@ -18,7 +18,7 @@ modified when this work began; preserve it outside milestone commits.
 
 | Area | Implemented in source | Remaining work |
 |---|---|---|
-| Auth/tenancy | Session-driven password auth, confirmation-aware signup, server-owned profiles, memberships, tenant picker, module permissions | Business onboarding, tenant boundary audit, invitations, recovery and runtime verification |
+| Auth/tenancy | Session-driven password auth, confirmation-aware signup, server-owned profiles, self-service business creation, in-app invites (server RPCs, expiry, no escalation), code-based password recovery, memberships, tenant picker, module permissions | Invite emails (needs email provider), creating additional businesses from the tenant switcher, hosted SMTP/template setup |
 | Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
 | AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
 | Templates | Scoped encrypted-connection sync, submission and header media upload; validated send bindings and form | Multi-account picker UI, broader template families (OTP, Flow, catalog), live provider verification |
@@ -297,3 +297,17 @@ modified when this work began; preserve it outside milestone commits.
   Verified: 53/53 Deno tests (5 new), 36/36 Flutter tests (1 new), and a local edge-runtime
   smoke run of auth (401), membership/permission (403), validation (400/415) and connection
   resolution. Live Meta submission/upload is runtime unverified (needs a test number).
+
+- 2026-11-05: Roadmap Phase 1, self-service onboarding. New migration
+  `20261105090000_tenant_onboarding.sql`: `create_business`, `create_tenant_invite`,
+  `revoke_tenant_invite`, `my_tenant_invites`, `respond_tenant_invite`; direct client
+  writes to `tenant_invites` revoked; invites gain expiry, a single pending row per address
+  and audit events. Closed an escalation path where a non-admin user manager could invite
+  an administrator. Flutter: new `lib/features/onboarding` (create-business card, pending
+  invites), a reworked first-run screen, invite form/revoke via RPCs with share text, and
+  a code-based password reset screen (`AuthController.requestPasswordReset` /
+  `completePasswordReset`). Recovery email template added for local Supabase.
+  Verified: 14/14 SQL fixtures (new `tenant_onboarding.sql`), 41/41 Flutter tests (5 new),
+  and a live local Auth/PostgREST run of create, invite, accept and password reset.
+  Remaining: invite emails, hosted email template/SMTP setup (owner), second business
+  from the tenant switcher.
