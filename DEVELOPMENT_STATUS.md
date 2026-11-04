@@ -27,7 +27,7 @@ modified when this work began; preserve it outside milestone commits.
 | Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
 | Billing | Absent | Provider integration, subscription lifecycle, entitlements, usage limits |
 | Operations | Additive migrations, growing setup guide, optional campaign/webhook scheduler scripts | Deployment, monitoring/alerts, retention, backup/restore and remaining worker schedules |
-| Tests | Campaign, connection, webhook/inbound, controller, payload and UI regressions authored | Broader security/workflow suites and execution deferred by user |
+| Tests | Executed locally 2026-11-04: 13/13 SQL fixtures, 48/48 Deno unit tests, 13/13 functions type-check, 35/35 Flutter tests; inbound webhook-to-handoff smoke test on the local edge runtime; CI workflow added | Outbound provider sends, live Meta/OpenAI calls, broader security/workflow suites |
 
 ## Confirmed defects and release risks
 
@@ -35,7 +35,10 @@ modified when this work began; preserve it outside milestone commits.
 - Fixed in source, runtime unverified: empty send components replaced by validated parameters.
 - Campaign sender replaced in source with durable snapshots, fenced claims and partial outcomes.
 - Inbox text sending now uses encrypted tenant connections and a durable queue, runtime unverified.
-- Some service-role queries retrieve related objects by ID without tenant equality.
+- Audited 2026-11-04: every Edge Function service-role query filters by tenant, and the
+  nine user-callable security-definer RPCs check `auth.uid()` plus tenant permission.
+- Open: `submit-template` and `upload-template-media` still use the global Meta token, so
+  every tenant would submit into one shared WABA. Port before onboarding a second business.
 - Webhook signature validation and database-owned routing implemented in source, runtime unverified.
 - Old bot callback replaced with durable ingestion and a scheduled scoped AI worker, runtime unverified.
 - Inbound materialization preserves pending/handoff status and deduplicates side effects, runtime unverified.
@@ -69,7 +72,8 @@ modified when this work began; preserve it outside milestone commits.
 ## Working rules
 
 - Commit completed milestones with explicit paths; never include secrets or unrelated edits.
-- Write tests alongside features, but do not run suites until the user requests that phase.
+- Write tests alongside features. The verification phase started 2026-11-04: run the
+  suites (see CI) for every change; live provider checks still need the owner's test number.
 - Review diffs and use formatting/static checks as appropriate; these are not evidence
   of passing runtime tests. Do not mark the full product verified before release checks.
 - Do not send real WhatsApp messages, provision paid resources, or charge subscriptions
@@ -255,3 +259,29 @@ modified when this work began; preserve it outside milestone commits.
   Self-service business creation, invitations and recovery remain next requirements.
   Setup and deferred verification are documented in `docs/AUTH_ONBOARDING.md`.
   Targeted Dart analysis, SQL/PLpgSQL grammar parsing and diff checks passed. The strict UI contract audit reported zero findings. Test suites and live auth/backend operations remain unexecuted.
+
+- 2026-11-04: Roadmap Phase 0 (verification) started with Claude Code; the approved plan to
+  finish, monetize and publish is in `docs/ROADMAP.md`. First execution of everything:
+  - Upgrade path: the old January local database (14 migrations, 3 tenants, 66 messages;
+    backed up to the git-ignored `supabase/.backups/`) took all 15 newer migrations with its
+    data intact. A from-scratch `supabase db reset` (30 migrations + seed) also succeeds.
+  - Defect found and fixed: PostgreSQL rejects regex repetition counts above 255, so
+    `apply_whatsapp_template_page` (`{1,512}`) and `finish_inbox_dispatch` (`{1,506}`)
+    raised at runtime: template sync failed for every page and accepted inbox/bot sends
+    could never be finalized. Fixed additively in `20261104100000_regex_repeat_limits.sql`.
+  - SQL fixtures 13/13 pass (`scripts/run_sql_tests.sh`) on both the upgraded and the fresh DB.
+  - Deno 2.4: all 13 functions and 8 test modules type-check; 48/48 unit tests pass. Fixed a
+    `TextEncoder` typing mismatch in `credential_cipher.ts` and its test. The local edge
+    runtime (Deno 2.1-compatible) runs the code; type-check needs Deno 2.2+.
+  - Flutter: analyze clean apart from 5 `withOpacity` deprecation infos; 35/35 tests pass after
+    fixing test harness bugs only (fake responses lacked `request`, auth refresh timers and an
+    isolate-awaiting `dispose()` under the fake clock, a stale `nullslast` order expectation).
+  - Smoke test on the local edge runtime with generated secrets: webhook verification (200,
+    wrong token 403), signed ingest (200, bad signature 401), webhook-worker materialized one
+    conversation/message/bot job, wrong worker secret 401, bot-worker without an AI key handed
+    off (`ai_configuration_invalid`) and queued the customer notice. Outbound sending was not run.
+  - Config: Supabase URL/key now come from `--dart-define`; added `supabase/functions/.env.example`;
+    removed the unused `app_server_config.dart` and three unused mock repositories; added CI
+    (`.github/workflows/ci.yml`) for Flutter, Deno and migrations + SQL fixtures.
+  Remaining Phase 0: hosted staging project and worker schedules, Meta test-number run of the
+  outbound path, credential rotation (owner), validating the six `NOT VALID` constraints.
