@@ -24,7 +24,7 @@ modified when this work began; preserve it outside milestone commits.
 | Templates | Scoped encrypted-connection sync, submission and header media upload; validated send bindings and form | Multi-account picker UI, broader template families (OTP, Flow, catalog), live provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
 | Handoff | Atomic request, shared ownership controls, queue cancellation, support episode timing backend, paginated/filterable list | Metrics presentation and runtime verification |
-| Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
+| Dashboard | Real tenant metrics from `dashboard_metrics` (conversations, inbound, bot vs human replies, median first-response/resolution, handoffs, campaign delivery/read, daily chart; today/7/30 days, Istanbul time) | Per-agent team performance, CSV export |
 | Billing | Absent | Provider integration, subscription lifecycle, entitlements, usage limits |
 | Operations | Additive migrations, growing setup guide, optional campaign/webhook scheduler scripts | Deployment, monitoring/alerts, retention, backup/restore and remaining worker schedules |
 | Tests | Executed locally 2026-11-04: 13/13 SQL fixtures, 48/48 Deno unit tests, 13/13 functions type-check, 35/35 Flutter tests; inbound webhook-to-handoff smoke test on the local edge runtime; CI workflow added | Outbound provider sends, live Meta/OpenAI calls, broader security/workflow suites |
@@ -332,3 +332,12 @@ modified when this work began; preserve it outside milestone commits.
   `docs/CONTACTS_CONSENT.md`. Verified: 15/15 SQL fixtures (new `contacts_consent.sql`),
   54/54 Flutter tests (7 new), live PostgREST run of import, list, opt-out and audience.
   Next: keyword opt-out from inbound messages, xlsx import.
+
+- 2026-11-05: Roadmap Phase 1, real dashboard. Migration `20261105110000_dashboard_metrics.sql`
+  adds `dashboard_metrics(tenant, days, timezone)`: definer function behind an explicit
+  dashboard-permission check returning aggregates only (no content or identities), local-day
+  buckets, legacy episodes excluded from medians, plus supporting indexes. The mock repository,
+  the invented "estimated satisfaction" figure, the chart placeholder and the no-op quick
+  actions were removed; the screen now shows live metrics with a today/7/30-day selector and a
+  daily chart. Verified: 16/16 SQL fixtures (new `dashboard_metrics.sql`), 58/58 Flutter tests
+  (4 new), live PostgREST call. Next: per-agent performance.

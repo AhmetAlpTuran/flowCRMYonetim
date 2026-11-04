@@ -11,7 +11,7 @@ risks. Read it before starting work and append a dated milestone log entry after
 
 - `lib/features/<feature>/{data,models,providers,screens,widgets}`: feature-first Flutter.
   Features: app, shell, tenancy, onboarding, users, connections, contacts, inbox, handoff,
-  campaigns, templates, bot, knowledge, dashboard (dashboard is still a mock repository).
+  campaigns, templates, bot, knowledge, dashboard (`dashboard_metrics` RPC).
 - `lib/config/supabase_config.dart`: Supabase URL/anon key from `--dart-define`
   (`SUPABASE_URL`, `SUPABASE_ANON_KEY`); defaults target the local `supabase start` stack.
   Android emulator: `--dart-define=SUPABASE_URL=http://10.0.2.2:54321`.
