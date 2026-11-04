@@ -51,6 +51,15 @@ final messagesProvider =
   return repository.fetchMessages(id, tenantId: tenant.id);
 });
 
+/// Signed URL per stored media path, cached for the session (links last an hour).
+final mediaUrlProvider =
+    FutureProvider.autoDispose.family<String, String>((ref, path) async {
+  final link = ref.keepAlive();
+  final timer = Future<void>.delayed(const Duration(minutes: 50), link.close);
+  ref.onDispose(() => timer.ignore());
+  return ref.watch(inboxRepositoryProvider).mediaUrl(path);
+});
+
 class InboxFilters {
   const InboxFilters({
     this.query = '',

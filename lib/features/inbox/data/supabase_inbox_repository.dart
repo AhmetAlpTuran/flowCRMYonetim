@@ -136,7 +136,8 @@ class SupabaseInboxRepository {
       {required String tenantId}) async {
     final response = await _client
         .from('messages')
-        .select()
+        .select('*, media:message_media(kind, state, storage_path, mime_type, '
+            'file_name, caption, size_bytes)')
         .eq('tenant_id', tenantId)
         .eq('conversation_id', conversationId)
         .order('sent_at', ascending: true);
@@ -267,8 +268,15 @@ class SupabaseInboxRepository {
       outboundState: row['outbound_state'] as String?,
       outboundErrorCode: row['outbound_error_code'] as String?,
       sentBy: row['sent_by'] as String?,
+      media: MessageMedia.fromEmbedded(row['media']),
     );
   }
+
+  /// Short-lived link to a stored media file (Storage RLS checks inbox access).
+  Future<String> mediaUrl(String storagePath) => _client.storage
+      .from('inbox-media')
+      .createSignedUrl(storagePath, 3600)
+      .timeout(const Duration(seconds: 20));
 
   ConversationStatus _statusFromString(String value) {
     switch (value) {

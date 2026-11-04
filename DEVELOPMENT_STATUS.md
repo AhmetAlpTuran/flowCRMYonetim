@@ -19,7 +19,7 @@ modified when this work began; preserve it outside milestone commits.
 | Area | Implemented in source | Remaining work |
 |---|---|---|
 | Auth/tenancy | Session-driven password auth, confirmation-aware signup, server-owned profiles, self-service business creation, in-app invites (server RPCs, expiry, no escalation), code-based password recovery, memberships, tenant picker, module permissions | Invite emails (needs email provider), creating additional businesses from the tenant switcher, hosted SMTP/template setup |
-| Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
+| Inbox | Account-scoped inbound messages, inbound media download/storage/display, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
 | AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
 | Templates | Scoped encrypted-connection sync, submission and header media upload; validated send bindings and form | Multi-account picker UI, broader template families (OTP, Flow, catalog), live provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
@@ -341,3 +341,16 @@ modified when this work began; preserve it outside milestone commits.
   actions were removed; the screen now shows live metrics with a today/7/30-day selector and a
   daily chart. Verified: 16/16 SQL fixtures (new `dashboard_metrics.sql`), 58/58 Flutter tests
   (4 new), live PostgREST call. Next: per-agent performance.
+
+- 2026-11-06: Roadmap Phase 1, inbound media. Migration `20261106090000_inbox_media.sql`
+  (private `inbox-media` bucket with tenant-folder Storage RLS, `message_media` queue fed by a
+  trigger on customer media messages, fenced claim/finish with backoff and exhaustion
+  handling, realtime publication), new `media-worker` with `_shared/media_download.ts`
+  (Meta-host allow-list, 25 MB cap, size check), scheduler script, and chat rendering of
+  images and file tiles via signed links (`url_launcher` now a direct dependency). See
+  `docs/INBOX_MEDIA.md`. Verified: 17/17 SQL fixtures (new `inbox_media.sql`), 57/57 Deno tests
+  (4 new), 63/63 Flutter tests (5 new), and a live local run: signed webhook queued the image,
+  worker failed it cleanly without credentials, wrong secret 401, owner's signed link
+  downloaded the file, another tenant got not-found. Live Meta download runtime unverified.
+  CI: the dashboard commit's database job failed at stack start on the runner while a fresh
+  local rehearsal passed; start now retries once and failures are published as annotations.

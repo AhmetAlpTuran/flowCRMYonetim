@@ -7,6 +7,7 @@ import '../models/conversation.dart';
 import '../providers/inbox_providers.dart';
 import '../providers/inbox_send_provider.dart';
 import '../widgets/message_delivery_status.dart';
+import '../widgets/message_media_view.dart';
 import '../widgets/handoff_request_sheet.dart';
 import '../widgets/tag_editor_sheet.dart';
 import '../widgets/conversation_workflow_sheet.dart';
@@ -201,10 +202,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                message.text,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
+                              if (message.media != null) ...[
+                                MessageMediaView(media: message.media!),
+                                if (mediaBubbleText(message.text, message.media!)
+                                    case final caption?) ...[
+                                  const SizedBox(height: 6),
+                                  Text(caption,
+                                      style: Theme.of(context).textTheme.bodyMedium),
+                                ],
+                              ] else
+                                Text(
+                                  message.text,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
                               const SizedBox(height: 6),
                               Align(
                                 alignment: Alignment.bottomRight,
@@ -374,6 +384,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             if (!mounted || _scopeInvalidated) return;
             ref.invalidate(messagesProvider(widget.conversation.id));
             ref.invalidate(conversationsProvider);
+          },
+        )
+        // A finished media download only changes message_media.
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'message_media',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'conversation_id',
+            value: widget.conversation.id,
+          ),
+          callback: (_) {
+            if (!mounted || _scopeInvalidated) return;
+            ref.invalidate(messagesProvider(widget.conversation.id));
           },
         )
         .subscribe();

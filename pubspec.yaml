@@ -1,4 +1,4 @@
-﻿name: wpapp
+name: wpapp
 description: Role based UI demo
 publish_to: 'none'
 version: 0.1.0+1
@@ -15,6 +15,7 @@ dependencies:
   google_fonts: ^6.2.1
   supabase_flutter: ^2.6.1
   http: ^1.2.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
