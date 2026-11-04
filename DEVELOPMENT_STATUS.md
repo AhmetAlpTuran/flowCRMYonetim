@@ -381,3 +381,13 @@ modified when this work began; preserve it outside milestone commits.
   `account_deletion.sql`), 61/61 Deno, 70/70 Flutter (4 new), live local deletion run
   (401/422/409 paths, user, solo business and its files removed, team business kept, login
   refused).
+
+- 2026-11-07: Roadmap Phase 2b, business data model. Migration
+  `20261107090000_catalog_bookings_leads.sql`: `resource_types` (validated field schema),
+  `resources` (attribute validation trigger, external_* columns for a future sheet sync),
+  `bookings` with the `bookings_no_overlap` GiST exclusion constraint and expiring holds,
+  `leads`; new `catalog` module; agent RPCs `create_booking`/`set_booking_status`; service-only
+  bot RPCs for search, availability, holds, confirmation and leads, always using the
+  conversation's phone. See `docs/CATALOG_BOOKINGS.md`. Verified: 20/20 SQL fixtures (new
+  `catalog_bookings.sql`), 70/70 Flutter tests, and a live five-round race of two concurrent
+  sessions that left exactly one booking. Next: catalog/bookings/leads screens, then bot tools.
