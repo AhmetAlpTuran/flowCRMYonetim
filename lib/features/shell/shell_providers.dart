@@ -10,6 +10,7 @@ enum ShellDestinationId {
   campaigns,
   templates,
   users,
+  connections,
 }
 
 final shellDestinationProvider = StateProvider<ShellDestinationId>(

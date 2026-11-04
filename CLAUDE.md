@@ -10,8 +10,8 @@ risks. Read it before starting work and append a dated milestone log entry after
 ## Layout
 
 - `lib/features/<feature>/{data,models,providers,screens,widgets}`: feature-first Flutter.
-  Features: app, shell, tenancy, users, inbox, handoff, campaigns, templates, bot,
-  knowledge, dashboard (dashboard is still a mock repository).
+  Features: app, shell, tenancy, onboarding, users, connections, inbox, handoff,
+  campaigns, templates, bot, knowledge, dashboard (dashboard is still a mock repository).
 - `lib/config/supabase_config.dart`: Supabase URL/anon key from `--dart-define`
   (`SUPABASE_URL`, `SUPABASE_ANON_KEY`); defaults target the local `supabase start` stack.
   Android emulator: `--dart-define=SUPABASE_URL=http://10.0.2.2:54321`.
@@ -63,6 +63,10 @@ risks. Read it before starting work and append a dated milestone log entry after
   Label anything not exercised at runtime (live Meta/OpenAI calls) as "runtime unverified".
 - In widget tests, build `SupabaseClient` with `AuthClientOptions(autoRefreshToken: false)`,
   give fake `http.Response`s `request: request`, and don't await `client.dispose()`.
+  `functions.invoke` never completes inside `testWidgets` (it encodes on an isolate the
+  fake clock never runs): test its HTTP mapping in a plain `test`, and override the
+  repository provider with a fake in widget tests. Smoke runs against the local stack
+  must delete their rows afterwards; SQL fixtures assume empty queues.
 - Commit messages: Conventional Commits, `type(scope): summary` (scopes: campaigns,
   inbox, ai, support, auth, tenancy, webhooks...). Stage explicit paths only.
 - `pubspec.lock` has a pre-existing local modification; keep it out of feature commits

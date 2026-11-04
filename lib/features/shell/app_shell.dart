@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bot/screens/bot_screen.dart';
 import '../campaigns/screens/campaigns_screen.dart';
+import '../connections/screens/connections_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../handoff/screens/handoff_screen.dart';
 import '../inbox/screens/inbox_list_screen.dart';
@@ -162,7 +163,8 @@ class _ShellDestination {
     required this.icon,
     required this.selectedIcon,
     required this.screen,
-    required this.feature,
+    this.feature,
+    this.adminOnly = false,
   });
 
   final ShellDestinationId id;
@@ -170,7 +172,12 @@ class _ShellDestination {
   final IconData icon;
   final IconData selectedIcon;
   final Widget screen;
-  final TenantFeature feature;
+
+  /// Module that must be enabled for the tenant; null for platform settings.
+  final TenantFeature? feature;
+
+  /// Shown only to tenant administrators, regardless of module permissions.
+  final bool adminOnly;
 }
 
 class _TenantSwitcher extends ConsumerWidget {
@@ -327,16 +334,33 @@ List<_ShellDestination> _destinationsFor(
       screen: TenantUsersScreen(),
       feature: TenantFeature.users,
     ),
+    const _ShellDestination(
+      id: ShellDestinationId.connections,
+      label: 'WhatsApp',
+      icon: Icons.phonelink_setup_outlined,
+      selectedIcon: Icons.phonelink_setup,
+      screen: ConnectionsScreen(),
+      adminOnly: true,
+    ),
   ];
 
-  final allowed = all.where((item) => features.contains(item.feature)).where(
-    (item) {
-      if (isAdmin) {
-        return true;
-      }
-      return permissions.contains(item.feature.permissionKey);
-    },
-  ).toList();
+  final allowed = all.where((item) {
+    if (item.adminOnly) return isAdmin;
+    final feature = item.feature;
+    if (feature == null || !features.contains(feature)) return false;
+    return isAdmin || permissions.contains(feature.permissionKey);
+  }).toList();
 
   return allowed;
 }
+
+/// Navigation entries visible for a membership; exposed for tests.
+@visibleForTesting
+List<ShellDestinationId> shellDestinationIdsFor(
+  bool isAdmin,
+  Set<String> permissions,
+  Set<TenantFeature> features,
+) =>
+    _destinationsFor(isAdmin, permissions, features)
+        .map((item) => item.id)
+        .toList();

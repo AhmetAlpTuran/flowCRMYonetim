@@ -6,6 +6,14 @@ Campaigns, template synchronization, template submission, template header media
 upload, human replies and bot delivery all use it; no function reads a platform-wide
 WhatsApp token any more. Embedded Signup UI/code exchange remains pending.
 
+Admins manage numbers in the app's "WhatsApp" screen (`lib/features/connections`,
+admin-only in the navigation): connect with a WABA ID, phone number ID and a Meta
+system-user token, reconnect (same number identity, new token) when the token expires
+or WhatsApp rejects it (`needs_attention`), and disconnect with confirmation. Tokens are
+sent once and never shown again; tokens expiring within 14 days are flagged. Server error
+codes are mapped to Turkish guidance. Choosing a different default number currently
+means reconnecting it with "default" ticked.
+
 `submit-template` validates the name, language, category and components, posts to the
 resolved connection's own WABA, then records the result through
 `apply_whatsapp_template_page`, so a later sync updates the same row. If the provider

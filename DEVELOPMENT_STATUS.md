@@ -311,3 +311,13 @@ modified when this work began; preserve it outside milestone commits.
   and a live local Auth/PostgREST run of create, invite, accept and password reset.
   Remaining: invite emails, hosted email template/SMTP setup (owner), second business
   from the tenant switcher.
+
+- 2026-11-05: Roadmap Phase 1, WhatsApp connection screen. New admin-only "WhatsApp"
+  destination (`lib/features/connections`) over the existing `manage-whatsapp-connection`
+  function: list numbers with active/default/needs-reconnect state and token-expiry
+  warnings, connect and reconnect forms with local validation and in-app Meta setup steps,
+  disconnect with confirmation, and Turkish messages for every server error code. The form
+  is pinned to the business it was opened for. Verified: 47/47 Flutter tests (6 new), and
+  a local run of the function's 401/403/400/409 paths plus RLS hiding connection rows from
+  non-admins. A live connect against Meta is runtime unverified (needs the test number).
+  Not built yet: changing the default number without reconnecting, Embedded Signup.
