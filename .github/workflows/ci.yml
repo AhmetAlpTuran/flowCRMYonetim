@@ -14,7 +14,7 @@ jobs:
     name: Flutter analyze and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.41.2
@@ -28,7 +28,7 @@ jobs:
     name: Edge Functions type check and unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -41,11 +41,14 @@ jobs:
     name: Migrations and SQL fixtures
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to the version the stack is verified with locally; upgrade deliberately.
+          version: 2.20.8
       - name: Start database and apply all migrations from scratch
-        run: supabase db start
+        # Auth (gotrue) stays up because the fixtures rely on its auth schema.
+        run: >-
+          supabase start -x realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Run SQL fixtures
-        run: scripts/run_sql_tests.sh
+        run: bash scripts/run_sql_tests.sh
