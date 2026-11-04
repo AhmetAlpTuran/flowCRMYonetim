@@ -226,3 +226,11 @@ interactive; plain replies unchanged), and a live local run through the webhook,
 webhook-worker and bot-worker: a tapped "Onayla" confirmed the hold, queued the fixed
 confirmation reply and consumed no AI tokens. Delivery to a real phone is runtime
 unverified until a Meta test number is connected.
+
+## Hybrid knowledge search (roadmap Phase 2f)
+
+After `bot_reply_context`, the worker replaces the context's knowledge with
+`bot_knowledge_search`. This covers manual notes and uploaded document passages, with
+full-text search (Turkish letters folded) fused with vector search over embeddings of
+the customer's message. Embedding or search failures fall back to full text and then to
+the context's own notes. See `docs/KNOWLEDGE_DOCUMENTS.md`.

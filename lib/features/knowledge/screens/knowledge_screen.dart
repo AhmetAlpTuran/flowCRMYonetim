@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../models/knowledge_entry.dart';
 import '../providers/knowledge_providers.dart';
+import '../widgets/knowledge_documents_section.dart';
 
 class KnowledgeScreen extends ConsumerWidget {
   const KnowledgeScreen({super.key});
@@ -17,14 +18,17 @@ class KnowledgeScreen extends ConsumerWidget {
       data: (items) => ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Row(
+          Text('Bilgi bankası', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          const KnowledgeDocumentsSection(),
+          const SizedBox(height: 24),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: Text(
-                  'Bilgi bankasi',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
+              Text('Notlar', style: Theme.of(context).textTheme.titleMedium),
               FilledButton.icon(
                 onPressed: tenant == null
                     ? null
@@ -67,7 +71,7 @@ class KnowledgeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Henuz bilgi eklenmedi. Ilk notu ekleyin.',
+                      'Henüz not eklenmedi. Sık sorulan bir soruyu ve yanıtını ekleyerek başlayın.',
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -99,12 +103,12 @@ class KnowledgeScreen extends ConsumerWidget {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Bilgi silinsin mi?'),
+                    title: const Text('Not silinsin mi?'),
                     content: Text('${entry.title} silinecek.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Vazgec'),
+                        child: const Text('Vazgeç'),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.of(context).pop(true),
@@ -126,7 +130,18 @@ class KnowledgeScreen extends ConsumerWidget {
         ],
       ),
       error: (error, _) => Center(
-        child: Text('Bilgi bankasi yuklenemedi: $error'),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Bilgi bankası yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.',
+                textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => ref.invalidate(knowledgeEntriesProvider),
+              child: const Text('Tekrar dene'),
+            ),
+          ]),
+        ),
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
     );
@@ -163,7 +178,7 @@ class KnowledgeEntryCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Duzenle',
+                  tooltip: 'Düzenle',
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined),
                 ),
@@ -273,7 +288,7 @@ class _KnowledgeEntrySheetState extends State<KnowledgeEntrySheet> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.entry == null ? 'Yeni bilgi' : 'Bilgiyi duzenle',
+                        widget.entry == null ? 'Yeni not' : 'Notu düzenle',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
@@ -287,12 +302,12 @@ class _KnowledgeEntrySheetState extends State<KnowledgeEntrySheet> {
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Baslik',
+                    labelText: 'Başlık',
                     prefixIcon: Icon(Icons.title_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Baslik zorunludur.';
+                      return 'Başlık zorunludur.';
                     }
                     return null;
                   },
@@ -302,13 +317,13 @@ class _KnowledgeEntrySheetState extends State<KnowledgeEntrySheet> {
                   controller: _contentController,
                   maxLines: 4,
                   decoration: const InputDecoration(
-                    labelText: 'Icerik',
+                    labelText: 'İçerik',
                     alignLabelWithHint: true,
                     prefixIcon: Icon(Icons.notes_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Icerik zorunludur.';
+                      return 'İçerik zorunludur.';
                     }
                     return null;
                   },
@@ -317,7 +332,7 @@ class _KnowledgeEntrySheetState extends State<KnowledgeEntrySheet> {
                 TextFormField(
                   controller: _tagsController,
                   decoration: const InputDecoration(
-                    labelText: 'Etiketler (virgulle ayirin)',
+                    labelText: 'Etiketler (virgülle ayırın)',
                     prefixIcon: Icon(Icons.sell_outlined),
                   ),
                 ),

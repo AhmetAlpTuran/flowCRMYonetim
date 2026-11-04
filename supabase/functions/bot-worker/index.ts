@@ -16,7 +16,9 @@ import {
   type BotExecutionResult,
   executeBotReply,
 } from "../_shared/bot_execution.ts";
+import { embeddingModel, embedTexts } from "../_shared/embeddings.ts";
 import { ApiError, endpoint, jsonResponse } from "../_shared/http.ts";
+import { searchKnowledge } from "../_shared/knowledge_search.ts";
 import { serviceClient } from "../_shared/supabase.ts";
 import { requireWorker } from "../_shared/worker_auth.ts";
 
@@ -40,6 +42,7 @@ Deno.serve(endpoint(async (req) => {
       ).filter(Boolean)
       : [],
   );
+  const embedModel = apiKey ? embeddingModel(Deno.env.get("OPENAI_EMBEDDING_MODEL")) : null;
   const service = serviceClient();
   async function rpc(name: string, parameters: Record<string, unknown>) {
     const { data, error } = await service.rpc(name, parameters);
@@ -83,8 +86,22 @@ Deno.serve(endpoint(async (req) => {
               today: istanbulToday(),
             };
           },
-          context: async () =>
-            await rpc("bot_reply_context", identity) as BotContext | null,
+          context: async () => {
+            const context = await rpc("bot_reply_context", identity) as BotContext | null;
+            if (!context) return null;
+            // Hybrid search adds document passages and semantic matches.
+            const knowledge = await searchKnowledge(context, identity, {
+              rpc: async (name, params) => await service.rpc(name, params),
+              model: embedModel,
+              embed: embedModel
+                ? async (text) => {
+                  const { vectors, tokens } = await embedTexts([text], apiKey, embedModel, fetch, 8000);
+                  return { vector: vectors[0], tokens };
+                }
+                : undefined,
+            });
+            return { ...context, knowledge };
+          },
           prepare: async (context, request) =>
             await rpc("prepare_bot_reply", {
               ...identity,

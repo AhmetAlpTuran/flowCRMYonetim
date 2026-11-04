@@ -421,3 +421,20 @@ modified when this work began; preserve it outside milestone commits.
   80/80 Flutter tests, and a live local webhook → bot-worker run where a tap confirmed the hold
   with zero tokens. Delivery to a real phone is runtime unverified (needs a Meta test number).
   Next: documents and pgvector search (2f), then multiple bots (2g).
+
+- 2026-11-08: Roadmap Phase 2f, knowledge documents and hybrid search. Migration
+  `20261108090000_knowledge_documents.sql`: pgvector, the private `knowledge-documents`
+  bucket, `knowledge_documents` (register/delete/retry RPCs, 10 MB, 50 per business) and
+  `knowledge_chunks` (document passages plus one synced passage per manual note), fenced
+  worker RPCs, an embedding queue with backoff, `embedding_tokens` usage, Turkish-folded
+  full-text search fused with vector search in `bot_knowledge_search`, and document passages
+  accepted as reply sources. New `knowledge-worker` (PDF via unpdf, docx, xlsx with dates,
+  CSV, TXT/Markdown incl. Windows-1254; 1,500-character passages; OpenAI embeddings) and
+  bot-worker wiring with fallbacks. App: "Belgeler" in Bilgi bankası (upload with title, live
+  processing status, Turkish failure reasons, retry with the same document ID, delete).
+  Verified: 84/84 Deno tests (11 new), 24/24 SQL fixtures (new `knowledge_documents.sql`),
+  85/85 Flutter tests (5 new), and live local runs: real files extracted on the Edge runtime,
+  Turkish questions found the right document with and without Turkish letters, and a
+  member's upload/register/list/delete went through Storage and PostgREST. Live OpenAI
+  embeddings and the hosted CPU limit for large PDFs are runtime unverified. See
+  `docs/KNOWLEDGE_DOCUMENTS.md`. Next: multiple bots per business (2g).

@@ -24,7 +24,7 @@ risks. Read it before starting work and append a dated milestone log entry after
   `send-campaign` is the current authenticated campaign enqueue endpoint (sends happen
   in `campaign-worker`). `bot-reply` is only a legacy alias of the webhook URL.
 - `supabase/ops/schedule_*.sql`: cron/Vault scheduler scripts for each worker (webhook,
-  inbox, campaign, bot, media); run them manually per environment.
+  inbox, campaign, bot, media, knowledge); run them manually per environment.
 - `docs/`: per-area design and backend setup notes. `DESIGN.md` / `UX-CONTRACT.md`:
   theme and UI behavior contract.
 - `AppServer/` (NestJS) is git-ignored and unused by the app (`useEdgeFunctions = true`).
