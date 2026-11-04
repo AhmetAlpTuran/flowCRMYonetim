@@ -407,3 +407,8 @@ modified when this work began; preserve it outside milestone commits.
   Verified: 68/68 Deno tests (7 new), 21/21 SQL fixtures (new `bot_tool_answers.sql`), and the real
   tool runner against the local database. Live OpenAI tool use runtime unverified (needs a key).
   Next: industry packs (2c) and interactive confirm buttons (2e).
+
+- 2026-11-07: Roadmap Phase 2c, industry packs (rental, auto dealer, appointments): migration
+  `20261107110000_industry_packs.sql` (`industry_pack_definition`, `industry_packs`,
+  `apply_industry_pack`) and a two-step setup sheet in the Katalog and Bot screens. Verified:
+  22/22 SQL fixtures (new `industry_packs.sql`), 80/80 Flutter tests (2 new), live PostgREST run.

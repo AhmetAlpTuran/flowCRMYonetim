@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../models/bot_config.dart';
 import '../providers/bot_providers.dart';
+import '../../catalog/widgets/industry_pack_sheet.dart';
 
 class BotScreen extends ConsumerStatefulWidget {
   const BotScreen({super.key});
@@ -101,6 +102,10 @@ class _BotScreenState extends ConsumerState<BotScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Align(alignment: Alignment.centerLeft, child: IndustryPackButton()),
+              ),
               Card(
                 elevation: 0,
                 child: Padding(

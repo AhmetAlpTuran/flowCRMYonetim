@@ -66,3 +66,22 @@ repeated five times, left exactly one booking.
   check-out, hourly slots with a start time and duration). Overlaps show a clear error.
 - **Talepler:** leads with kind, customer, item, preferred time and a status selector.
 - Visible to members with the `catalog` permission ("Katalog ve rezervasyon" in Users).
+
+## Industry packs (roadmap Phase 2c, `20261107110000_industry_packs.sql`)
+
+`apply_industry_pack(tenant, pack, answers)` (admins only) sets a business up in one step:
+
+| Pack | Catalog type | Questions turned into knowledge entries |
+|---|---|---|
+| `rental` — Konaklama ve kiralama | Oda (nightly) | check-in/out times, address, payment and deposit, cancellation, amenities and rules |
+| `auto_dealer` — Oto galeri | Araç (listing) | address and hours, test drive, financing, trade-in, inspection and warranty |
+| `appointments` — Randevulu hizmet | Hizmet (hourly) | address and hours, services and prices, cancellation, preparation |
+
+- Pack definitions (types, tone, a Turkish bot prompt per sector) live in
+  `industry_pack_definition`; the app reads names and questions from `industry_packs()`.
+- Only non-empty answers become knowledge entries (tagged `paket:<pack>`), so the bot never
+  quotes placeholder text; re-applying updates those entries instead of duplicating them.
+- The pack prompt replaces only the default prompt or another pack's prompt; a custom
+  prompt is kept. The bot is never switched on by a pack.
+- App: "Sektör paketi kur" in the empty Katalog screen and at the top of the Bot screen
+  (administrators only), with example answers for every question.

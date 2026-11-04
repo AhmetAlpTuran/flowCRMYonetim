@@ -7,6 +7,7 @@ import '../../tenancy/providers/tenant_providers.dart';
 import '../data/catalog_repository.dart';
 import '../models/catalog_models.dart';
 import '../providers/catalog_providers.dart';
+import '../widgets/industry_pack_sheet.dart';
 
 String _day(DateTime value) {
   final d = value.toLocal();
@@ -171,8 +172,10 @@ class _NoTypes extends ConsumerWidget {
     return ListView(padding: const EdgeInsets.all(24), children: [
       Text('Botunuzun müşterilere sunacağı kayıtları burada tutarsınız.',
           style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 8),
-      const Text('Başlamak için işletmenize uygun türü seçin:'),
+      const SizedBox(height: 12),
+      const Align(alignment: Alignment.centerLeft, child: IndustryPackButton()),
+      const SizedBox(height: 12),
+      const Text('veya yalnızca bir kayıt türü ekleyin:'),
       const SizedBox(height: 12),
       for (final preset in resourceTypePresets)
         Card(
