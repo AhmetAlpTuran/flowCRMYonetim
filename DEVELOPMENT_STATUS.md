@@ -366,3 +366,18 @@ modified when this work began; preserve it outside milestone commits.
   local run: agent upload allowed only in outbound/, media reply queued, bad media 422, worker
   deferred on an unusable credential without a send attempt. Live Meta upload/send runtime
   unverified. CI: pinned Deno 2.9.8 after `v2.x` resolved to a stricter TypeScript.
+
+- 2026-11-06: Roadmap Phase 1, store readiness. App ID `com.flowcrm.app` and name "Flow CRM" on
+  Android, iOS, macOS, Linux, Windows and web (Dart package name stays `wpapp`). Android:
+  release signing from git-ignored `android/key.properties`, INTERNET permission in the main
+  manifest (release builds previously had no network access), https VIEW query for
+  url_launcher. Account menu in the top bar (another business, privacy policy, sign out — the
+  app had no sign-out — and account deletion). Migration `20261106110000_account_deletion.sql`
+  (`account_deletion_plan`, `my_account_deletion_plan`, `delete_account_data`;
+  `conversations.last_opened_by` now ON DELETE SET NULL, which previously made deleting such
+  users fail) and `delete-account` Edge Function (typed email confirmation, sole-admin block,
+  stored-file cleanup, Auth user deletion, retry-safe). Build-time `PRIVACY_POLICY_URL` /
+  `SUPPORT_EMAIL`. Release guide `docs/RELEASE.md`. Verified: 19/19 SQL fixtures (new
+  `account_deletion.sql`), 61/61 Deno, 70/70 Flutter (4 new), live local deletion run
+  (401/422/409 paths, user, solo business and its files removed, team business kept, login
+  refused).

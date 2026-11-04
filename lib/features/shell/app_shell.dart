@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../account/widgets/account_menu.dart';
 import '../bot/screens/bot_screen.dart';
 import '../campaigns/screens/campaigns_screen.dart';
 import '../connections/screens/connections_screen.dart';
@@ -58,6 +59,7 @@ class AppShell extends ConsumerWidget {
               ),
         actions: [
           _TenantSwitcher(tenant: tenant),
+          const AccountMenu(),
         ],
       ),
       drawer: useRail

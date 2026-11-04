@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../config/app_links.dart';
 import '../providers/tenant_providers.dart';
 import 'password_reset_screen.dart';
 
@@ -109,6 +112,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 icon: Icon(_showPassword
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined)))),
+                    if (AppLinks.privacyPolicyUrl.isNotEmpty)
+                      Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                              onPressed: () => launchUrl(
+                                  Uri.parse(AppLinks.privacyPolicyUrl),
+                                  mode: LaunchMode.externalApplication),
+                              child: const Text('Gizlilik politikası'))),
                     Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
