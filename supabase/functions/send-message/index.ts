@@ -15,15 +15,32 @@ Deno.serve(endpoint(async (req) => {
   const tenantId = uuid(body.tenant_id, "Tenant ID");
   const conversationId = uuid(body.conversation_id, "Conversation ID");
   const messageId = uuid(body.message_id, "Message ID");
-  if (typeof body.body !== "string") {
+  const media = body.media;
+  if (media !== undefined && (typeof media !== "object" || media === null || Array.isArray(media))) {
+    throw new ApiError(422, "invalid_media", "Media must be an object");
+  }
+  if (typeof body.body !== "string" && media === undefined) {
     throw new ApiError(422, "invalid_message", "Message text required");
   }
-  const { data, error } = await client.rpc("enqueue_inbox_message", {
-    p_tenant_id: tenantId,
-    p_conversation_id: conversationId,
-    p_message_id: messageId,
-    p_body: body.body,
-  });
+  const m = media as Record<string, unknown> | undefined;
+  const text = (value: unknown) => typeof value === "string" ? value : null;
+  const { data, error } = m
+    ? await client.rpc("enqueue_inbox_media_message", {
+      p_tenant_id: tenantId,
+      p_conversation_id: conversationId,
+      p_message_id: messageId,
+      p_storage_path: text(m.storage_path),
+      p_kind: text(m.kind),
+      p_mime_type: text(m.mime_type),
+      p_file_name: text(m.file_name),
+      p_caption: text(body.body),
+    })
+    : await client.rpc("enqueue_inbox_message", {
+      p_tenant_id: tenantId,
+      p_conversation_id: conversationId,
+      p_message_id: messageId,
+      p_body: body.body,
+    });
   if (error) {
     const errors: Record<string, [number, string, string]> = {
       "42501": [403, "forbidden", "Inbox permission required"],
@@ -62,6 +79,11 @@ Deno.serve(endpoint(async (req) => {
         422,
         "invalid_message",
         "Text must contain 1 to 4096 characters",
+      ],
+      "P0009": [
+        422,
+        "invalid_media",
+        "Upload a JPEG/PNG image up to 5 MB or a document up to 16 MB",
       ],
     };
     const known = errors[error.code];

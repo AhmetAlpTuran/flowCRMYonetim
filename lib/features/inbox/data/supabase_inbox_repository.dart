@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/conversation.dart';
 import '../models/message.dart';
+import '../models/outbound_media.dart';
 import '../models/conversation_action.dart';
 import '../../handoff/models/handoff_request.dart';
 
@@ -167,11 +168,37 @@ class SupabaseInboxRepository {
     }).timeout(const Duration(seconds: 20));
   }
 
+  /// Stores an outgoing file under the message's stable ID, so a retry after an
+  /// uncertain result reuses the same object instead of uploading a second one.
+  Future<String> uploadOutboundMedia({
+    required String tenantId,
+    required String conversationId,
+    required String messageId,
+    required OutboundMediaFile file,
+  }) async {
+    final path = '$tenantId/$conversationId/outbound/$messageId.${file.extension}';
+    try {
+      await _client.storage.from('inbox-media').uploadBinary(
+            path,
+            file.bytes,
+            fileOptions: FileOptions(contentType: file.mimeType, upsert: false),
+          ).timeout(const Duration(seconds: 60));
+    } on StorageException catch (error) {
+      // Already uploaded by an earlier attempt with the same message ID.
+      if (error.statusCode != '409' && error.error != 'Duplicate') {
+        throw const InboxSendFailure('media_upload_failed', uncertain: false);
+      }
+    }
+    return path;
+  }
+
   Future<void> queueMessage({
     required String tenantId,
     required String conversationId,
     required String messageId,
     required String body,
+    OutboundMediaFile? media,
+    String? mediaPath,
   }) async {
     try {
       final response = await _client.functions.invoke('send-message', body: {
@@ -179,6 +206,13 @@ class SupabaseInboxRepository {
         'conversation_id': conversationId,
         'message_id': messageId,
         'body': body,
+        if (media != null && mediaPath != null)
+          'media': {
+            'storage_path': mediaPath,
+            'kind': media.kind,
+            'mime_type': media.mimeType,
+            'file_name': media.fileName,
+          },
       }).timeout(const Duration(seconds: 20));
       final data = response.data;
       if (response.status != 202 ||
@@ -213,6 +247,7 @@ class SupabaseInboxRepository {
         'connection_unavailable',
         'message_identity_conflict',
         'invalid_message',
+        'invalid_media',
       };
       throw InboxSendFailure(code,
           uncertain: error.status >= 500 || !definitive.contains(code));

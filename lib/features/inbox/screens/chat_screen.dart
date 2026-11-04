@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +9,7 @@ import '../providers/inbox_providers.dart';
 import '../providers/inbox_send_provider.dart';
 import '../widgets/message_delivery_status.dart';
 import '../widgets/message_media_view.dart';
+import '../models/outbound_media.dart';
 import '../widgets/handoff_request_sheet.dart';
 import '../widgets/tag_editor_sheet.dart';
 import '../widgets/conversation_workflow_sheet.dart';
@@ -284,10 +286,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 color: const Color(0xFFF0F0F0),
                 child: Row(
                   children: [
-                    const IconButton(
-                      onPressed: null,
-                      tooltip: 'Dosya gönderimi henüz kullanılamıyor',
-                      icon: Icon(Icons.attach_file),
+                    IconButton(
+                      onPressed: sendState.busy
+                          ? null
+                          : sendState.locked && _sendController.hasPendingMedia
+                              ? _discardMedia
+                              : sendState.locked
+                                  ? null
+                                  : _pickMedia,
+                      tooltip: sendState.locked && _sendController.hasPendingMedia
+                          ? 'Bekleyen dosyayı kaldır'
+                          : 'Fotoğraf veya belge gönder',
+                      icon: Icon(sendState.locked && _sendController.hasPendingMedia
+                          ? Icons.close
+                          : Icons.attach_file),
                     ),
                     Expanded(
                       child: TextField(
@@ -402,6 +414,100 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           },
         )
         .subscribe();
+  }
+
+  InboxSendController get _sendController => ref.read(inboxSendProvider((
+        tenantId: _tenantId ?? '',
+        conversationId: widget.conversation.id,
+      )).notifier);
+
+  void _discardMedia() => _sendController.discardMedia();
+
+  Future<void> _pickMedia() async {
+    final tenantId = _tenantId;
+    if (tenantId == null) return;
+    final kind = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.photo_outlined),
+            title: const Text('Fotoğraf'),
+            subtitle: const Text('JPG veya PNG, en fazla 5 MB'),
+            onTap: () => Navigator.of(context).pop('image'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Belge'),
+            subtitle: const Text('PDF, Word, Excel veya TXT, en fazla 16 MB'),
+            onTap: () => Navigator.of(context).pop('document'),
+          ),
+        ]),
+      ),
+    );
+    if (kind == null || !mounted) return;
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: kind == 'image' ? imageExtensions : documentExtensions,
+      withData: true,
+    );
+    final picture = picked?.files.single;
+    if (picture?.bytes == null || !mounted) return;
+    final checked = outboundMediaFor(fileName: picture!.name, bytes: picture.bytes!);
+    if (checked.file == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(checked.error!)));
+      return;
+    }
+    final caption = TextEditingController(text: _controller.text.trim());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(checked.file!.kind == 'image' ? 'Fotoğraf gönder' : 'Belge gönder'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (checked.file!.kind == 'image')
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.memory(checked.file!.bytes, height: 160, fit: BoxFit.cover),
+            )
+          else
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.description_outlined),
+              title: Text(checked.file!.fileName),
+              subtitle: Text(formatBytes(checked.file!.bytes.length)),
+            ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: caption,
+            maxLength: 1024,
+            decoration: const InputDecoration(labelText: 'Açıklama (isteğe bağlı)'),
+          ),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Gönder'),
+          ),
+        ],
+      ),
+    );
+    final text = caption.text;
+    caption.dispose();
+    if (confirmed != true || !mounted || ref.read(selectedTenantProvider)?.id != tenantId) {
+      return;
+    }
+    final sent = await _sendController.sendMedia(checked.file!, caption: text);
+    if (!mounted) return;
+    if (sent) {
+      if (text.trim() == _controller.text.trim()) _controller.clear();
+      ref.invalidate(messagesProvider(widget.conversation.id));
+      ref.invalidate(conversationsProvider);
+    }
   }
 
   Future<void> _sendMessage() async {

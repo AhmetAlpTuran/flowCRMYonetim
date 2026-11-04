@@ -19,7 +19,7 @@ modified when this work began; preserve it outside milestone commits.
 | Area | Implemented in source | Remaining work |
 |---|---|---|
 | Auth/tenancy | Session-driven password auth, confirmation-aware signup, server-owned profiles, self-service business creation, in-app invites (server RPCs, expiry, no escalation), code-based password recovery, memberships, tenant picker, module permissions | Invite emails (needs email provider), creating additional businesses from the tenant switcher, hosted SMTP/template setup |
-| Inbox | Account-scoped inbound messages, inbound media download/storage/display, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
+| Inbox | Account-scoped inbound messages, inbound media download/storage/display, outbound photos/documents, durable reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, audio/video sending, historical account mapping, account labels, per-agent unread state and runtime verification |
 | AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
 | Templates | Scoped encrypted-connection sync, submission and header media upload; validated send bindings and form | Multi-account picker UI, broader template families (OTP, Flow, catalog), live provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
@@ -354,3 +354,15 @@ modified when this work began; preserve it outside milestone commits.
   downloaded the file, another tenant got not-found. Live Meta download runtime unverified.
   CI: the dashboard commit's database job failed at stack start on the runner while a fresh
   local rehearsal passed; start now retries once and failures are published as annotations.
+
+- 2026-11-06: Roadmap Phase 1, sending media. Migration `20261106100000_outbound_media.sql`:
+  outbound `message_media` rows, Storage RLS for uploads into the caller's own
+  `{tenant}/{conversation}/outbound/` folder, and `enqueue_inbox_media_message`, which validates
+  type/size/path/caption and reuses every `enqueue_inbox_message` rule. `send-message` accepts
+  `media`; `inbox-worker` uploads to Meta before the fenced send (`_shared/inbox_payload.ts`,
+  `WhatsAppApi.uploadMedia`). Chat: attach button (photo/document, caption, preview), stable-ID
+  upload and uncertain-retry handling in the send controller. Verified: 18/18 SQL fixtures (new
+  `outbound_media.sql`), 61/61 Deno tests on 2.9.8 (4 new), 66/66 Flutter tests (3 new), live
+  local run: agent upload allowed only in outbound/, media reply queued, bad media 422, worker
+  deferred on an unusable credential without a send attempt. Live Meta upload/send runtime
+  unverified. CI: pinned Deno 2.9.8 after `v2.x` resolved to a stricter TypeScript.

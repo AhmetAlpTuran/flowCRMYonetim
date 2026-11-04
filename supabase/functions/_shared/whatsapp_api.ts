@@ -86,6 +86,47 @@ export class WhatsAppApi {
     return data;
   }
 
+  /** Uploads a file for sending from this phone number; returns the media ID. */
+  async uploadMedia(
+    phoneNumberId: string,
+    file: { bytes: Uint8Array<ArrayBuffer>; mimeType: string; fileName: string },
+  ): Promise<string> {
+    const form = new FormData();
+    form.set("messaging_product", "whatsapp");
+    form.set("type", file.mimeType);
+    form.set("file", new Blob([file.bytes], { type: file.mimeType }), file.fileName);
+    let response: Response;
+    try {
+      response = await this.transport(
+        `https://graph.facebook.com/${this.version}/${metaId(phoneNumberId)}/media`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${this.accessToken}` },
+          body: form,
+          redirect: "error",
+          signal: AbortSignal.timeout(60000),
+        },
+      );
+    } catch {
+      throw new ApiError(503, "whatsapp_transport", "WhatsApp response unavailable");
+    }
+    const result: unknown = await response.json().catch(() => null);
+    const data = result && typeof result === "object" && !Array.isArray(result)
+      ? result as Record<string, unknown>
+      : null;
+    if (!response.ok || !data || data.error) {
+      const error = data?.error as { code?: unknown } | undefined;
+      throw new GraphApiError(
+        response.status,
+        typeof error?.code === "number" ? error.code : null,
+      );
+    }
+    if (typeof data.id !== "string" || !/^[0-9]{1,40}$/.test(data.id)) {
+      throw new ApiError(502, "whatsapp_invalid_response", "WhatsApp media ID unavailable");
+    }
+    return data.id;
+  }
+
   // Resumable Upload API: returns the header handle used in template examples.
   // The session belongs to this SaaS's Meta app; the tenant token authorizes it.
   async uploadTemplateMedia(

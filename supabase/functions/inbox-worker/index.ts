@@ -2,9 +2,10 @@ import {
   dispatchOnce,
   type DispatchResult,
 } from "../_shared/whatsapp_delivery.ts";
-import { ApiError, endpoint, jsonResponse } from "../_shared/http.ts";
+import { ApiError, endpoint, jsonResponse, readBytes } from "../_shared/http.ts";
 import { requiredEnv, serviceClient } from "../_shared/supabase.ts";
 import { WhatsAppApi } from "../_shared/whatsapp_api.ts";
+import { inboxMessagePayload, type OutboundMedia } from "../_shared/inbox_payload.ts";
 import {
   connectionToken,
   credentialKeys,
@@ -80,15 +81,17 @@ Deno.serve(endpoint(async (req) => {
           throw new ApiError(503, "message_unavailable", "Message unavailable");
         }
         const api = new WhatsAppApi(version, token);
+        // Media is uploaded to Meta here, before the fenced send starts, so an
+        // upload failure defers the job without consuming a send attempt.
+        const media = await prepareMedia(api, connection.phone_number_id, job);
+        const payload = inboxMessagePayload(
+          job.recipient_phone,
+          message.body,
+          `${job.id}:${job.lease_token}`,
+          media,
+        );
         return () =>
-          api.request(`${connection.phone_number_id}/messages`, "POST", {
-            messaging_product: "whatsapp",
-            recipient_type: "individual",
-            to: job.recipient_phone,
-            type: "text",
-            text: { body: message.body, preview_url: false },
-            biz_opaque_callback_data: `${job.id}:${job.lease_token}`,
-          });
+          api.request(`${connection.phone_number_id}/messages`, "POST", payload);
       },
       start: () => rpc("start_inbox_dispatch", identity),
       defer: (code) =>
@@ -110,6 +113,43 @@ Deno.serve(endpoint(async (req) => {
           .eq("updated_at", currentConnection.updated_at);
       },
     });
+  }
+
+  async function prepareMedia(
+    api: WhatsAppApi,
+    phoneNumberId: string,
+    job: Job,
+  ): Promise<OutboundMedia | undefined> {
+    const { data: media, error } = await service.from("message_media")
+      .select("kind, direction, storage_path, mime_type, file_name, caption")
+      .eq("tenant_id", job.tenant_id).eq("message_id", job.id).maybeSingle();
+    if (error) {
+      throw new ApiError(503, "media_unavailable", "Media unavailable");
+    }
+    if (!media || media.direction !== "outbound") return undefined;
+    if (
+      (media.kind !== "image" && media.kind !== "document") || !media.storage_path ||
+      !String(media.storage_path).startsWith(`${job.tenant_id}/${job.conversation_id}/outbound/`)
+    ) {
+      throw new ApiError(503, "media_unavailable", "Media unavailable");
+    }
+    const { data: file, error: downloadError } = await service.storage
+      .from("inbox-media").download(media.storage_path);
+    if (downloadError || !file) {
+      throw new ApiError(503, "media_unavailable", "Stored media unavailable");
+    }
+    const bytes = await readBytes(new Response(file), 16 * 1024 * 1024 + 1);
+    const mediaId = await api.uploadMedia(phoneNumberId, {
+      bytes,
+      mimeType: media.mime_type ?? "application/octet-stream",
+      fileName: media.file_name ?? String(media.storage_path).split("/").pop()!,
+    });
+    return {
+      kind: media.kind,
+      mediaId,
+      caption: media.caption,
+      fileName: media.file_name,
+    };
   }
 
   let cursor = 0;
