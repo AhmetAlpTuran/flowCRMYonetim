@@ -9,6 +9,8 @@ import '../providers/inbox_send_provider.dart';
 import '../widgets/message_delivery_status.dart';
 import '../widgets/handoff_request_sheet.dart';
 import '../widgets/tag_editor_sheet.dart';
+import '../widgets/conversation_workflow_sheet.dart';
+import '../widgets/cancel_message_button.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.conversation});
@@ -50,6 +52,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final tenantId = _tenantId;
     if (tenantId == null ||
+        _userId == null ||
         ref.watch(selectedTenantProvider)?.id != tenantId ||
         ref.watch(authControllerProvider).value?.userId != _userId) {
       _scopeInvalidated = true;
@@ -68,11 +71,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     )));
     final messages = ref.watch(messagesProvider(widget.conversation.id));
     final conversations = ref.watch(conversationsProvider);
-    final canHandoff = ref
-            .watch(currentMembershipProvider)
-            .valueOrNull
-            ?.hasPermission('handoff') ??
-        false;
+    final membership = ref.watch(currentMembershipProvider).valueOrNull;
+    final canHandoff = membership?.hasPermission('handoff') ?? false;
+    final scope = (
+      tenantId: tenantId,
+      conversationId: widget.conversation.id,
+      userId: _userId!
+    );
     final updatedConversation = conversations.maybeWhen(
       data: (items) => items.firstWhere(
         (item) => item.id == widget.conversation.id,
@@ -118,44 +123,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => _openTagEditor(updatedConversation),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.sell_outlined,
-                            size: 16, color: Colors.white),
-                        SizedBox(width: 4),
-                        Text(
-                          'Etiket',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
             actions: [
               IconButton(
-                tooltip: canHandoff
-                    ? 'Müşteri temsilcisine yönlendir'
-                    : 'Yönlendirme yetkisi gerekli',
-                icon: const Icon(Icons.support_agent_outlined),
-                onPressed: canHandoff ? _openHandoverSheet : null,
+                tooltip: 'Konuşmayı yönet',
+                icon: const Icon(Icons.manage_accounts_outlined),
+                onPressed: sendState.busy || sendState.locked
+                    ? null
+                    : () => showConversationWorkflow(context, scope),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Diğer konuşma işlemleri',
+                onSelected: (value) {
+                  if (value == 'tags') _openTagEditor(updatedConversation);
+                  if (value == 'handoff') _openHandoverSheet();
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                      value: 'tags', child: Text('Etiketleri düzenle')),
+                  PopupMenuItem(
+                      value: 'handoff',
+                      enabled: canHandoff &&
+                          !sendState.locked &&
+                          updatedConversation.status !=
+                              ConversationStatus.closed,
+                      child: const Text('Temsilciye yönlendir')),
+                ],
               ),
               IconButton(
                 tooltip: 'Konuşmayı yenile',
@@ -232,6 +226,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ],
                                 ),
                               ),
+                              if (!isCustomer &&
+                                  message.sentBy != null &&
+                                  (message.sentBy == _userId ||
+                                      (membership?.isAdmin ?? false)) &&
+                                  const {
+                                    'queued',
+                                    'leased',
+                                    'retry_wait',
+                                    'blocked'
+                                  }.contains(message.outboundState))
+                                CancelMessageButton(
+                                    key: ValueKey(message.id),
+                                    scope: scope,
+                                    messageId: message.id),
                             ],
                           ),
                         ),
@@ -239,9 +247,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     },
                     itemCount: items.length,
                   ),
-                  error: (error, _) => Center(
-                    child: Text('Mesajlar yuklenemedi: $error'),
-                  ),
+                  error: (_, __) => Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Text('Mesajlar yüklenemedi.'),
+                    TextButton(
+                        onPressed: () => ref.invalidate(
+                            messagesProvider(widget.conversation.id)),
+                        child: const Text('Tekrar dene')),
+                  ])),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                 ),

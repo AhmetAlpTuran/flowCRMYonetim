@@ -1,3 +1,5 @@
+const handoffPageSize = 20;
+
 class HandoffRequest {
   const HandoffRequest({
     required this.id,

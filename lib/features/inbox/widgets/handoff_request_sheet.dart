@@ -141,10 +141,12 @@ class _HandoffRequestSheetState extends ConsumerState<HandoffRequestSheet> {
       if (!mounted) return;
       setState(() {
         _conflict = error is PostgrestException &&
-            ['40001', '55000', '42501', 'P0002'].contains(error.code);
-        _error = _conflict
-            ? 'Konuşmanın durumu veya erişiminiz değişti. Pencereyi kapatıp gelen kutusunu yenileyin.'
-            : 'Yönlendirme sonucu doğrulanamadı. Aynı düğmeyle tekrar deneyebilirsiniz. Aynı yönlendirme ve notunuzla yeniden denenecek.';
+            ['40001', '55000', '42501', 'P0002', 'P0006'].contains(error.code);
+        _error = error is PostgrestException && error.code == 'P0006'
+            ? 'Bekleyen yanıtlar var. Pencereyi kapatıp gönderimi bekleyin veya mesajı iptal edin.'
+            : _conflict
+                ? 'Konuşmanın durumu veya erişiminiz değişti. Pencereyi kapatıp gelen kutusunu yenileyin.'
+                : 'Yönlendirme sonucu doğrulanamadı. Aynı düğmeyle tekrar deneyebilirsiniz. Aynı yönlendirme ve notunuzla yeniden denenecek.';
       });
     } finally {
       if (mounted) setState(() => _sending = false);

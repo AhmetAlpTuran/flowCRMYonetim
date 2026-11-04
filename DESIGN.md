@@ -84,6 +84,8 @@ them without screen-local copies. Icons use the existing Material set.
 | Input manifests | `_shared/template_parameters.ts` | server parses definitions |
 | Select/field/form | Flutter Material widgets | labels, validation, focus |
 | Notices | ScaffoldMessenger + inline form errors | confirmed success only |
+| Support actions | ConversationWorkflowSheet | one shared bounded sheet for inbox and handoff |
+| Handoff queue | HandoffScreen | wrapping filters/actions, dated records, 20-row pages |
 
 Rendering, keyboard, zoom, contrast and mobile checks are deferred by the owner's
 test schedule. Code review/static analysis is not visual verification. The wider

@@ -2,6 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/conversation.dart';
 import '../models/message.dart';
+import '../models/conversation_action.dart';
+import '../../handoff/models/handoff_request.dart';
 
 class InboxSendFailure implements Exception {
   const InboxSendFailure(this.code, {required this.uncertain});
@@ -13,6 +15,112 @@ class SupabaseInboxRepository {
   SupabaseInboxRepository(this._client);
 
   final SupabaseClient _client;
+
+  Future<List<HandoffRequest>> fetchHandoffRequests({
+    required String tenantId,
+    required int page,
+    String? status,
+  }) async {
+    if (page < 0) throw ArgumentError.value(page, 'page');
+    var query = _client
+        .from('handoff_requests')
+        .select('id, conversation_id, status, note, created_at, created_by, '
+            'conversation:conversations!handoff_conversation_tenant_fk(title)')
+        .eq('tenant_id', tenantId);
+    if (status != null) query = query.eq('status', status);
+    final rows = await query
+        .order('created_at', ascending: false)
+        .order('id', ascending: false)
+        .range(page * handoffPageSize, (page + 1) * handoffPageSize)
+        .timeout(const Duration(seconds: 20));
+    return rows
+        .map((row) => HandoffRequest(
+              id: row['id'] as String,
+              conversationId: row['conversation_id'] as String,
+              title: (row['conversation'] as Map<String, dynamic>?)?['title']
+                      as String? ??
+                  'Konuşma',
+              status: row['status'] as String? ?? 'open',
+              createdAt: DateTime.parse(row['created_at'] as String),
+              note: row['note'] as String?,
+              createdBy: row['created_by'] as String?,
+            ))
+        .toList();
+  }
+
+  Future<Conversation> fetchConversation({
+    required String tenantId,
+    required String conversationId,
+  }) async {
+    final row = await _client
+        .from('conversations')
+        .select()
+        .eq('tenant_id', tenantId)
+        .eq('id', conversationId)
+        .single()
+        .timeout(const Duration(seconds: 20));
+    return _fromConversation(row);
+  }
+
+  Future<List<ConversationTeamMember>> fetchConversationTeam(
+      String tenantId) async {
+    final response = await _client.rpc('conversation_team', params: {
+      'p_tenant_id': tenantId,
+    }).timeout(const Duration(seconds: 20));
+    return (response as List)
+        .map((row) => ConversationTeamMember(
+              id: row['user_id'] as String,
+              name: row['display_name'] as String,
+            ))
+        .toList();
+  }
+
+  Future<void> applyConversationAction({
+    required String tenantId,
+    required String conversationId,
+    required ConversationActionRequest request,
+  }) async {
+    try {
+      final result = await _client.rpc('apply_conversation_action', params: {
+        'p_tenant_id': tenantId,
+        'p_conversation_id': conversationId,
+        'p_request_id': request.id,
+        'p_expected_revision': request.revision,
+        'p_action': request.action.name,
+        'p_assignee_id': request.assigneeId,
+      }).timeout(const Duration(seconds: 20));
+      if (result is! Map ||
+          result['conversation_id'] != conversationId ||
+          result['workflow_revision'] is! num) {
+        throw const ConversationActionFailure('unconfirmed', uncertain: true);
+      }
+    } on PostgrestException catch (error) {
+      throw ConversationActionFailure(error.code ?? 'unconfirmed',
+          uncertain: !const {
+            '42501',
+            '40001',
+            '22023',
+            '55000',
+            'P0002',
+            'P0006'
+          }.contains(error.code));
+    }
+  }
+
+  Future<void> cancelMessage({
+    required String tenantId,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    final result = await _client.rpc('cancel_inbox_message', params: {
+      'p_tenant_id': tenantId,
+      'p_conversation_id': conversationId,
+      'p_message_id': messageId,
+    }).timeout(const Duration(seconds: 20));
+    if (result != true) {
+      throw const ConversationActionFailure('unconfirmed', uncertain: true);
+    }
+  }
 
   Future<List<Conversation>> fetchConversations(
       {required String tenantId}) async {
@@ -137,6 +245,8 @@ class SupabaseInboxRepository {
       lastOpenedAt: lastOpened == null ? null : DateTime.parse(lastOpened),
       lastOpenedBy: row['last_opened_by'] as String?,
       lastOpenedRole: row['last_opened_role'] as String?,
+      assignedTo: row['assigned_to'] as String?,
+      workflowRevision: (row['workflow_revision'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -156,6 +266,7 @@ class SupabaseInboxRepository {
       readAt: readAt == null ? null : DateTime.parse(readAt),
       outboundState: row['outbound_state'] as String?,
       outboundErrorCode: row['outbound_error_code'] as String?,
+      sentBy: row['sent_by'] as String?,
     );
   }
 

@@ -20,6 +20,7 @@ class Message {
     this.readAt,
     this.outboundState,
     this.outboundErrorCode,
+    this.sentBy,
   });
 
   final String id;
@@ -34,4 +35,5 @@ class Message {
   final DateTime? readAt;
   final String? outboundState;
   final String? outboundErrorCode;
+  final String? sentBy;
 }

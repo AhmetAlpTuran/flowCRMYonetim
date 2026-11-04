@@ -522,18 +522,7 @@ class _StatusPill extends StatelessWidget {
     );
   }
 
-  String _statusLabel(ConversationStatus status) {
-    switch (status) {
-      case ConversationStatus.open:
-        return 'Acik';
-      case ConversationStatus.pending:
-        return 'Beklemede';
-      case ConversationStatus.handoff:
-        return 'Müşteri temsilcisine yönlendir';
-      case ConversationStatus.closed:
-        return 'Kapali';
-    }
-  }
+  String _statusLabel(ConversationStatus status) => status.label;
 
   Color _statusColor(ConversationStatus status, ColorScheme scheme) {
     switch (status) {

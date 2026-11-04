@@ -17,6 +17,9 @@ contract; a documented legacy gap is not evidence of completion.
 | Campaign history/results | CampaignHistory / CampaignProgressPanel | 20-row pages, explicit refresh, acceptance separate from delivery |
 | Inbox handoff | HandoffRequestSheet + SupabaseInboxRepository + atomic RPC | stable request ID, immutable retry note, tenant-change guard |
 | Inbox send | InboxSendController + repository + enqueue RPC | stable message ID, immutable uncertain retry, authoritative dispatch state |
+| Conversation workflow | ConversationWorkflowSheet + ConversationWorkflowController + repository | shared chat/handoff controls, expected revision, stable retry identity, refreshed results |
+| Handoff list | HandoffScreen + repository-backed handoff provider | scoped in-memory filters, 20-row pages, explicit refresh and chat navigation |
+| Queued reply cancellation | CancelMessageButton + repository + cancellation RPC | explicit confirmation, own-message/admin controls, worker-start conflict recovery |
 | Delivery display | MessageDeliveryStatus | queue, acceptance, delivery, read and uncertainty are distinct |
 | Server validation | shared template module + PostgreSQL audience function | authoritative even if client validation is bypassed |
 
@@ -47,6 +50,21 @@ after save. Campaign history below the form supports draft reopening and result 
   put them in URLs or browser storage. Persist only via an explicit draft save.
 
 ## Deferred verification and known drift
+
+Conversation management follows the domain contract in
+[SUPPORT_WORKFLOWS.md](docs/SUPPORT_WORKFLOWS.md). The sheet owns a bounded vertical
+scroll area with wrapped actions. Material owns the team select popup, focus and
+selection semantics. Missing or removed options clear the visible selection and
+disable assignment. Ordinary agents see actions appropriate to their ownership,
+while admins can select another eligible employee. The server rechecks all rights.
+Busy actions block duplicate submission and closure. Uncertain results retain one
+immutable request and offer explicit retry. Confirmed completion closes the sheet,
+announces success and refreshes related data. Conflicts retain inline guidance and
+reload the conversation. Returning to a former tenant does not reactivate an
+invalidated panel. Handoff status/page state is transient and scoped by tenant and
+user because the current app uses in-memory tab navigation. Filter changes and
+confirmed workflow changes reset the page. Browser reload recovery and runtime
+interaction/accessibility checks remain deferred.
 
 Opening bot settings reads existing configuration or presents an inactive draft.
 Activation requires an explicit save. Existing saved activation is preserved.

@@ -1,9 +1,9 @@
 # Support ownership and case timing
 
-Updated 2026-11-03. Backend implementation checkpoint. The Flutter assignment,
-resolution and cancellation controls are the next integration step. Keep this
-upgrade together with those controls before deployment. Fixtures are authored and
-unexecuted. Static SQL parsing does not verify database execution or concurrency.
+Updated 2026-11-04. Backend actions and Flutter entry points are implemented in
+source. Deploy the migration, updated send endpoint and matching client together.
+Fixtures are authored and unexecuted. Static checks do not verify database
+execution, browser behavior or concurrency.
 
 ## Ownership protocol
 
@@ -65,6 +65,32 @@ Delivery/read states remain separately available. Unknown legacy starts must be
 excluded from elapsed-duration averages and reported as missing history. A late
 acceptance can occur after resolution, which is valid evidence of delayed sending.
 
+## Flutter workflow
+
+The chat toolbar and handoff list open the same `ConversationWorkflowSheet`.
+It loads the current conversation and tenant team through `SupabaseInboxRepository`.
+`ConversationWorkflowController` owns the action UUID, revision and assignee.
+Uncertain results freeze the original request for explicit retry, even when a
+later attempt receives a permission error. Confirmed responses trigger fresh
+reads instead of applying the historical replay result to current UI state.
+Tenant/session changes invalidate the sheet, and late completions cannot navigate
+or refresh a different business. Closing during an uncertain result explains that
+the action may have committed. Retry identity persists while the panel is open.
+Browser reload recovery remains a broader application follow-up.
+
+The handoff list has status filters, deterministic 20-row pages, a one-row sentinel
+for Next, explicit refresh, empty/error states and links into the chat. Filter and
+confirmed workflow changes reset paging. List state stays in tenant/user-scoped
+memory under the existing Flutter navigation architecture. Pages use offset
+pagination and can shift as other employees change the queue, so refresh returns
+to the first page. Message cancellation appears on eligible human messages and
+requires confirmation. A worker-start race produces a localized correction message.
+
+The existing Material theme, scroll containers and expanding dropdown own the
+new controls. Tag editing and requesting handoff moved into the chat's overflow
+menu to leave room for management and refresh actions on narrow screens. These
+layout changes still need browser/keyboard verification.
+
 ## Deferred verification
 
 Run `supabase/tests/support_workflows.sql` only in an isolated fully migrated
@@ -72,6 +98,9 @@ database when the owner starts the testing phase. It covers permission boundarie
 stable action replay, stale revisions, competing employees, pending human sends,
 cancel restrictions, prepared bot cancellation, manual/customer reopen and late
 acceptance attribution. Controller rejection cases are in `test/inbox_send_test.dart`.
+`test/conversation_workflow_test.dart` adds repository scoping/paging, immutable
+retries, revision conflicts, duplicate clicks, narrow layout, tenant changes,
+modal completion, disappearing team options and cancellation race cases.
 
 Also verify with separate concurrent sessions and the real Flutter entry points.
 

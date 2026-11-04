@@ -1,6 +1,6 @@
 # Flow CRM development status
 
-Updated 2026-11-03. Baseline commit `53437ce`.
+Updated 2026-11-04. Baseline commit `53437ce`.
 
 ## Product objective
 
@@ -19,11 +19,11 @@ modified when this work began; preserve it outside milestone commits.
 | Area | Implemented in source | Remaining work |
 |---|---|---|
 | Auth/tenancy | Password auth, memberships, tenant picker, module permissions | Auth events, onboarding, tenant boundary audit, invitations and recovery |
-| Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, ownership/lifecycle backend | Assignment/resolution/cancellation UI, pagination, attachments, historical account mapping, account labels and per-agent unread state |
+| Inbox | Account-scoped inbound messages, durable text reply queue, receipts, atomic opened/handoff actions, retry-safe controller, assignment/resolution/cancellation UI and backend | Pagination, attachments, historical account mapping, account labels, per-agent unread state and runtime verification |
 | AI | Scoped context/Responses, scheduled claims, token reservations/settlement, guarded replies and automatic handoffs | Configuration/usage UI refinement, subscription limits, operator recovery, model-quality/runtime evaluation |
 | Templates | Scoped encrypted-connection sync, legacy submission/upload, validated send bindings and form | Scoped submission/upload and multi-account UI, broader template families, provider verification |
 | Campaigns | Shared audience RPC, parameters, versioned drafts, durable queue/workers, Riverpod/history, receipt reconciliation | Usage enforcement, scheduling/product polish and deferred runtime/provider verification |
-| Handoff | Atomic request, ownership actions, queue cancellation, support episode timing backend, list | Assignment/closure UI integration, metrics presentation and runtime verification |
+| Handoff | Atomic request, shared ownership controls, queue cancellation, support episode timing backend, paginated/filterable list | Metrics presentation and runtime verification |
 | Dashboard | Mock statistics/chart | Real tenant metrics and team performance |
 | Billing | Absent | Provider integration, subscription lifecycle, entitlements, usage limits |
 | Operations | Additive migrations, growing setup guide, optional campaign/webhook scheduler scripts | Deployment, monitoring/alerts, retention, backup/restore and remaining worker schedules |
@@ -233,3 +233,14 @@ modified when this work began; preserve it outside milestone commits.
   Flutter action controls and end-to-end integration are the next milestone.
   See `docs/SUPPORT_WORKFLOWS.md`; this checkpoint is not deployment-ready alone.
   Deno type checking, targeted Dart analysis, SQL/PLpgSQL grammar parsing and diff checks passed. No suites, migrations or external sends were run.
+
+- 2026-11-04: Support UI integration adds one shared conversation-action sheet for
+  inbox and handoff, with server-owned revisions and immutable uncertain retries.
+  Tenant/session changes invalidate old panels. The handoff queue now has bounded
+  status-filtered pages and chat navigation. Eligible human messages expose explicit
+  cancel confirmation and worker-start conflict recovery. Related data refreshes
+  after confirmed actions, while errors retain localized recovery guidance.
+  Added repository/controller/widget regression cases with execution deferred.
+  Chat tag/handoff actions moved into the overflow menu to fit the management action.
+  Browser layout, keyboard, deployed-RPC and concurrency checks remain outstanding.
+  Targeted Dart analysis and diff checks passed. The strict UI contract audit reported zero findings. Test suites, live provider operations and backend migrations remain unexecuted.

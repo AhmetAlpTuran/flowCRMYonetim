@@ -8,7 +8,7 @@ milestone. No migrations have been applied automatically by this implementation 
 `20261102090000_support_workflows.sql` follows the bot worker migration. It adds
 assignment, optimistic/idempotent lifecycle actions, queued-human-message
 cancellation and separate support episodes. The matching Flutter action controls
-are still being implemented. Deploy the complete integration together because
+are implemented in source. Deploy the complete integration together because
 closed conversations now require an explicit reopen before human sending.
 The updated `send-message` endpoint maps closed/assigned conflicts for the client.
 No additional external secrets or scheduler are required by this migration.
