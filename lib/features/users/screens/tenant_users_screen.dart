@@ -993,6 +993,7 @@ class _PermissionOption {
     _PermissionOption('handoff', 'Yonlendirme'),
     _PermissionOption('campaigns', 'Kampanyalar'),
     _PermissionOption('templates', 'Sablonlar'),
+    _PermissionOption('catalog', 'Katalog ve rezervasyon'),
     _PermissionOption('users', 'Kullanicilar'),
   ];
 

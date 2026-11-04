@@ -2,7 +2,7 @@
 
 Updated 2026-11-07. Backend implemented and verified locally
 (`20261107090000_catalog_bookings_leads.sql`, `supabase/tests/catalog_bookings.sql`).
-Flutter screens and the bot tools that call these functions are the next milestones.
+The "Katalog" screen is implemented; the bot tools that call the bot functions are next.
 
 ## Model
 
@@ -55,3 +55,14 @@ idempotency and conversation binding, overlap refusal with adjacency allowed, ex
 holds, cross-conversation confirmation refusal, leads, direct-write revocation and
 permission checks. A live race of two concurrent sessions booking the same nights,
 repeated five times, left exactly one booking.
+
+## App ("Katalog", `lib/features/catalog`)
+
+- **Kayıtlar:** start from a preset type (Oda — nightly, Araç — listing, Hizmet — hourly),
+  add/edit/delete items with inputs generated from the type's fields, price, capacity,
+  status and a description the bot will use.
+- **Rezervasyonlar:** upcoming bookings with live/expired hold state, confirm and cancel,
+  and agent bookings for phone or walk-in customers (nightly stays 14:00 check-in to 11:00
+  check-out, hourly slots with a start time and duration). Overlaps show a clear error.
+- **Talepler:** leads with kind, customer, item, preferred time and a status selector.
+- Visible to members with the `catalog` permission ("Katalog ve rezervasyon" in Users).

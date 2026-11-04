@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../account/widgets/account_menu.dart';
 import '../bot/screens/bot_screen.dart';
 import '../campaigns/screens/campaigns_screen.dart';
+import '../catalog/screens/catalog_screen.dart';
 import '../connections/screens/connections_screen.dart';
 import '../contacts/screens/contacts_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
@@ -312,6 +313,14 @@ List<_ShellDestination> _destinationsFor(
       selectedIcon: Icons.headset_mic,
       screen: HandoffScreen(),
       feature: TenantFeature.handoff,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.catalog,
+      label: 'Katalog',
+      icon: Icons.inventory_2_outlined,
+      selectedIcon: Icons.inventory_2,
+      screen: CatalogScreen(),
+      feature: TenantFeature.catalog,
     ),
     const _ShellDestination(
       id: ShellDestinationId.campaigns,

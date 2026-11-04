@@ -391,3 +391,10 @@ modified when this work began; preserve it outside milestone commits.
   conversation's phone. See `docs/CATALOG_BOOKINGS.md`. Verified: 20/20 SQL fixtures (new
   `catalog_bookings.sql`), 70/70 Flutter tests, and a live five-round race of two concurrent
   sessions that left exactly one booking. Next: catalog/bookings/leads screens, then bot tools.
+
+- 2026-11-07: Roadmap Phase 2b, Katalog screens (`lib/features/catalog`): preset-based types,
+  field-driven item editor, bookings with hold confirm/cancel and agent booking (night/day/hour
+  conventions), leads with status, `catalog` module in navigation and permissions. Verified:
+  78/78 Flutter tests (8 new), 20/20 SQL fixtures, and a live PostgREST run of the app's exact
+  queries (type/item insert, create_booking, P0015 on overlap, bookings range filter with
+  resource embed, leads embed).

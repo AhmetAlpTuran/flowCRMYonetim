@@ -293,6 +293,8 @@ TenantFeature _featureFromString(String value) {
       return TenantFeature.templates;
     case 'users':
       return TenantFeature.users;
+    case 'catalog':
+      return TenantFeature.catalog;
     default:
       return TenantFeature.inbox;
   }

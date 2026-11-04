@@ -11,6 +11,7 @@ enum ShellDestinationId {
   campaigns,
   templates,
   users,
+  catalog,
   connections,
 }
 
