@@ -23,7 +23,8 @@ risks. Read it before starting work and append a dated milestone log entry after
   `whatsapp-webhook` = HMAC-verified Meta receiver, `_shared` = common helpers).
   `send-campaign` is the current authenticated campaign enqueue endpoint (sends happen
   in `campaign-worker`). `bot-reply` is only a legacy alias of the webhook URL.
-- `supabase/ops/schedule_*.sql`: optional cron/Vault scheduler scripts (not activated).
+- `supabase/ops/schedule_*.sql`: cron/Vault scheduler scripts for each worker (webhook,
+  inbox, campaign, bot, media); run them manually per environment.
 - `docs/`: per-area design and backend setup notes. `DESIGN.md` / `UX-CONTRACT.md`:
   theme and UI behavior contract.
 - `AppServer/` (NestJS) is git-ignored and unused by the app (`useEdgeFunctions = true`).
@@ -71,6 +72,5 @@ risks. Read it before starting work and append a dated milestone log entry after
   must delete their rows afterwards; SQL fixtures assume empty queues.
 - Commit messages: Conventional Commits, `type(scope): summary` (scopes: campaigns,
   inbox, ai, support, auth, tenancy, webhooks...). Stage explicit paths only.
-- `pubspec.lock` has a pre-existing local modification; keep it out of feature commits
-  unless dependencies intentionally change.
+- Commit `pubspec.lock` together with any dependency change (CI pins Flutter 3.41.2).
 - The owner writes in Turkish or English; UI strings are Turkish.
