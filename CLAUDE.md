@@ -61,8 +61,8 @@ risks. Read it before starting work and append a dated milestone log entry after
 - Write tests with each feature and run the suites before committing:
   `flutter test --timeout 60s`, `scripts/run_sql_tests.sh` (needs `supabase start`), and Deno
   via Docker when it isn't installed:
-  `docker run --rm -v "<repo>/supabase:/app/supabase" -w /app denoland/deno:2.4.0 deno check supabase/functions/*/index.ts`
-  (needs Deno 2.2+; add `deno test --allow-env --allow-net=127.0.0.1 supabase/functions/_shared`).
+  `docker run --rm -v "<repo>/supabase:/app/supabase" -w /app denoland/deno:2.9.8 deno check supabase/functions/*/index.ts`
+  (CI pins the same Deno 2.9.8; add `deno test --allow-env --allow-net=127.0.0.1 supabase/functions/_shared`).
   Label anything not exercised at runtime (live Meta/OpenAI calls) as "runtime unverified".
 - In widget tests, build `SupabaseClient` with `AuthClientOptions(autoRefreshToken: false)`,
   give fake `http.Response`s `request: request`, and don't await `client.dispose()`.

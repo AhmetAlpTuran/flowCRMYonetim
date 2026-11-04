@@ -17,7 +17,7 @@ const mediaUrl = "https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid
 
 function fixture(
   metadata: Record<string, unknown>,
-  body: Uint8Array | null,
+  body: Uint8Array<ArrayBuffer> | null,
   calls: { url: string; auth: string | null }[],
   status = 200,
 ): typeof fetch {

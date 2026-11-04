@@ -31,9 +31,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
-      - name: Type check every function
-        run: deno check supabase/functions/*/index.ts
+          # Pinned so a new Deno/TypeScript release cannot break CI unannounced;
+          # bump deliberately together with the local Docker image in CLAUDE.md.
+          deno-version: v2.9.8
+      - name: Type check every function and test
+        run: deno check supabase/functions/*/index.ts supabase/functions/_shared/*_test.ts
       - name: Unit tests
         run: deno test --allow-env --allow-net=127.0.0.1 supabase/functions/_shared
 
