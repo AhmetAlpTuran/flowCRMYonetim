@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../ui/ui.dart';
 import '../../bot/providers/bot_providers.dart';
 import '../../knowledge/providers/knowledge_providers.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../providers/catalog_providers.dart';
+import 'catalog_layout.dart';
 
 class IndustryPack {
   const IndustryPack({required this.key, required this.name, required this.questions});
@@ -71,7 +73,7 @@ final applyIndustryPackProvider = Provider<ApplyIndustryPack>((ref) {
   };
 });
 
-/// Two steps: pick a business type, then answer a few questions the bot will use.
+/// Two steps: pick a business type, then answer a few questions the assistant will use.
 class IndustryPackSheet extends ConsumerStatefulWidget {
   const IndustryPackSheet({super.key});
 
@@ -93,86 +95,127 @@ class _IndustryPackSheetState extends ConsumerState<IndustryPackSheet> {
     super.dispose();
   }
 
+  void _choose(IndustryPack pack) => setState(() {
+        _pack = pack;
+        _error = null;
+        for (final q in pack.questions) {
+          _answers.putIfAbsent(q.key, TextEditingController.new);
+        }
+      });
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final packs = ref.watch(industryPacksProvider);
+    final c = FlowColors.of(context);
     final pack = _pack;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(pack == null ? 'Sektör paketi kur' : pack.name, style: theme.textTheme.titleLarge),
-          const SizedBox(height: 8),
-          if (pack == null) ...[
-            const Text(
-                'Paket; katalog türünü, işinize uygun bot talimatını ve verdiğiniz bilgilerden bot bilgi bankasını hazırlar.'),
-            const SizedBox(height: 12),
-            ...packs.when(
-              loading: () => [const LinearProgressIndicator(minHeight: 2)],
-              error: (_, __) => [
-                TextButton(
-                  onPressed: () => ref.invalidate(industryPacksProvider),
-                  child: const Text('Paketler yüklenemedi. Tekrar dene'),
-                ),
-              ],
-              data: (items) => [
-                for (final item in items)
-                  Card(
-                    child: ListTile(
-                      title: Text(item.name),
-                      subtitle: Text(industryPackDescriptions[item.key] ?? ''),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => setState(() {
-                        _pack = item;
-                        for (final q in item.questions) {
-                          _answers.putIfAbsent(q.key, TextEditingController.new);
-                        }
-                      }),
-                    ),
-                  ),
-              ],
+    final step = pack == null ? 1 : 2;
+    return CatalogSheet(
+      eyebrow: pack == null ? 'Adım 1 / 2 · İşiniz' : 'Adım 2 / 2 · Bilgiler',
+      title: pack == null ? 'Sektör paketi kur' : pack.name,
+      progress: _StepBar(step: step, of: 2),
+      leadingAction: pack == null
+          ? null
+          : TextButton.icon(
+              onPressed: _busy ? null : () => setState(() => _pack = null),
+              style: TextButton.styleFrom(foregroundColor: c.muted),
+              icon: const Icon(Icons.arrow_back, size: 18),
+              label: const Text('Geri'),
             ),
-          ] else ...[
-            const Text(
-                'Botun müşterilere doğru bilgi vermesi için kısaca yanıtlayın. Boş bıraktıklarınız eklenmez; sonra Bilgi bölümünden düzenleyebilirsiniz.'),
-            const SizedBox(height: 12),
-            for (final q in pack.questions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: TextField(
-                  controller: _answers[q.key],
-                  readOnly: _busy,
-                  minLines: 1,
-                  maxLines: 4,
-                  maxLength: 4000,
-                  decoration: InputDecoration(
-                    labelText: q.title,
-                    hintText: industryPackHints[q.key],
-                    alignLabelWithHint: true,
-                  ),
+      actions: [
+        if (pack != null)
+          FilledButton(
+            onPressed: _busy ? null : _apply,
+            child: _busy
+                ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                    CatalogSpinner(size: 16),
+                    SizedBox(width: FlowSpace.sm),
+                    Text('Kuruluyor'),
+                  ])
+                : const Text('Paketi kur'),
+          ),
+      ],
+      child: pack == null ? _sectors(theme, c) : _questions(pack, theme),
+    );
+  }
+
+  Widget _sectors(ThemeData theme, FlowColors c) {
+    final packs = ref.watch(industryPacksProvider);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('İşiniz hangisi?', style: theme.textTheme.titleLarge),
+      const SizedBox(height: 4),
+      Text(
+        'Paket; kayıt türünü, işinize uygun asistan talimatını ve verdiğiniz bilgilerden bilgi bankasını hazırlar.',
+        style: theme.textTheme.bodyMedium?.copyWith(color: c.muted),
+      ),
+      const SizedBox(height: FlowSpace.lg),
+      packs.when(
+        loading: () => const LoadingList(rows: 3),
+        error: (_, __) => ErrorState(
+          title: 'Paketler yüklenemedi',
+          onRetry: () => ref.invalidate(industryPacksProvider),
+        ),
+        data: (items) => LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 600 && items.length > 1 ? (items.length >= 3 ? 3 : 2) : 1;
+          final width = columns == 1
+              ? constraints.maxWidth
+              : ((constraints.maxWidth - FlowSpace.md * (columns - 1)) / columns).floorToDouble();
+          return Wrap(spacing: FlowSpace.md, runSpacing: FlowSpace.md, children: [
+            for (final item in items)
+              SizedBox(
+                width: width,
+                child: _SectorCard(pack: item, stacked: columns > 1, onTap: () => _choose(item)),
+              ),
+          ]);
+        }),
+      ),
+    ]);
+  }
+
+  Widget _questions(IndustryPack pack, ThemeData theme) {
+    final c = FlowColors.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('Birkaç soruyu yanıtlayın', style: theme.textTheme.titleLarge),
+      const SizedBox(height: 4),
+      Text(
+        'Asistan müşterilere bu bilgilerle yanıt verir. Boş bıraktıklarınız eklenmez; '
+        'sonra Asistan → Bilgi bankası bölümünden düzenleyebilirsiniz.',
+        style: theme.textTheme.bodyMedium?.copyWith(color: c.muted),
+      ),
+      const SizedBox(height: FlowSpace.xl - 4),
+      if (pack.questions.isEmpty)
+        const CatalogNotice('Bu paket için soru yok; doğrudan kurabilirsiniz.', tone: FlowTone.info),
+      for (final (index, q) in pack.questions.indexed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: FlowSpace.md),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 17),
+              child: SizedBox(
+                width: 26,
+                child: Text((index + 1).toString().padLeft(2, '0'), style: FlowText.mono(context, size: 12, color: c.faint)),
+              ),
+            ),
+            Expanded(
+              child: TextField(
+                controller: _answers[q.key],
+                readOnly: _busy,
+                minLines: 1,
+                maxLines: 4,
+                maxLength: 4000,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: q.title,
+                  hintText: industryPackHints[q.key],
+                  hintMaxLines: 3,
+                  alignLabelWithHint: true,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                 ),
               ),
-            if (_error != null)
-              Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-            Wrap(alignment: WrapAlignment.end, spacing: 8, children: [
-              TextButton(
-                onPressed: _busy ? null : () => setState(() => _pack = null),
-                child: const Text('Geri'),
-              ),
-              FilledButton(
-                onPressed: _busy ? null : _apply,
-                child: _busy
-                    ? const SizedBox(
-                        height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Paketi kur'),
-              ),
-            ]),
-          ],
-        ]),
-      ),
-    );
+            ),
+          ]),
+        ),
+      if (_error != null) ...[const SizedBox(height: FlowSpace.sm), CatalogNotice(_error!)],
+    ]);
   }
 
   Future<void> _apply() async {
@@ -195,25 +238,7 @@ class _IndustryPackSheetState extends ConsumerState<IndustryPackSheet> {
       Navigator.of(context).pop();
       await showDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Paket kuruldu'),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Yeni bilgi kaydı: ${result['knowledge_added'] ?? 0}, güncellenen: ${result['knowledge_updated'] ?? 0}'),
-            if (result['prompt_applied'] == true)
-              const Text('Bot talimatı işinize göre ayarlandı.')
-            else
-              const Text('Kendi bot talimatınız korundu.'),
-            const SizedBox(height: 12),
-            const Text('Sıradaki adımlar:'),
-            const Text('1. Katalog > Kayıtlar bölümünden oda, araç veya hizmetlerinizi ekleyin.'),
-            Text(result['bot_active'] == true
-                ? '2. Botunuz zaten açık; yeni bilgileri hemen kullanır.'
-                : '2. Bot ayarlarından botu etkinleştirin.'),
-          ]),
-          actions: [
-            FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Tamam')),
-          ],
-        ),
+        builder: (context) => _PackResultDialog(result: result),
       );
     } catch (error) {
       if (mounted) {
@@ -229,23 +254,161 @@ class _IndustryPackSheetState extends ConsumerState<IndustryPackSheet> {
   }
 }
 
+class _StepBar extends StatelessWidget {
+  const _StepBar({required this.step, required this.of});
+
+  final int step;
+  final int of;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    return Semantics(
+      label: 'Adım $step / $of',
+      excludeSemantics: true,
+      child: Row(children: [
+        for (var i = 1; i <= of; i++) ...[
+          if (i > 1) const SizedBox(width: 6),
+          Expanded(
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: i <= step ? c.meter : c.raised,
+                borderRadius: BorderRadius.circular(FlowRadius.pill),
+              ),
+            ),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+class _SectorCard extends StatelessWidget {
+  const _SectorCard({required this.pack, required this.stacked, required this.onTap});
+
+  final IndustryPack pack;
+
+  /// Icon above the text (grid) instead of beside it (list).
+  final bool stacked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    final icon = Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(color: c.raised, borderRadius: FlowRadius.controlAll),
+      child: Icon(presetIcon(pack.key), color: c.accentText),
+    );
+    final text = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(pack.name, style: theme.textTheme.titleMedium),
+      const SizedBox(height: 4),
+      Text(industryPackDescriptions[pack.key] ?? '', style: theme.textTheme.bodySmall),
+      if (pack.questions.isNotEmpty) ...[
+        const SizedBox(height: FlowSpace.sm),
+        Text(upperTr('${pack.questions.length} soru'), style: FlowText.caps(context, size: 10, color: c.faint)),
+      ],
+    ]);
+    return Material(
+      color: c.canvas,
+      shape: RoundedRectangleBorder(borderRadius: FlowRadius.cardAll, side: BorderSide(color: c.border)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(FlowSpace.lg),
+          child: stacked
+              ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  icon,
+                  const SizedBox(height: FlowSpace.md),
+                  text,
+                ])
+              : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  icon,
+                  const SizedBox(width: FlowSpace.md),
+                  Expanded(child: text),
+                  const SizedBox(width: FlowSpace.sm),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Icon(Icons.chevron_right, color: c.muted),
+                  ),
+                ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _PackResultDialog extends StatelessWidget {
+  const _PackResultDialog({required this.result});
+
+  final Map<String, dynamic> result;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = FlowColors.of(context);
+    Widget next(int number, String text) => Padding(
+          padding: const EdgeInsets.only(top: FlowSpace.sm),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+              width: 24,
+              child: Text('$number', style: FlowText.mono(context, size: 13, color: c.accentText, weight: FontWeight.w600)),
+            ),
+            Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+          ]),
+        );
+    return AlertDialog(
+      title: const Text('Paket kuruldu'),
+      content: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          KeyValueRow(label: 'Yeni bilgi kaydı', value: formatCount((result['knowledge_added'] as num?) ?? 0), mono: true),
+          KeyValueRow(
+              label: 'Güncellenen bilgi', value: formatCount((result['knowledge_updated'] as num?) ?? 0), mono: true),
+          const SizedBox(height: FlowSpace.sm),
+          Text(
+            result['prompt_applied'] == true
+                ? 'Asistan talimatı işinize göre ayarlandı.'
+                : 'Kendi asistan talimatınız korundu.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: FlowSpace.lg),
+          const Eyebrow('Sıradaki adımlar'),
+          next(1, 'Katalog → Kayıtlar bölümünden oda, araç veya hizmetlerinizi ekleyin.'),
+          next(
+            2,
+            result['bot_active'] == true
+                ? 'Asistanınız zaten açık; yeni bilgileri hemen kullanır.'
+                : 'Asistan → Asistanlar bölümünden asistanı açın.',
+          ),
+        ]),
+      ),
+      actions: [
+        FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Tamam')),
+      ],
+    );
+  }
+}
+
 /// Opens the pack wizard; shown to administrators only (the RPC also checks).
+/// Pass `primary: false` where the screen already has its one lime button.
 class IndustryPackButton extends ConsumerWidget {
-  const IndustryPackButton({super.key});
+  const IndustryPackButton({super.key, this.primary = true});
+
+  final bool primary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(currentMembershipProvider).valueOrNull?.isAdmin ?? false;
     if (!isAdmin) return const SizedBox.shrink();
-    return FilledButton.icon(
-      onPressed: () => showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        builder: (_) => const IndustryPackSheet(),
-      ),
-      icon: const Icon(Icons.auto_awesome),
-      label: const Text('Sektör paketi kur'),
-    );
+    void open() => showCatalogSheet<void>(context, const IndustryPackSheet(), maxWidth: 760);
+    const icon = Icon(Icons.auto_awesome, size: 18);
+    const label = Text('Sektör paketi kur');
+    return primary
+        ? FilledButton.icon(onPressed: open, icon: icon, label: label)
+        : OutlinedButton.icon(onPressed: open, icon: icon, label: label);
   }
 }

@@ -70,13 +70,14 @@ void main() {
     final store = FakeStore();
     await tester.pumpWidget(app(store, ['$tenant/$item/a.jpg'], (name: 'IMG_1.JPEG', bytes: Uint8List(10))));
     await tester.pumpAndSettle();
-    expect(find.text('Fotoğraflar (1/10)'), findsOneWidget);
-    expect(find.text('Kapak'), findsOneWidget);
-    await tester.tap(find.text('Fotoğraf ekle'));
+    expect(find.text('1 / 1'), findsOneWidget);
+    expect(find.text('KAPAK'), findsOneWidget);
+    await tester.tap(find.byTooltip('Fotoğraf ekle'));
     await tester.pumpAndSettle();
     expect(store.uploads, ['$tenant/$item/new-1.jpg']);
     expect(store.saved.single, ['$tenant/$item/a.jpg', '$tenant/$item/new-1.jpg']);
-    expect(find.text('Fotoğraflar (2/10)'), findsOneWidget);
+    expect(find.text('2 / 2'), findsOneWidget, reason: 'the new photo is shown');
+    expect(find.text('KAPAK'), findsNothing, reason: 'the new photo is not the cover');
     expect(tester.takeException(), isNull);
   });
 
@@ -85,12 +86,12 @@ void main() {
     await tester.pumpWidget(app(store, const [], (name: 'anim.gif', bytes: Uint8List(10))));
     await tester.pumpAndSettle();
     expect(find.text('Henüz fotoğraf yok.'), findsOneWidget);
-    await tester.tap(find.text('Fotoğraf ekle'));
+    await tester.tap(find.byTooltip('Fotoğraf ekle'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Yalnızca JPG veya PNG'), findsOneWidget);
     await tester.pumpWidget(app(store, const [], (name: 'big.png', bytes: Uint8List(maxPhotoBytes + 1))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Fotoğraf ekle'));
+    await tester.tap(find.byTooltip('Fotoğraf ekle'));
     await tester.pumpAndSettle();
     expect(find.text('Fotoğraf en fazla 5 MB olabilir.'), findsOneWidget);
     expect(store.uploads, isEmpty);
@@ -100,11 +101,11 @@ void main() {
     final store = FakeStore()..failSave = true;
     await tester.pumpWidget(app(store, const [], (name: 'car.png', bytes: Uint8List(10))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Fotoğraf ekle'));
+    await tester.tap(find.byTooltip('Fotoğraf ekle'));
     await tester.pumpAndSettle();
     expect(store.removed, ['$tenant/$item/new-1.png']);
     expect(find.textContaining('Fotoğraf kaydedilemedi'), findsOneWidget);
-    expect(find.text('Fotoğraflar (0/10)'), findsOneWidget);
+    expect(find.text('Henüz fotoğraf yok.'), findsOneWidget);
   });
 
   testWidgets('photos can be made the cover or removed; ten is the limit', (tester) async {
@@ -112,13 +113,20 @@ void main() {
     final photos = ['$tenant/$item/a.jpg', '$tenant/$item/b.jpg'];
     await tester.pumpWidget(app(store, photos, null));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Fotoğraf işlemleri').last);
+    await tester.tap(find.byKey(const ValueKey('$tenant/$item/b.jpg')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 2'), findsOneWidget);
+    await tester.tap(find.byTooltip('Fotoğraf işlemleri'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kapak yap'));
     await tester.pumpAndSettle();
     expect(store.saved.last, ['$tenant/$item/b.jpg', '$tenant/$item/a.jpg']);
-    await tester.tap(find.byTooltip('Fotoğraf işlemleri').last);
+    expect(find.text('KAPAK'), findsOneWidget, reason: 'the new cover is shown');
+    await tester.tap(find.byKey(const ValueKey('$tenant/$item/a.jpg')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Fotoğraf işlemleri'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kapak yap'), findsOneWidget);
     await tester.tap(find.text('Kaldır'));
     await tester.pumpAndSettle();
     expect(store.saved.last, ['$tenant/$item/b.jpg']);
@@ -127,7 +135,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(app(store, [for (var i = 0; i < maxItemPhotos; i++) '$tenant/$item/$i.jpg'], null));
     await tester.pumpAndSettle();
-    final add = tester.widget<TextButton>(find.ancestor(of: find.text('Fotoğraf ekle'), matching: find.byType(TextButton)));
-    expect(add.onPressed, isNull);
+    final add = tester.widget<InkWell>(find.descendant(of: find.byTooltip('Fotoğraf ekle'), matching: find.byType(InkWell)));
+    expect(add.onTap, isNull);
   });
 }
