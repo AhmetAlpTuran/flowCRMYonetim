@@ -522,3 +522,16 @@ modified when this work began; preserve it outside milestone commits.
   names, a monitoring runbook per problem code, backups and a restore drill, and error
   tracking options. Verified: 31/31 SQL fixtures (new `ops_health.sql`, `agent_metrics.sql`),
   106/106 Flutter tests, and the health function on the local Edge runtime.
+
+- 2026-11-10: First-run setup checklist (roadmap Phase 1 item). Migration
+  `20261110130000_setup_progress.sql` (`tenant_setup_progress`, admins), plus the "Kurulum"
+  card on the dashboard with steps that open their screens. Verified: SQL fixture
+  `setup_progress.sql`, 108/108 Flutter tests.
+
+- 2026-11-10: Industry pack evaluation harness: 12 scripted conversations
+  (`_shared/bot_eval.ts`) over the real prompt and tool loop with an in-memory catalog,
+  checking stock search, no invented stock or discounts, leads, photos, holds with
+  15-minute notice and explicit confirmation, no medical advice, and handoff on request.
+  The CLI is `scripts/bot_eval.ts` (owner runs it with an OpenAI key). The checks are
+  verified by `bot_eval_test.ts` (98/98 Deno tests); real-model results are runtime
+  unverified.

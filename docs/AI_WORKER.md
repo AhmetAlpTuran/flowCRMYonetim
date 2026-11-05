@@ -281,3 +281,32 @@ photos to the reply. `trackPhotos` removes the storage paths from the tool resul
 the model sees it. The worker adds `photos: [{path, caption}]` to the decision, and
 `complete_bot_reply` validates them and queues one image dispatch per photo after the text.
 See `docs/CATALOG_BOOKINGS.md`.
+
+## Industry pack evaluation (`scripts/bot_eval.ts`)
+
+There are 12 scripted conversations across the three industry packs
+(`_shared/bot_eval.ts`). They run the real prompt and tool loop against an in-memory catalog
+(3 cars, 2 rooms, 1 service) and check:
+
+- **Stock search:** the bot searches before recommending (budget and gear) and never
+  invents stock (asked for a BMW, it says there is none).
+- **Car dealer requests:** test drives become leads, photos are sent with `send_photos`,
+  and the bot makes no discount promises.
+- **Bookings:** a hold is placed with the 15-minute notice and never confirmed in the same
+  turn, and it is confirmed after an explicit "Evet".
+- **Unknown facts and refusals:** no invented deposit amounts, no medical advice, and a
+  handoff when the customer asks for a person.
+
+Run it with your OpenAI key. It costs a few cents, and nothing touches a database or WhatsApp:
+
+```
+docker run --rm -e OPENAI_API_KEY -e EVAL_MODEL=gpt-4o-mini -e EVAL_REPEAT=3 \
+  -v "<repo>:/app" -w /app denoland/deno:2.9.8 \
+  deno run --allow-env --allow-net=api.openai.com scripts/bot_eval.ts
+```
+
+A case passes only if every repeat passes. Use `EVAL_REPEAT=3` or more, because model output
+varies. The checks are unit-tested with a scripted model (`bot_eval_test.ts`: a
+well-behaved run passes; invented stock, skipped search and premature confirmation fail).
+Results against a real model are runtime unverified until the owner runs it; add a case
+whenever a pilot conversation goes wrong.
