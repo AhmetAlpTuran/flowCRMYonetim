@@ -37,6 +37,8 @@ class CampaignTemplateInput {
       };
     }
     if (component == 'button') return 'Düğme ${(index ?? 0) + 1}: bağlantı eki';
-    return '${component == 'header' ? 'Başlık' : 'Mesaj'}: {{$variable}}';
+    final place = component == 'header' ? 'Başlıktaki' : 'Mesajdaki';
+    final name = variable ?? '';
+    return RegExp(r'^\d+$').hasMatch(name) ? '$place değer $name' : '$place $name değeri';
   }
 }

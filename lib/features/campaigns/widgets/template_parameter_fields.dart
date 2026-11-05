@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../ui/ui.dart';
+import '../../templates/widgets/template_preview_bubble.dart';
 import '../models/template_input.dart';
 
 /// Reusable send-value fields for campaign creation/editing. The enclosing Form
@@ -20,28 +22,34 @@ class TemplateParameterFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (inputs.isEmpty) {
-      return const Text('Bu şablon için ek gönderim değeri gerekmiyor.');
+      return Text('Bu şablon için ek gönderim değeri gerekmiyor.',
+          style: theme.textTheme.bodyMedium);
     }
+    final c = FlowColors.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Gönderim değerleri'),
-        const SizedBox(height: 8),
-        const Text(
-          'Her değişken için sabit bir değer veya kişi alanı seçin. '
-          'Kişi alanı boşsa yedek değer kullanılır; ikisi de boşsa o kişiye gönderilmez.',
+        Text(
+          'Her değer için sabit bir metin ya da kişinin bilgisini seçin. '
+          'Kişi bilgisi boşsa yedek değer kullanılır; ikisi de boşsa o kişiye gönderilmez.',
+          style: theme.textTheme.bodySmall,
         ),
-        for (final input in inputs)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
+        for (var i = 0; i < inputs.length; i++)
+          Container(
+            margin: const EdgeInsets.only(top: FlowSpace.lg),
+            padding: EdgeInsets.only(top: i == 0 ? 0 : FlowSpace.lg),
+            decoration: BoxDecoration(
+              border: i == 0 ? null : Border(top: BorderSide(color: c.border)),
+            ),
             child: _BindingFields(
-              key: ValueKey(input.key),
-              input: input,
-              binding: _safeBinding(input, bindings[input.key]),
+              key: ValueKey(inputs[i].key),
+              input: inputs[i],
+              binding: _safeBinding(inputs[i], bindings[inputs[i].key]),
               enabled: enabled,
               onChanged: (binding) =>
-                  onChanged({...bindings, input.key: binding}),
+                  onChanged({...bindings, inputs[i].key: binding}),
             ),
           ),
       ],
@@ -103,8 +111,19 @@ class _BindingFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(input.label, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
+        Wrap(
+          spacing: FlowSpace.sm,
+          runSpacing: FlowSpace.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (!input.isMedia &&
+                input.component != 'button' &&
+                input.variable != null)
+              TemplateVariableChip(templateVariableLabel(input.variable!)),
+            Text(input.label, style: Theme.of(context).textTheme.titleSmall),
+          ],
+        ),
+        const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           key: ValueKey('${input.key}.source'),
           initialValue: source,
