@@ -40,9 +40,33 @@ English headers (`Ad Soyad`, `Telefon`, `E-posta`, `Etiketler`, `İzin`), local 
 numbers such as `0555 111 22 33`. Importing consent requires a basis and an explicit
 confirmation that consent was obtained.
 
+## Opt-out by WhatsApp keyword (`20261110090000_keyword_opt_out.sql`)
+
+A customer text matching `is_marketing_stop` opts the number out of that business's
+marketing. The rule applies with or without Turkish letters and with any capitalization:
+
+- **Stop word first:** `STOP`, `RET` or `unsubscribe`, at most three words in total (for
+  example "RET MARKA").
+- **Refusal phrase:** a short message containing a phrase such as "abonelikten çık",
+  "listeden çıkarın", "mesaj göndermeyin" or "reklam/kampanya istemiyorum".
+
+A bare "iptal" is **not** a stop word, because customers use it for bookings and booking
+buttons.
+
+- The trigger on `messages` sets `opted_out_at` and `opt_out_source = 'whatsapp_keyword'` on
+  every consent row of that number, whatever its stored format. A number without a row gets a
+  refusal row, so a later import cannot subscribe it.
+- The opt-out is audited (`contact.opted_out`). Queued campaign dispatches to the number are
+  cancelled at send time.
+- The bot job for that message is cancelled (`marketing_opt_out`); an agent sees the message
+  in the inbox. No automatic confirmation is sent.
+- Re-subscribing requires a recorded consent (`set_marketing_consent`), never a keyword.
+- Verified by SQL fixture `keyword_opt_out.sql`: 13 stop phrases, 10 look-alikes (booking
+  "iptal", "stop lambası", …), format-independent matching, tenant isolation, the refusal
+  row, the audience, bot skipping, and agent messages.
+
 ## Not yet
 
-- Automatic opt-out when a customer replies with a stop keyword (for example "İPTAL").
 - `.xlsx` files: save as CSV first.
 - Whether İYS registration applies to WhatsApp messages needs legal confirmation (roadmap
   Phase 4); the recorded source, basis, actor and time are kept to support that.

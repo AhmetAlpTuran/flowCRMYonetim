@@ -489,3 +489,12 @@ modified when this work began; preserve it outside milestone commits.
   checked against Python vectors), Flutter billing tests (9), and a local end-to-end run on the
   Edge runtime against a signature-checking fake iyzico. Real iyzico sandbox behaviour is
   runtime unverified (needs merchant keys). See `docs/BILLING.md`.
+
+- 2026-11-10: Marketing opt-out by WhatsApp keyword (law 6563). Migration
+  `20261110090000_keyword_opt_out.sql`:
+  - `is_marketing_stop`: STOP/RET first, or short refusal phrases, with Turkish letters
+    folded; booking "iptal" excluded.
+  - A trigger on `messages` opts the number out on every consent row (format-independent)
+    or keeps a refusal row, and audits it.
+  - The bot does not answer that message.
+  Verified: 28/28 SQL fixtures (new `keyword_opt_out.sql`). See `docs/CONTACTS_CONSENT.md`.
