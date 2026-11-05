@@ -26,8 +26,18 @@ class TenantInvite {
   String get displayStatus => status == 'pending' && isExpired ? 'expired' : status;
 }
 
+/// Where an invitee opens Flow CRM to sign up; overridable per build with
+/// `--dart-define=INVITE_URL=...`. Invites are bound to the email address, not the link.
+const inviteLink = String.fromEnvironment(
+  'INVITE_URL',
+  defaultValue: 'https://ahmetalpturan.github.io/flowCRMYonetim/',
+);
+
 /// Ready-to-share text for an invite; email delivery is not automated yet.
-String inviteShareMessage({required String tenantName, required String email}) =>
+String inviteShareMessage({required String tenantName, required String email, String link = inviteLink}) =>
     '$tenantName sizi Flow CRM\'e davet etti. Uygulamayı indirip $email adresiyle '
     'kaydolun veya giriş yapın; davet "Davetleriniz" bölümünde görünecek. '
-    'Davet 14 gün geçerlidir.';
+    'Davet 14 gün geçerlidir.${link.isEmpty ? '' : '\n$link'}';
+
+/// A WhatsApp share link that lets the admin pick the recipient in WhatsApp.
+Uri whatsappShareUri(String message) => Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');

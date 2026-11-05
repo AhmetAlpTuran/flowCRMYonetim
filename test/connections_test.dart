@@ -227,9 +227,10 @@ void main() {
       child: const MaterialApp(home: Scaffold(body: ConnectionsScreen())),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Aktif'), findsOneWidget);
-    expect(find.text('Varsayılan'), findsOneWidget);
-    expect(find.text('Yeniden bağlanmalı'), findsOneWidget);
+    expect(find.text('BAĞLI'), findsOneWidget);
+    expect(find.text('VARSAYILAN'), findsOneWidget);
+    expect(find.text('HATA'), findsOneWidget, reason: 'the rejected token needs a reconnect');
+    expect(find.text('+90 555 000 00 00'), findsNWidgets(2), reason: 'numbers in Turkish grouping');
     expect(find.textContaining('erişim anahtarını kabul etmiyor'), findsOneWidget);
     expect(find.text('Yeniden bağla'), findsOneWidget);
     expect(find.text('Anahtarı yenile'), findsOneWidget);

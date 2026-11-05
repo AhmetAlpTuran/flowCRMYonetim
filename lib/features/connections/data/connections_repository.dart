@@ -24,7 +24,7 @@ class ConnectionsRepository {
     final rows = await _client
         .from('whatsapp_connections')
         .select(
-            'id, waba_id, phone_number_id, display_phone_number, verified_name, status, is_default, token_expires_at')
+            'id, waba_id, phone_number_id, display_phone_number, verified_name, status, is_default, token_expires_at, bot_enabled, bot_profile_id')
         .eq('tenant_id', tenantId)
         .order('created_at');
     return rows.map(WhatsAppConnection.fromRow).toList(growable: false);
