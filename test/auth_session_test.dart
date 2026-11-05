@@ -185,11 +185,19 @@ void main() {
     await tester.enterText(
         find.byType(TextFormField).first, 'agent@example.invalid');
     await tester.enterText(find.byType(TextFormField).last, ' password ');
+    // Switching to sign-up keeps what was typed.
+    await tester.ensureVisible(find.text('İşletmenizi oluşturun · 14 gün ücretsiz'));
+    await tester.tap(find.text('İşletmenizi oluşturun · 14 gün ücretsiz'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hesap oluşturun'), findsOneWidget);
     await tester.ensureVisible(find.text('Kayıt ol'));
     await tester.tap(find.text('Kayıt ol'));
     await tester.pumpAndSettle();
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(find.textContaining('E-posta doğrulaması'), findsOneWidget);
+    // Sign-in is the next step, with the same credentials still filled in.
+    expect(find.widgetWithText(FilledButton, 'Giriş yap'), findsOneWidget);
+    expect(find.text('agent@example.invalid'), findsOneWidget);
     expect(controller.calls, 1);
     expect(tester.takeException(), isNull);
   });
@@ -213,7 +221,7 @@ void main() {
     await tester.enterText(
         find.byType(TextFormField).first, 'agent@example.invalid');
     await tester.enterText(find.byType(TextFormField).last, ' password ');
-    await tester.tap(find.text('Giriş yap'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Giriş yap'));
     await tester.pump();
     expect(controller.password, ' password ');
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
