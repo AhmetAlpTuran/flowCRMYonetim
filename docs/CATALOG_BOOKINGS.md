@@ -88,3 +88,29 @@ repeated five times, left exactly one booking.
   prompt is kept. The bot is never switched on by a pack.
 - App: "Sektör paketi kur" in the empty Katalog screen and at the top of the Bot screen
   (administrators only), with example answers for every question.
+
+## Photos and listing photos (`20261110100000_catalog_photos.sql`)
+
+- Items keep up to 10 JPG/PNG photos (5 MB each) in the private `catalog-photos` bucket at
+  `{tenant}/{item}/{uuid}.jpg|png`. The first photo is the cover.
+- Storage policies allow uploads only into an existing item of the caller's business, with
+  the catalog permission. A trigger keeps `resources.photos` to the item's own folder, with
+  no duplicates.
+- App: the item editor's "Fotoğraflar" section adds photos, makes one the cover
+  ("Kapak yap") and removes them. Changes apply immediately. If saving fails after an
+  upload, the file is deleted again. New items get photos once saved.
+- Bot: `send_photos(resource_id)` queues up to 3 photos with the reply. The model sees the
+  item name and count, never storage paths. `complete_bot_reply` accepts only photos of
+  the business's own items, and stores each as an outbound image message, captioned with
+  the item name on the first photo, with its own dispatch after the reply text (sent in
+  order). `inbox-worker` reads these from `catalog-photos`
+  (`message_media.storage_bucket`). One reply dispatch per bot job is still guaranteed;
+  photo dispatches have deterministic IDs.
+- Verified:
+  - SQL fixture `catalog_photos.sql`: path rules, upload permissions, reply photo
+    validation, messages and media rows, and text-then-photos dispatch order.
+  - Deno tests `listing_photos_test.ts`.
+  - 5 Flutter widget tests.
+  - A live local run through Storage and PostgREST: upload, cross-business refusal,
+    attach, foreign path refused, signed URL, removal.
+  - Sending through Meta is runtime unverified.

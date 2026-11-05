@@ -27,7 +27,12 @@ export type ToolDatabase = {
   ) => Promise<{ data: unknown; error: { code?: string } | null }>;
   resourceUnit: (resourceId: string) => Promise<string | null | undefined>;
   conversationBookings: () => Promise<unknown[]>;
+  /** An active item's name and photo paths, or null. */
+  resourcePhotos?: (resourceId: string) => Promise<{ name: string; photos: string[] } | null>;
 };
+
+/** At most this many photos go out with one reply. */
+export const MAX_REPLY_PHOTOS = 3;
 
 /** Türkiye has used UTC+3 all year since 2016. */
 const ISTANBUL_OFFSET = "+03:00";
@@ -111,6 +116,11 @@ export function catalogToolDefinitions(types: CatalogType[]): Record<string, unk
         price_min: nullable("number"),
         price_max: nullable("number"),
       },
+    ),
+    tool(
+      "send_photos",
+      `Send photos of one item (from search results with photo_count > 0) with your reply, when the customer wants to see it. At most ${MAX_REPLY_PHOTOS} photos go out per reply; never paste links.`,
+      { resource_id: { type: "string" } },
     ),
     tool(
       "create_lead",
@@ -302,6 +312,13 @@ export function createToolRunner(
           });
         case "my_bookings":
           return { bookings: await db.conversationBookings() };
+        case "send_photos": {
+          const item = await db.resourcePhotos?.(id(args.resource_id, "resource_id"));
+          if (!item) return { error: "not_found" };
+          if (!item.photos.length) return { error: "no_photos" };
+          // `paths` is removed by trackPhotos before the model sees the result.
+          return { status: "queued", name: item.name, photo_count: item.photos.length, paths: item.photos };
+        }
         case "create_lead": {
           if (!LEAD_KINDS.includes(args.kind as typeof LEAD_KINDS[number])) {
             throw new ToolInputError("kind is not supported");
@@ -423,6 +440,33 @@ export function trackHolds(runner: ToolRunner): { runner: ToolRunner; held: () =
       if (id && call.name === "hold_booking" && result?.status === "hold") held.add(id);
       if (id && (call.name === "confirm_booking" || call.name === "cancel_booking")) held.delete(id);
       return result;
+    },
+  };
+}
+
+export type ReplyPhoto = { path: string; caption: string | null };
+
+/**
+ * Wraps a runner to collect the photos send_photos asked for, so the reply can carry
+ * them (at most MAX_REPLY_PHOTOS, the first one of each item captioned with its name).
+ * Storage paths never reach the model.
+ */
+export function trackPhotos(runner: ToolRunner): { runner: ToolRunner; photos: () => ReplyPhoto[] } {
+  const photos: ReplyPhoto[] = [];
+  return {
+    photos: () => [...photos],
+    runner: async (call) => {
+      const result = await runner(call) as Record<string, unknown> | null;
+      if (call.name !== "send_photos" || !result || !Array.isArray(result.paths)) return result;
+      const { paths, ...visible } = result;
+      const room = MAX_REPLY_PHOTOS - photos.length;
+      const fresh = (paths as unknown[]).filter((path): path is string =>
+        typeof path === "string" && !photos.some((photo) => photo.path === path)
+      ).slice(0, Math.max(room, 0));
+      fresh.forEach((path, index) =>
+        photos.push({ path, caption: index === 0 && typeof result.name === "string" ? result.name.slice(0, 200) : null })
+      );
+      return { ...visible, sent: fresh.length, ...(fresh.length ? {} : { note: "photo_limit_reached" }) };
     },
   };
 }

@@ -8,6 +8,7 @@ import '../data/catalog_repository.dart';
 import '../models/catalog_models.dart';
 import '../providers/catalog_providers.dart';
 import '../widgets/industry_pack_sheet.dart';
+import '../widgets/resource_photos_editor.dart';
 
 String _day(DateTime value) {
   final d = value.toLocal();
@@ -292,6 +293,17 @@ class _ResourceEditorSheetState extends ConsumerState<ResourceEditorSheet> {
                 helperText: 'Bot müşterilere bu bilgiyi kullanarak yanıt verir.',
               ),
             ),
+            const SizedBox(height: 8),
+            if (widget.resource != null && ref.watch(selectedTenantProvider) != null)
+              ResourcePhotosEditor(
+                tenantId: ref.watch(selectedTenantProvider)!.id,
+                resourceId: widget.resource!.id,
+                photos: widget.resource!.photos,
+              )
+            else
+              Text('Fotoğraf eklemek için önce kaydı kaydedin.',
+                  style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: _status,
               decoration: const InputDecoration(labelText: 'Durum'),

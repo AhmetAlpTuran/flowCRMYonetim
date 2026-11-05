@@ -45,6 +45,7 @@ Deno.test("tool definitions follow strict schema rules and depend on the catalog
   const names = all.map((t) => t.name);
   assertEquals(names, [
     "search_catalog",
+    "send_photos",
     "create_lead",
     "check_availability",
     "hold_booking",
@@ -65,7 +66,7 @@ Deno.test("tool definitions follow strict schema rules and depend on the catalog
   assert(String(all[0].description).includes("gear (Vites, select: Manuel/Otomatik)"));
   assertEquals(
     catalogToolDefinitions([types[1]]).map((t) => t.name),
-    ["search_catalog", "create_lead"],
+    ["search_catalog", "send_photos", "create_lead"],
     "listing-only catalogs get no booking tools",
   );
   assertEquals(catalogToolDefinitions([]), []);
@@ -282,7 +283,7 @@ Deno.test("a catalog-only business is not handed off for missing knowledge", () 
   assertEquals(localBotDecision(context(), true), null);
   const prepared = prepareAiRequest(context(), new Set(["gpt-4o-mini"]), toolset);
   const payload = JSON.parse(prepared.body);
-  assertEquals(payload.tools.length, 7);
+  assertEquals(payload.tools.length, 8);
   assertEquals(payload.parallel_tool_calls, false);
   assert(payload.instructions.includes("Today is 2026-11-05 (Perşembe)"));
   assert(!payload.instructions.includes("You have no tools"));

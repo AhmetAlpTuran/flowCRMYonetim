@@ -9,8 +9,10 @@ import {
   istanbulToday,
   parseButtonTap,
   parsePeriod,
+  type ReplyPhoto,
   type ToolRunner,
   trackHolds,
+  trackPhotos,
 } from "../_shared/bot_tools.ts";
 import {
   type BotExecutionResult,
@@ -68,6 +70,7 @@ Deno.serve(endpoint(async (req) => {
         let scope: { tenantId: string; conversationId: string } | null = null;
         let tap: ButtonTap | null = null;
         let held: () => string[] = () => [];
+        let photos: () => ReplyPhoto[] = () => [];
         return await executeBotReply({
           allowedModels,
           toolset: async (context) => {
@@ -125,6 +128,12 @@ Deno.serve(endpoint(async (req) => {
                   const type = (data as { type?: { kind?: string; booking_unit?: string } } | null)?.type;
                   return type?.kind === "bookable" ? type.booking_unit : null;
                 },
+                resourcePhotos: async (resourceId) => {
+                  const { data } = await service.from("resources").select("name, photos, status")
+                    .eq("tenant_id", scope!.tenantId).eq("id", resourceId).maybeSingle();
+                  const row = data as { name?: string; photos?: string[]; status?: string } | null;
+                  return row && row.status !== "inactive" ? { name: row.name ?? "", photos: row.photos ?? [] } : null;
+                },
                 conversationBookings: async () => {
                   const { data } = await service.from("bookings")
                     .select("id, status, period, hold_expires_at, resource:resources(name)")
@@ -161,7 +170,9 @@ Deno.serve(endpoint(async (req) => {
             }
             const tracked = base ? trackHolds(base) : undefined;
             held = tracked?.held ?? (() => []);
-            return await generateAiReply(request, apiKey, fetch, tracked?.runner);
+            const withPhotos = tracked ? trackPhotos(tracked.runner) : undefined;
+            photos = withPhotos?.photos ?? (() => []);
+            return await generateAiReply(request, apiKey, fetch, withPhotos?.runner);
           },
           settle: async (usage, rejected, responseId) =>
             await rpc("settle_bot_usage", {
@@ -174,9 +185,14 @@ Deno.serve(endpoint(async (req) => {
             const buttons = decision.action === "reply" && [...decision.text].length <= 1024
               ? bookingButtons(held())
               : undefined;
+            const attached = decision.action === "reply" ? photos() : [];
             return await rpc("complete_bot_reply", {
               ...identity,
-              p_decision: buttons ? { ...decision, buttons } : decision,
+              p_decision: {
+                ...decision,
+                ...(buttons ? { buttons } : {}),
+                ...(attached.length ? { photos: attached } : {}),
+              },
             }) === true;
           },
           retry: async (delaySeconds = 0) =>

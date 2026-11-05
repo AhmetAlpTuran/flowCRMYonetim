@@ -498,3 +498,14 @@ modified when this work began; preserve it outside milestone commits.
     or keeps a refusal row, and audits it.
   - The bot does not answer that message.
   Verified: 28/28 SQL fixtures (new `keyword_opt_out.sql`). See `docs/CONTACTS_CONSENT.md`.
+
+- 2026-11-10: Catalog photos and bot listing photos (auto dealer). Migration
+  `20261110100000_catalog_photos.sql`:
+  - The `catalog-photos` bucket and policies, with a fix: inside the policy subquery a bare
+    `name` meant `resources.name`, and the fixture caught it.
+  - A trigger on `resources.photos` paths and `message_media.storage_bucket`.
+  - `complete_bot_reply` photos.
+  - The single-dispatch-per-job index narrowed to the reply dispatch.
+  `send_photos` tool, `trackPhotos`, bot-worker and inbox-worker wiring. App: Fotoğraflar in
+  the item editor. Verified: 29/29 SQL fixtures (new `catalog_photos.sql`), 94/94 Deno tests,
+  104/104 Flutter tests, and a live local Storage/PostgREST run.

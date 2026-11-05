@@ -273,3 +273,11 @@ Verified:
 - A live local run: a member managed bots and assignments through PostgREST, and a
   webhook message on an English extra bot's number was handled by that bot through the
   bot worker.
+
+## Listing photos
+
+`send_photos(resource_id)` (always offered with a catalog) attaches up to 3 of the item's
+photos to the reply. `trackPhotos` removes the storage paths from the tool result before
+the model sees it. The worker adds `photos: [{path, caption}]` to the decision, and
+`complete_bot_reply` validates them and queues one image dispatch per photo after the text.
+See `docs/CATALOG_BOOKINGS.md`.

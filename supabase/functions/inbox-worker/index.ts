@@ -126,20 +126,27 @@ Deno.serve(endpoint(async (req) => {
     job: Job,
   ): Promise<OutboundMedia | undefined> {
     const { data: media, error } = await service.from("message_media")
-      .select("kind, direction, storage_path, mime_type, file_name, caption")
+      .select("kind, direction, storage_path, storage_bucket, mime_type, file_name, caption")
       .eq("tenant_id", job.tenant_id).eq("message_id", job.id).maybeSingle();
     if (error) {
       throw new ApiError(503, "media_unavailable", "Media unavailable");
     }
     if (!media || media.direction !== "outbound") return undefined;
+    // Agent files live under the conversation; bot listing photos are catalog photos
+    // of the same business.
+    const bucket = media.storage_bucket === "catalog-photos" ? "catalog-photos" : "inbox-media";
+    const prefix = bucket === "catalog-photos"
+      ? `${job.tenant_id}/`
+      : `${job.tenant_id}/${job.conversation_id}/outbound/`;
     if (
       (media.kind !== "image" && media.kind !== "document") || !media.storage_path ||
-      !String(media.storage_path).startsWith(`${job.tenant_id}/${job.conversation_id}/outbound/`)
+      !String(media.storage_path).startsWith(prefix) ||
+      (bucket === "catalog-photos" && media.kind !== "image")
     ) {
       throw new ApiError(503, "media_unavailable", "Media unavailable");
     }
     const { data: file, error: downloadError } = await service.storage
-      .from("inbox-media").download(media.storage_path);
+      .from(bucket).download(media.storage_path);
     if (downloadError || !file) {
       throw new ApiError(503, "media_unavailable", "Stored media unavailable");
     }

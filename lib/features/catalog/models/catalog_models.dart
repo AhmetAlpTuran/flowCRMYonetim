@@ -82,6 +82,7 @@ class Resource {
     required this.currency,
     required this.capacity,
     required this.status,
+    this.photos = const [],
   });
 
   factory Resource.fromRow(Map<String, dynamic> row) => Resource(
@@ -94,6 +95,7 @@ class Resource {
         currency: row['currency'] as String? ?? 'TRY',
         capacity: (row['capacity'] as num?)?.toInt(),
         status: row['status'] as String? ?? 'active',
+        photos: [for (final p in (row['photos'] as List? ?? const [])) p as String],
       );
 
   final String id;
@@ -107,6 +109,9 @@ class Resource {
 
   /// active | inactive | reserved | sold
   final String status;
+
+  /// Storage paths in catalog-photos; the first is the cover.
+  final List<String> photos;
 }
 
 class Booking {

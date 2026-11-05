@@ -38,7 +38,7 @@ class CatalogRepository {
   Future<List<Resource>> resources(String tenantId) async {
     final rows = await _client
         .from('resources')
-        .select('id, type_id, name, description, attributes, price, currency, capacity, status')
+        .select('id, type_id, name, description, attributes, price, currency, capacity, status, photos')
         .eq('tenant_id', tenantId)
         .order('name')
         .limit(500)
