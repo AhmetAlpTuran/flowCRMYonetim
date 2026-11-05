@@ -364,7 +364,7 @@ void main() {
     await tester.tap(find.text('Gönderimi iptal et'));
     await tester.pumpAndSettle();
     expect(repository.cancelled, isEmpty);
-    await tester.tap(find.widgetWithText(FilledButton, 'Gönderimi iptal et'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Gönderimi iptal et'));
     await tester.pumpAndSettle();
     expect(repository.cancelled, ['message']);
     expect(find.textContaining('Gönderim başlamış veya sonuçlanmış'),

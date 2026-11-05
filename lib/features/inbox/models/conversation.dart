@@ -28,6 +28,8 @@ class Conversation {
     this.lastOpenedRole,
     this.assignedTo,
     this.workflowRevision = 0,
+    this.customerPhone,
+    this.lastCustomerMessageAt,
   });
 
   final String id;
@@ -42,6 +44,12 @@ class Conversation {
   final String? lastOpenedRole;
   final String? assignedTo;
   final int workflowRevision;
+
+  /// WhatsApp number of the customer (digits only), when the conversation has one.
+  final String? customerPhone;
+
+  /// Latest customer input; WhatsApp allows free-form replies for 24 hours after it.
+  final DateTime? lastCustomerMessageAt;
 
   Conversation copyWith({
     String? title,
@@ -67,6 +75,8 @@ class Conversation {
       lastOpenedRole: lastOpenedRole ?? this.lastOpenedRole,
       assignedTo: assignedTo,
       workflowRevision: workflowRevision,
+      customerPhone: customerPhone,
+      lastCustomerMessageAt: lastCustomerMessageAt,
     );
   }
 }

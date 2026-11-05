@@ -90,11 +90,11 @@ void main() {
       ))),
     ));
     await tester.enterText(find.byType(TextField), 'Follow up');
-    await tester.tap(find.text('Yönlendirmeyi başlat'));
+    await tester.tap(find.text('Aktarımı başlat'));
     await tester.pumpAndSettle();
     expect(find.textContaining('sonucu doğrulanamadı'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).readOnly, isTrue);
-    await tester.tap(find.text('Yönlendirmeyi başlat'));
+    await tester.tap(find.text('Aktarımı başlat'));
     await tester.pumpAndSettle();
     expect(requests, hasLength(2));
     expect(requests[1], requests[0]);
@@ -138,7 +138,7 @@ void main() {
         conversationId: 'conversation',
       ))),
     ));
-    await tester.tap(find.text('Yönlendirmeyi başlat'));
+    await tester.tap(find.text('Aktarımı başlat'));
     await tester.pump();
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
         isNull);

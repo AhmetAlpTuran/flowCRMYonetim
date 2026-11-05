@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/request_id.dart';
+import '../../../ui/ui.dart';
 import '../../handoff/providers/handoff_providers.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../providers/inbox_providers.dart';
+import 'conversation_badge.dart';
 
+/// Hands a conversation to the team. One request ID and the submitted note are kept
+/// for every retry, so an uncertain result can be checked without a duplicate.
 class HandoffRequestSheet extends ConsumerStatefulWidget {
   const HandoffRequestSheet({
     super.key,
@@ -38,6 +42,8 @@ class _HandoffRequestSheetState extends ConsumerState<HandoffRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
     final tenantChanged =
         ref.watch(selectedTenantProvider)?.id != widget.tenantId;
     return PopScope(
@@ -45,54 +51,52 @@ class _HandoffRequestSheetState extends ConsumerState<HandoffRequestSheet> {
       child: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            24 + MediaQuery.viewInsetsOf(context).bottom,
+            FlowSpace.xl - 4,
+            FlowSpace.xl - 4,
+            FlowSpace.xl - 4,
+            FlowSpace.xl + MediaQuery.viewInsetsOf(context).bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Müşteri temsilcisine yönlendir',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              const Text(
-                  'Yönlendirme kaydedildiğinde bot bu konuşmada durur. Temsilci için bir not ekleyebilirsiniz.'),
-              const SizedBox(height: 12),
+              Text('Temsilciye aktar', style: theme.textTheme.titleLarge),
+              const SizedBox(height: FlowSpace.sm),
+              Text(
+                'Aktarım kaydedildiğinde asistan bu sohbette yanıt vermeyi bırakır ve sohbet temsilci bekleyenlere düşer. Temsilci için bir not ekleyebilirsiniz.',
+                style: theme.textTheme.bodyMedium?.copyWith(color: c.muted),
+              ),
+              const SizedBox(height: FlowSpace.lg),
               TextField(
                 controller: _noteController,
-                maxLines: 3,
+                minLines: 3,
+                maxLines: 5,
                 maxLength: 2000,
                 readOnly: _submittedNote != null,
                 decoration: const InputDecoration(
-                  labelText: 'Not',
+                  labelText: 'Temsilciye not (isteğe bağlı)',
                   alignLabelWithHint: true,
-                  prefixIcon: Icon(Icons.sticky_note_2_outlined),
                 ),
               ),
               if (tenantChanged || _error != null) ...[
-                const SizedBox(height: 12),
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    tenantChanged
-                        ? 'İşletme değişti. Bu pencereyi kapatıp doğru işletmede tekrar açın.'
-                        : _error!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
+                const SizedBox(height: FlowSpace.md),
+                InboxNotice(
+                  tenantChanged
+                      ? 'İşletme değişti. Bu pencereyi kapatıp doğru işletmede tekrar açın.'
+                      : _error!,
+                  tone: tenantChanged || _conflict ? FlowTone.danger : FlowTone.warning,
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: FlowSpace.lg),
               Wrap(
-                spacing: 12,
-                runSpacing: 8,
+                spacing: FlowSpace.sm,
+                runSpacing: FlowSpace.sm,
                 alignment: WrapAlignment.end,
                 children: [
                   TextButton(
                     onPressed:
                         _sending ? null : () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(foregroundColor: c.muted),
                     child: const Text('Kapat'),
                   ),
                   FilledButton.icon(
@@ -103,8 +107,8 @@ class _HandoffRequestSheetState extends ConsumerState<HandoffRequestSheet> {
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.support_agent_outlined),
-                    label: const Text('Yönlendirmeyi başlat'),
+                        : const Icon(Icons.support_agent_outlined, size: 18),
+                    label: const Text('Aktarımı başlat'),
                   ),
                 ],
               ),
@@ -145,8 +149,8 @@ class _HandoffRequestSheetState extends ConsumerState<HandoffRequestSheet> {
         _error = error is PostgrestException && error.code == 'P0006'
             ? 'Bekleyen yanıtlar var. Pencereyi kapatıp gönderimi bekleyin veya mesajı iptal edin.'
             : _conflict
-                ? 'Konuşmanın durumu veya erişiminiz değişti. Pencereyi kapatıp gelen kutusunu yenileyin.'
-                : 'Yönlendirme sonucu doğrulanamadı. Aynı düğmeyle tekrar deneyebilirsiniz. Aynı yönlendirme ve notunuzla yeniden denenecek.';
+                ? 'Sohbetin durumu veya erişiminiz değişti. Pencereyi kapatıp gelen kutusunu yenileyin.'
+                : 'Aktarım sonucu doğrulanamadı. Aynı düğmeyle tekrar deneyin; aynı istek ve notunuzla yeniden denenir.';
       });
     } finally {
       if (mounted) setState(() => _sending = false);

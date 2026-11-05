@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../ui/ui.dart';
 import '../models/message.dart';
 import '../providers/inbox_providers.dart';
 
@@ -14,7 +15,7 @@ class MessageMediaView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final c = FlowColors.of(context);
     switch (media.state) {
       case MediaState.pending:
         return _Status(
@@ -24,12 +25,12 @@ class MessageMediaView extends ConsumerWidget {
         );
       case MediaState.failed:
         return _Status(
-          icon: Icon(Icons.error_outline, size: 18, color: theme.colorScheme.error),
+          icon: Icon(Icons.error_outline, size: 18, color: c.danger),
           text: '${media.label} alınamadı. Müşteriden tekrar göndermesini isteyebilirsiniz.',
         );
       case MediaState.tooLarge:
         return _Status(
-          icon: const Icon(Icons.sd_card_alert_outlined, size: 18),
+          icon: Icon(Icons.sd_card_alert_outlined, size: 18, color: c.warning),
           text: '${media.label} 25 MB\'tan büyük; WhatsApp uygulamasından görüntüleyin.',
         );
       case MediaState.stored:
@@ -41,7 +42,7 @@ class MessageMediaView extends ConsumerWidget {
               ? _ImagePreview(url: link, label: media.label)
               : _FileTile(media: media, url: link),
           error: (_, __) => _Status(
-            icon: const Icon(Icons.link_off, size: 18),
+            icon: Icon(Icons.link_off, size: 18, color: c.muted),
             text: '${media.label} açılamadı.',
             onRetry: () => ref.invalidate(mediaUrlProvider(path)),
           ),
@@ -55,8 +56,7 @@ class MessageMediaView extends ConsumerWidget {
 Future<void> _open(BuildContext context, String url) async {
   final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   if (!opened && context.mounted) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Dosya açılamadı.')));
+    showAppSnack(context, 'Dosya açılamadı.', error: true);
   }
 }
 
@@ -71,17 +71,20 @@ class _ImagePreview extends StatelessWidget {
         button: true,
         child: InkWell(
           onTap: () => _open(context, url),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: FlowRadius.controlAll,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: FlowRadius.controlAll,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 260, minHeight: 80),
               child: Image.network(
                 url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Icon(Icons.broken_image_outlined),
+                errorBuilder: (_, __, ___) => Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Semantics(
+                    label: '$label açılamadı',
+                    child: Icon(Icons.broken_image_outlined, color: FlowColors.of(context).muted),
+                  ),
                 ),
                 loadingBuilder: (context, child, progress) => progress == null
                     ? child
@@ -108,29 +111,37 @@ class _FileTile extends StatelessWidget {
       _ => Icons.description_outlined,
     };
     final size = media.sizeBytes;
+    final c = FlowColors.of(context);
     return Material(
-      color: Colors.black.withValues(alpha: 0.04),
-      borderRadius: BorderRadius.circular(8),
+      color: c.surface,
+      shape: RoundedRectangleBorder(borderRadius: FlowRadius.controlAll, side: BorderSide(color: c.border)),
       child: InkWell(
         onTap: () => _open(context, url),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: FlowRadius.controlAll,
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon),
-            const SizedBox(width: 8),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: c.raised, borderRadius: FlowRadius.controlAll),
+              child: Icon(icon, size: 19, color: c.muted),
+            ),
+            const SizedBox(width: 10),
             Flexible(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(media.label, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  if (size != null)
-                    Text(formatBytes(size), style: Theme.of(context).textTheme.bodySmall),
+                  Text(media.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall),
+                  if (size != null) Text(formatBytes(size), style: FlowText.mono(context, size: 11)),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.open_in_new, size: 18),
+            const SizedBox(width: 10),
+            Icon(Icons.open_in_new, size: 18, color: c.muted),
           ]),
         ),
       ),
@@ -148,7 +159,9 @@ class _Status extends StatelessWidget {
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
         icon,
         const SizedBox(width: 8),
-        Flexible(child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
+        Flexible(
+            child: Text(text,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: FlowColors.of(context).text))),
         if (onRetry != null)
           TextButton(onPressed: onRetry, child: const Text('Tekrar dene')),
       ]);
