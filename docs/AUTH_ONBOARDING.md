@@ -105,3 +105,16 @@ users, limits, escalation, cross-user access, idempotent accept, revoke, decline
 expiry) and a live run through Auth/PostgREST: business creation, a 403 on direct
 invite insert, invite, accept, then recovery with the code read from the captured
 email (wrong code 403, old password rejected, new password accepted).
+
+## First-run checklist (`20261110130000_setup_progress.sql`)
+
+Administrators see a "Kurulum" card on the dashboard until the required steps are done:
+
+1. WhatsApp number connected.
+2. Knowledge added (a note or a ready document).
+3. Bot active (main or extra bot).
+4. A teammate added or invited.
+
+Catalog, contacts and billing details are listed as optional. `tenant_setup_progress`
+(admins) computes the steps on the server; each step opens the screen that completes it.
+Verified by SQL fixture `setup_progress.sql` and 2 Flutter tests.

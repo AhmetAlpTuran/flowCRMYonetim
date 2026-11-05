@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/dashboard_metrics.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/agent_performance.dart';
+import '../widgets/setup_checklist.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -17,6 +18,7 @@ class DashboardScreen extends ConsumerWidget {
       onRefresh: () async {
         ref
           ..invalidate(agentMetricsProvider)
+          ..invalidate(setupProgressProvider)
           ..invalidate(dashboardMetricsProvider);
         await ref.read(dashboardMetricsProvider.future);
       },
@@ -43,6 +45,7 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
+          const SetupChecklistCard(),
           metrics.when(
             data: (data) => data == null
                 ? const SizedBox.shrink()
