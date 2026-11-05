@@ -107,9 +107,9 @@ class KeyValueRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: c.muted))),
+        Flexible(child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: c.muted))),
         const SizedBox(width: FlowSpace.md),
-        Flexible(
+        Expanded(
           child: Text(
             value,
             textAlign: TextAlign.right,

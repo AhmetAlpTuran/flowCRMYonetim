@@ -554,3 +554,35 @@ modified when this work began; preserve it outside milestone commits.
   and Görünüm. `DESIGN.md` is rewritten as the binding brief, plus the project skill
   `.claude/skills/flow-crm-design`. Verified: 129/129 Flutter tests, including new format,
   contrast, design-guard and shell tests.
+
+- 2026-11-05: Redesign milestones 3–6, done by parallel worktree agents on the new design
+  system and merged here:
+  - Ana sayfa: live queue hero, KPI tiles, "Dikkat bekleyenler", setup checklist where the
+    team step is optional, team table. Kişiler: table with consent badges.
+  - Sohbetler: list and chat side by side from 900 px. The chat opens at the newest message
+    and shows customer, assistant (BOT) and team bubbles differently. Times are local (the
+    UTC bug is fixed). It also shows day dividers and the WhatsApp 24-hour window. The handoff
+    tab and the sheets are restyled.
+  - Asistan: assistant cards with plan counts and number routing; an editor with plain
+    labels (Talimatlar, Ton, Yanıt dili) and advanced settings folded away, side by side on
+    wide screens. Bilgi bankası: note cards, documents with status badges and limits.
+  - Katalog: cards with photos and mono prices, the item editor (photos first), bookings.
+    Talepler moved to Müşteriler as a board per status.
+  - Kampanyalar: four-step composer with a consent summary and the plan meter, the history
+    table, and template previews as WhatsApp bubbles. Şablonlar: sectioned form, live preview.
+  - Ayarlar: İşletme form backed by the new admin-only `update_business_profile` RPC
+    (migration `20261111090000_business_profile.sql`, audited, fixture
+    `business_profile.sql`); Ekip with "WhatsApp ile gönder" invites; WhatsApp numaraları;
+    Abonelik with the trial hero, meters and plan cards; Görünüm.
+  - Entry: split sign-in, a stepped password reset, a 3-step welcome on phones, a one-screen
+    card landing on web, the no-business setup screen and account deletion.
+  - Website: `docs/index.html` rebuilt from the approved prototype, with self-hosted fonts
+    (no CDN). The payment and privacy pages are restyled, and the web manifest, splash and
+    icons are new.
+  Fixes found while checking:
+  - Typed prices like 900.000 were saved as 900 (`parseAmount`).
+  - The dotted zero of the mono font read as 8; the bundled copies now draw a plain zero.
+  - The sidebar, the inbox and Ana sayfa now count waiting conversations the same way.
+  Every feature file now passes the design guard. Verified: 304/304 Flutter tests, 33/33 SQL
+  fixtures, analyzer clean (Edge Functions unchanged). Checked in the browser at 1440 px and 375 px in both themes.
+  Runtime unverified: live Meta, iyzico and OpenAI calls, as before.
