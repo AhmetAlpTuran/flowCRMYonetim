@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/dashboard_metrics.dart';
 import '../providers/dashboard_providers.dart';
+import '../widgets/agent_performance.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -13,7 +14,12 @@ class DashboardScreen extends ConsumerWidget {
     final days = ref.watch(dashboardPeriodProvider);
 
     return RefreshIndicator(
-      onRefresh: () => ref.refresh(dashboardMetricsProvider.future),
+      onRefresh: () async {
+        ref
+          ..invalidate(agentMetricsProvider)
+          ..invalidate(dashboardMetricsProvider);
+        await ref.read(dashboardMetricsProvider.future);
+      },
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -56,6 +62,7 @@ class DashboardScreen extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
+          const AgentPerformanceSection(),
         ],
       ),
     );
