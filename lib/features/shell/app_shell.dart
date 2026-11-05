@@ -31,12 +31,35 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final membership = ref.watch(currentMembershipProvider).maybeWhen(data: (value) => value, orElse: () => null);
+    final membershipState = ref.watch(currentMembershipProvider);
+    final membership = membershipState.valueOrNull;
     final isAdmin = membership?.isAdmin ?? false;
     final permissions = membership?.permissions ?? <String>{};
     final tenant = ref.watch(selectedTenantProvider);
-    final destinations = _destinationsFor(isAdmin, permissions, tenant?.features ?? <TenantFeature>{});
 
+    // Wait for the role before building the menu; otherwise only the screens everyone
+    // sees (Görünüm) would flash up while it loads.
+    if (tenant == null || (membership == null && membershipState.isLoading)) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (membership == null && membershipState.hasError) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(FlowSpace.xl),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: ErrorState(
+                title: 'Yetkileriniz yüklenemedi',
+                onRetry: () => ref.invalidate(currentMembershipProvider),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final destinations = _destinationsFor(isAdmin, permissions, tenant.features);
     if (destinations.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

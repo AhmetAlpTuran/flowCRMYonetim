@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wpapp/features/shell/app_shell.dart';
 import 'package:wpapp/features/shell/shell_providers.dart';
 import 'package:wpapp/features/tenancy/models/tenant.dart';
+import 'package:wpapp/features/tenancy/models/tenant_membership.dart';
+import 'package:wpapp/features/tenancy/providers/tenant_providers.dart';
 import 'package:wpapp/ui/ui.dart';
 
 void main() {
@@ -26,6 +30,33 @@ void main() {
     expect(shellEntryFor(ShellArea.assistant, admin, const {}), ShellDestinationId.bot);
     expect(shellEntryFor(ShellArea.assistant, admin, const {ShellArea.assistant: ShellDestinationId.knowledge}),
         ShellDestinationId.knowledge);
+  });
+
+  testWidgets('the menu waits for the role instead of flashing Ayarlar alone', (tester) async {
+    const tenant = Tenant(id: 't', name: 'Demo', brandColor: Color(0xFF1F4B99), features: {}, allowedDomains: []);
+    final never = Completer<TenantMembership?>();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        selectedTenantProvider.overrideWithValue(tenant),
+        currentMembershipProvider.overrideWith((ref) => never.future),
+      ],
+      child: MaterialApp(theme: FlowTheme.dark(), home: const AppShell()),
+    ));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Ayarlar'), findsNothing);
+
+    await tester.pumpWidget(ProviderScope(
+      key: UniqueKey(),
+      overrides: [
+        selectedTenantProvider.overrideWithValue(tenant),
+        currentMembershipProvider.overrideWith((ref) => Future<TenantMembership?>.error(StateError('offline'))),
+      ],
+      child: MaterialApp(theme: FlowTheme.dark(), home: const AppShell()),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Yetkileriniz yüklenemedi'), findsOneWidget);
+    expect(find.text('Tekrar dene'), findsOneWidget);
   });
 
   testWidgets('openShellDestination remembers the tab per area', (tester) async {
