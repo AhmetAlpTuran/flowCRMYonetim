@@ -28,6 +28,10 @@ class InboxSendController extends StateNotifier<InboxSendState> {
   /// True while a file is waiting to be sent or re-checked.
   bool get hasPendingMedia => _media != null;
 
+  /// The frozen text of a send whose result is still uncertain, so a reopened
+  /// composer can show what the retry will send. Null when nothing is frozen.
+  String? get pendingText => _media == null && _uncertain ? _body : null;
+
   /// Sends a photo or document with an optional caption. The same message ID,
   /// file and caption are reused until the result is confirmed.
   Future<bool> sendMedia(OutboundMediaFile file, {String caption = ''}) async {

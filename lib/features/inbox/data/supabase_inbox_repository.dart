@@ -42,7 +42,7 @@ class SupabaseInboxRepository {
                       as String? ??
                   'Konuşma',
               status: row['status'] as String? ?? 'open',
-              createdAt: DateTime.parse(row['created_at'] as String),
+              createdAt: _time(row['created_at'] as String),
               note: row['note'] as String?,
               createdBy: row['created_by'] as String?,
             ))
@@ -268,38 +268,43 @@ class SupabaseInboxRepository {
     }).timeout(const Duration(seconds: 20));
   }
 
+  /// Server timestamps are UTC; the app always works with local time.
+  static DateTime _time(String value) => DateTime.parse(value).toLocal();
+
+  static DateTime? _timeOrNull(Object? value) =>
+      value is String ? _time(value) : null;
+
   Conversation _fromConversation(Map<String, dynamic> row) {
-    final lastOpened = row['last_opened_at'] as String?;
     return Conversation(
       id: row['id'] as String,
       title: row['title'] as String,
       lastMessage: row['last_message'] as String? ?? '',
-      updatedAt: DateTime.parse(row['updated_at'] as String),
+      updatedAt: _time(row['updated_at'] as String),
       unreadCount: (row['unread_count'] as int?) ?? 0,
       status: _statusFromString(row['status'] as String),
       tags: List<String>.from(row['tags'] as List<dynamic>? ?? const []),
-      lastOpenedAt: lastOpened == null ? null : DateTime.parse(lastOpened),
+      lastOpenedAt: _timeOrNull(row['last_opened_at']),
       lastOpenedBy: row['last_opened_by'] as String?,
       lastOpenedRole: row['last_opened_role'] as String?,
       assignedTo: row['assigned_to'] as String?,
       workflowRevision: (row['workflow_revision'] as num?)?.toInt() ?? 0,
+      customerPhone: row['customer_phone'] as String?,
+      lastCustomerMessageAt: _timeOrNull(row['last_customer_message_at']),
     );
   }
 
   Message _fromMessage(Map<String, dynamic> row) {
-    final deliveredAt = row['delivered_at'] as String?;
-    final readAt = row['read_at'] as String?;
     return Message(
       id: row['id'] as String,
       conversationId: row['conversation_id'] as String,
       sender: row['sender'] as String,
       text: row['body'] as String,
-      sentAt: DateTime.parse(row['sent_at'] as String),
+      sentAt: _time(row['sent_at'] as String),
       isFromCustomer: row['is_from_customer'] as bool? ?? false,
       status: _messageStatusFromString(row['wa_status'] as String?),
       waMessageId: row['wa_message_id'] as String?,
-      deliveredAt: deliveredAt == null ? null : DateTime.parse(deliveredAt),
-      readAt: readAt == null ? null : DateTime.parse(readAt),
+      deliveredAt: _timeOrNull(row['delivered_at']),
+      readAt: _timeOrNull(row['read_at']),
       outboundState: row['outbound_state'] as String?,
       outboundErrorCode: row['outbound_error_code'] as String?,
       sentBy: row['sent_by'] as String?,

@@ -141,10 +141,11 @@ void main() {
       MessageDeliveryStatus(message: message('unknown')),
       MessageDeliveryStatus(message: message('queued')),
     ]))));
-    expect(find.text('WhatsApp kabul etti'), findsOneWidget);
-    expect(find.text('Gönderim doğrulanamadı'), findsOneWidget);
-    expect(find.text('Kuyrukta'), findsOneWidget);
-    expect(find.text('Teslim edildi'), findsNothing);
+    expect(find.text('WHATSAPP KABUL ETTİ'), findsOneWidget);
+    expect(find.text('BELİRSİZ'), findsOneWidget);
+    expect(find.text('SIRADA'), findsOneWidget);
+    expect(find.text('İLETİLDİ'), findsNothing);
+    expect(find.text('OKUNDU'), findsNothing);
   });
 
   final photo = outboundMediaFor(

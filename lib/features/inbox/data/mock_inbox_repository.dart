@@ -1,4 +1,4 @@
-﻿import '../models/conversation.dart';
+import '../models/conversation.dart';
 import '../models/message.dart';
 
 class MockInboxRepository {
@@ -53,12 +53,12 @@ class MockInboxRepository {
 
   static const List<String> sampleTags = [
     'VIP',
-    'Iade',
+    'İade',
     'Hata',
-    'Satis',
+    'Satış',
     'Acil',
     'Faturalama',
-    'Cozuldu',
+    'Çözüldü',
   ];
 
   late final List<Conversation> _conversations;
