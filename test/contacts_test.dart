@@ -10,12 +10,93 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wpapp/features/contacts/data/contact_csv.dart';
 import 'package:wpapp/features/contacts/data/contacts_repository.dart';
 import 'package:wpapp/features/contacts/models/contact.dart';
+import 'package:wpapp/features/contacts/providers/contacts_providers.dart';
 import 'package:wpapp/features/contacts/screens/contacts_screen.dart';
+import 'package:wpapp/features/tenancy/models/tenant.dart';
 import 'package:wpapp/features/tenancy/models/tenant_membership.dart';
 import 'package:wpapp/features/tenancy/providers/tenant_providers.dart';
+import 'package:wpapp/ui/ui.dart';
 
 Uint8List utf8Bytes(String text, {bool bom = false}) => Uint8List.fromList(
     [if (bom) ...[0xEF, 0xBB, 0xBF], ...utf8.encode(text)]);
+
+const _tenant = Tenant(id: 'tenant-a', name: 'Demo', brandColor: Colors.blue, features: {}, allowedDomains: []);
+
+/// Serves fixed rows and records searches; consent is never written here.
+class _FakeContactsRepository implements ContactsRepository {
+  _FakeContactsRepository(this.items);
+
+  final List<Contact> items;
+  final searches = <String>[];
+
+  @override
+  Future<List<Contact>> list(String tenantId, {String search = '', int offset = 0}) async {
+    searches.add(search);
+    if (offset > 0) return const [];
+    final term = search.trim().toLowerCase();
+    return items.where((item) => term.isEmpty || item.fullName.toLowerCase().contains(term)).toList();
+  }
+
+  @override
+  Future<String> save({
+    required String tenantId,
+    required String phone,
+    required String fullName,
+    String? email,
+    required List<String> tags,
+  }) async =>
+      'c-new';
+
+  @override
+  Future<void> setConsent({
+    required String tenantId,
+    required String phone,
+    required bool consent,
+    String? note,
+    String source = 'manual',
+  }) async {}
+
+  @override
+  Future<ContactImportResult> import(String tenantId, List<ContactImportRow> rows, {String? consentNote}) async =>
+      const ContactImportResult();
+}
+
+final _contacts = [
+  Contact.fromRow({
+    'id': 'c1',
+    'full_name': 'Ayşe Yılmaz',
+    'phone': '905551112233',
+    'tags': ['VIP', 'Kiralama'],
+    'consent_visible': true,
+    'consented_at': '2026-11-01T09:00:00Z',
+    'consent_source': 'import',
+    'last_contacted_at': DateTime.now().toUtc().toIso8601String(),
+  }),
+  Contact.fromRow({'id': 'c2', 'full_name': 'Mehmet Kaya', 'phone': '905552223344', 'consent_visible': true}),
+  Contact.fromRow({
+    'id': 'c3',
+    'full_name': 'Burak Şahin',
+    'phone': '905556667788',
+    'consent_visible': true,
+    'consented_at': '2026-10-01T09:00:00Z',
+    'opted_out_at': '2026-11-02T09:00:00Z',
+  }),
+  Contact.fromRow({'id': 'c4', 'full_name': '', 'phone': '4915123456789', 'consent_visible': true}),
+];
+
+Widget _contactsApp(_FakeContactsRepository repository, {ThemeData? theme}) => ProviderScope(
+      overrides: [
+        selectedTenantProvider.overrideWithValue(_tenant),
+        currentMembershipProvider.overrideWith((ref) async =>
+            const TenantMembership(role: 'user', permissions: {'inbox', 'campaigns'})),
+        contactsRepositoryProvider.overrideWithValue(repository),
+      ],
+      child: MaterialApp(theme: theme, home: const Scaffold(body: ContactsScreen())),
+    );
+
+/// The caps summary line; its parts use non-breaking spaces so they wrap whole.
+Finder summary(String text) => find.byWidgetPredicate((widget) =>
+    widget is Text && widget.textSpan?.toPlainText().replaceAll(' ', ' ') == text);
 
 void main() {
   test('Turkish local numbers become WhatsApp E.164 digits', () {
@@ -187,4 +268,93 @@ void main() {
         tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'İçe aktar')).onPressed,
         isNotNull);
   });
+
+  test('consent badges say where a consent came from', () {
+    expect(consentSourceLabel('import'), 'CSV');
+    expect(consentSourceLabel('whatsapp'), 'WhatsApp');
+    expect(consentSourceLabel('legacy'), isNull);
+  });
+
+  testWidgets('contacts list shows phones in mono, consent state and a summary', (tester) async {
+    tester.view.physicalSize = const Size(320, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = _FakeContactsRepository(_contacts);
+    await tester.pumpWidget(_contactsApp(repository, theme: FlowTheme.dark()));
+    await tester.pumpAndSettle();
+    expect(summary('4 KİŞİ · 1 PAZARLAMA İZNİ · 1 LİSTEDEN ÇIKTI'), findsOneWidget);
+    expect(find.text('+4915123456789'), findsOneWidget, reason: 'a foreign country code is not split');
+    expect(find.text('Ayşe Yılmaz'), findsOneWidget);
+    expect(find.text('+90 555 111 22 33'), findsOneWidget);
+    expect(find.text('VAR · CSV'), findsOneWidget);
+    expect(find.text('YOK'), findsNWidgets(2));
+    expect(find.text('LİSTEDEN ÇIKTI'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'CSV ile içe aktar'), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget, reason: 'one lime button per view');
+
+    await tester.enterText(find.byType(TextField), 'ayşe');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+    expect(repository.searches.last, 'ayşe');
+    expect(summary('1 SONUÇ · 1 PAZARLAMA İZNİ · 0 LİSTEDEN ÇIKTI'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'yok böyle biri');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+    expect(find.text('Eşleşen kişi yok'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('adding a contact opens the editor sheet', (tester) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_contactsApp(_FakeContactsRepository(_contacts), theme: FlowTheme.light()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kişi ekle'));
+    await tester.pumpAndSettle();
+    expect(find.text('Yeni kişi'), findsOneWidget);
+    expect(find.text('Pazarlama izni'), findsNothing, reason: 'consent is recorded on an existing contact');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an existing contact shows its consent and the basis field', (tester) async {
+    tester.view.physicalSize = const Size(390, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(_contactsApp(_FakeContactsRepository(_contacts), theme: FlowTheme.dark()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mehmet Kaya'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kişiyi düzenle'), findsOneWidget);
+    expect(find.text('Pazarlama izni'), findsOneWidget);
+    expect(find.text('İzin nasıl alındı?'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an empty list invites the first contact', (tester) async {
+    await tester.pumpWidget(_contactsApp(_FakeContactsRepository(const []), theme: FlowTheme.dark()));
+    await tester.pumpAndSettle();
+    expect(find.text('Henüz kişi yok'), findsOneWidget);
+  });
+
+  for (final brightness in Brightness.values) {
+    for (final width in [320.0, 1280.0]) {
+      testWidgets('contacts render without overflow ($brightness, ${width.toInt()} px)', (tester) async {
+        tester.view.physicalSize = Size(width, 1400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(_contactsApp(_FakeContactsRepository(_contacts), theme: FlowTheme.of(brightness)));
+        await tester.pumpAndSettle();
+        expect(find.text('Burak Şahin'), findsOneWidget);
+        expect(find.text('PAZARLAMA İZNİ'), width >= 1000 ? findsOneWidget : findsNothing,
+            reason: 'the table header only shows on wide screens');
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 }

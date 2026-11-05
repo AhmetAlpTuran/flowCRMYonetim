@@ -1,18 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../ui/ui.dart';
+import '../../inbox/providers/inbox_providers.dart';
+import '../../tenancy/models/tenant.dart';
+import '../../tenancy/models/tenant_membership.dart';
+import '../../tenancy/providers/tenant_providers.dart';
 import '../models/dashboard_metrics.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/agent_performance.dart';
+import '../widgets/live_queue.dart';
 import '../widgets/setup_checklist.dart';
 
+/// True when the member may open [feature] in the selected business (the shell's rule).
+bool _allowed(TenantMembership? membership, Tenant? tenant, TenantFeature feature) =>
+    membership != null &&
+    tenant != null &&
+    tenant.features.contains(feature) &&
+    membership.hasPermission(feature.permissionKey);
+
+/// "Günaydın", "İyi günler", "İyi akşamlar"; "İyi çalışmalar" on the night shift.
+String dashboardGreeting(DateTime now) {
+  final hour = now.toLocal().hour;
+  if (hour >= 5 && hour < 11) return 'Günaydın';
+  if (hour >= 11 && hour < 18) return 'İyi günler';
+  if (hour >= 18) return 'İyi akşamlar';
+  return 'İyi çalışmalar';
+}
+
+/// Ana sayfa: the live queue, the period's numbers, first-run steps and the team.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final metrics = ref.watch(dashboardMetricsProvider);
-    final days = ref.watch(dashboardPeriodProvider);
+    final membership = ref.watch(currentMembershipProvider).valueOrNull;
+    final tenant = ref.watch(selectedTenantProvider);
+    final inbox = _allowed(membership, tenant, TenantFeature.inbox);
+    final handoff = _allowed(membership, tenant, TenantFeature.handoff);
+    final conversations = inbox ? ref.watch(conversationsProvider) : null;
+    final showSetup = setupChecklistPending(ref.watch(setupProgressProvider).valueOrNull);
+    final agents = ref.watch(agentMetricsProvider);
+    final showAgents = agents.hasError || agents.valueOrNull != null;
+    final queue = attentionQueue(conversations?.valueOrNull ?? const []);
+    final metricsData = metrics.valueOrNull;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -20,237 +52,333 @@ class DashboardScreen extends ConsumerWidget {
           ..invalidate(agentMetricsProvider)
           ..invalidate(setupProgressProvider)
           ..invalidate(dashboardMetricsProvider);
+        if (inbox) ref.invalidate(conversationsProvider);
         await ref.read(dashboardMetricsProvider.future);
       },
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text('Panel', style: Theme.of(context).textTheme.titleLarge),
-              SegmentedButton<int>(
-                segments: const [
-                  ButtonSegment(value: 1, label: Text('Bugün')),
-                  ButtonSegment(value: 7, label: Text('7 gün')),
-                  ButtonSegment(value: 30, label: Text('30 gün')),
-                ],
-                selected: {days},
-                showSelectedIcon: false,
-                onSelectionChanged: (value) =>
-                    ref.read(dashboardPeriodProvider.notifier).state = value.first,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const SetupChecklistCard(),
-          metrics.when(
-            data: (data) => data == null
-                ? const SizedBox.shrink()
-                : _MetricsView(metrics: data),
-            error: (_, __) => Card(
-              child: ListTile(
-                leading: const Icon(Icons.error_outline),
-                title: const Text('Panel yüklenemedi.'),
-                trailing: TextButton(
-                  onPressed: () => ref.invalidate(dashboardMetricsProvider),
-                  child: const Text('Tekrar dene'),
-                ),
-              ),
-            ),
-            loading: () => const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-          const AgentPerformanceSection(),
-        ],
-      ),
+      child: _StaggeredPage(children: [
+        const _Header(),
+        if (conversations != null)
+          LiveQueueHero(conversations: conversations, metrics: metricsData, handoffAllowed: handoff),
+        if (metrics.hasError && !metrics.isLoading)
+          ErrorState(
+            title: 'Panel yüklenemedi',
+            onRetry: () => ref.invalidate(dashboardMetricsProvider),
+          )
+        else if (metricsData != null)
+          _MetricsView(metrics: metricsData, showLiveCounts: conversations == null)
+        else if (metrics.isLoading)
+          const _LoadingCard(),
+        if (queue.isNotEmpty || showSetup)
+          _SideBySide(children: [
+            if (queue.isNotEmpty) AttentionList(conversations: queue),
+            if (showSetup) const SetupChecklistCard(),
+          ]),
+        if (showAgents) const AgentPerformanceSection(),
+      ]),
     );
   }
 }
 
-class _MetricsView extends StatelessWidget {
-  const _MetricsView({required this.metrics});
-  final DashboardMetrics metrics;
+/// "PERŞEMBE · 5 KASIM", the greeting and the reporting period.
+class _Header extends ConsumerWidget {
+  const _Header();
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final m = metrics;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    final days = ref.watch(dashboardPeriodProvider);
+    final now = DateTime.now();
+    final wide = MediaQuery.sizeOf(context).width >= FlowBreakpoints.compact;
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.end,
+      spacing: FlowSpace.lg,
+      runSpacing: FlowSpace.lg,
       children: [
-        const _SectionTitle('Şu an'),
-        _CardGrid(children: [
-          _StatCard(
-            icon: Icons.mark_email_unread_outlined,
-            title: 'Açık konuşma',
-            value: '${m.openConversations + m.pendingConversations}',
-            color: scheme.primaryContainer,
+        Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            upperTr('${formatWeekday(now)} · ${formatDayMonth(now)}'),
+            style: FlowText.caps(context, size: 12, color: c.muted),
           ),
-          _StatCard(
-            icon: Icons.headset_mic_outlined,
-            title: 'Temsilci bekleyen',
-            value: '${m.handoffConversations}',
-            color: scheme.tertiaryContainer,
-          ),
-          _StatCard(
-            icon: Icons.person_off_outlined,
-            title: 'Atanmamış bekleyen',
-            value: '${m.unassignedWaiting}',
-            color: scheme.secondaryContainer,
+          const SizedBox(height: FlowSpace.sm),
+          Text(
+            '${dashboardGreeting(now)}.',
+            style: wide ? theme.textTheme.headlineMedium : theme.textTheme.headlineSmall,
           ),
         ]),
-        const SizedBox(height: 16),
-        _SectionTitle(m.periodDays == 1 ? 'Bugün' : 'Son ${m.periodDays} gün'),
-        _CardGrid(children: [
-          _StatCard(
-            icon: Icons.forum_outlined,
-            title: 'Gelen mesaj',
-            value: '${m.inboundMessages}',
-            subtitle: '${m.startedConversations} yeni konuşma',
-            color: scheme.primaryContainer,
-          ),
-          _StatCard(
-            icon: Icons.smart_toy_outlined,
-            title: 'Bot yanıt oranı',
-            value: formatPercent(m.botShare),
-            subtitle: '${m.botReplies} bot · ${m.humanReplies} temsilci',
-            color: scheme.secondaryContainer,
-          ),
-          _StatCard(
-            icon: Icons.timer_outlined,
-            title: 'İlk yanıt süresi (medyan)',
-            value: formatDuration(m.medianFirstResponse),
-            subtitle: 'Temsilci: ${formatDuration(m.medianFirstHumanResponse)}',
-            color: scheme.tertiaryContainer,
-          ),
-          _StatCard(
-            icon: Icons.task_alt_outlined,
-            title: 'Çözülen talep',
-            value: '${m.supportResolved} / ${m.supportOpened}',
-            subtitle: 'Çözüm süresi: ${formatDuration(m.medianResolution)}',
-            color: scheme.primaryContainer,
-          ),
-          _StatCard(
-            icon: Icons.support_agent_outlined,
-            title: 'Temsilciye yönlendirme',
-            value: '${m.handoffs}',
-            color: scheme.surfaceContainerHighest,
-          ),
-          if (m.failedReplies > 0)
-            _StatCard(
-              icon: Icons.error_outline,
-              title: 'Gönderilemeyen yanıt',
-              value: '${m.failedReplies}',
-              color: scheme.errorContainer,
-            ),
-        ]),
-        if (m.campaignAccepted > 0) ...[
-          const SizedBox(height: 16),
-          const _SectionTitle('Kampanyalar'),
-          _CardGrid(children: [
-            _StatCard(
-              icon: Icons.campaign_outlined,
-              title: 'Gönderilen',
-              value: '${m.campaignAccepted}',
-              subtitle: m.campaignFailed > 0 ? '${m.campaignFailed} başarısız' : null,
-              color: scheme.primaryContainer,
-            ),
-            _StatCard(
-              icon: Icons.done_all,
-              title: 'Teslim edilen',
-              value: formatPercent(m.deliveryRate),
-              color: scheme.secondaryContainer,
-            ),
-            _StatCard(
-              icon: Icons.visibility_outlined,
-              title: 'Okunan',
-              value: formatPercent(m.readRate),
-              color: scheme.tertiaryContainer,
-            ),
-          ]),
-        ],
-        if (m.daily.length > 1) ...[
-          const SizedBox(height: 16),
-          const _SectionTitle('Günlük mesaj trafiği'),
-          ActivityChart(days: m.daily),
-        ],
+        SegmentedButton<int>(
+          segments: const [
+            ButtonSegment(value: 1, label: Text('Bugün')),
+            ButtonSegment(value: 7, label: Text('7 gün')),
+            ButtonSegment(value: 30, label: Text('30 gün')),
+          ],
+          selected: {days},
+          showSelectedIcon: false,
+          onSelectionChanged: (value) => ref.read(dashboardPeriodProvider.notifier).state = value.first,
+        ),
       ],
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-  final String text;
+class _MetricsView extends StatelessWidget {
+  const _MetricsView({required this.metrics, required this.showLiveCounts});
 
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: Theme.of(context).textTheme.titleMedium),
-      );
-}
+  final DashboardMetrics metrics;
 
-class _CardGrid extends StatelessWidget {
-  const _CardGrid({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
-        // Two columns on phones, more on wider screens.
-        final columns = (constraints.maxWidth / 220).floor().clamp(2, 4);
-        final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [for (final child in children) SizedBox(width: width, child: child)],
-        );
-      });
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-    this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final String? subtitle;
-  final Color color;
+  /// The hero shows these counts when the member may open the inbox.
+  final bool showLiveCounts;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, size: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(title, style: theme.textTheme.labelMedium, maxLines: 2),
-            const SizedBox(height: 2),
-            Text(value, style: theme.textTheme.headlineSmall),
-            if (subtitle != null)
-              Text(subtitle!, style: theme.textTheme.bodySmall, maxLines: 2),
-          ],
+    final m = metrics;
+    final sections = <Widget>[
+      if (showLiveCounts)
+        _TileGroup(title: 'Şu an', tiles: [
+          StatTile(
+            label: 'Açık konuşma',
+            value: formatCount(m.openConversations + m.pendingConversations),
+            footnote: 'açık ve beklemede',
+          ),
+          StatTile(
+            label: 'Temsilci bekleyen',
+            value: formatCount(m.handoffConversations),
+            footnote: 'bir temsilci istedi',
+            tone: FlowTone.warning,
+          ),
+          StatTile(
+            label: 'Atanmamış',
+            value: formatCount(m.unassignedWaiting),
+            footnote: 'kimseye atanmadan bekliyor',
+            tone: FlowTone.info,
+          ),
+        ]),
+      _TileGroup(title: dashboardPeriodLabel(m.periodDays), tiles: [
+        StatTile(
+          label: 'Gelen mesaj',
+          value: formatCount(m.inboundMessages),
+          footnote: '${formatCount(m.startedConversations)} yeni konuşma',
         ),
+        StatTile(
+          label: 'Bot yanıt oranı',
+          value: formatPercent(m.botShare),
+          footnote: '${formatCount(m.botReplies)} bot · ${formatCount(m.humanReplies)} temsilci',
+          tone: FlowTone.assistant,
+        ),
+        StatTile(
+          label: 'Medyan ilk yanıt',
+          value: formatDuration(m.medianFirstResponse),
+          footnote: 'Temsilci: ${formatDuration(m.medianFirstHumanResponse)}',
+        ),
+        StatTile(
+          label: 'Çözülen talep',
+          value: '${formatCount(m.supportResolved)} / ${formatCount(m.supportOpened)}',
+          footnote: 'Çözüm süresi: ${formatDuration(m.medianResolution)}',
+        ),
+        StatTile(
+          label: 'Aktarılan sohbet',
+          value: formatCount(m.handoffs),
+          footnote: 'temsilciye yönlendirildi',
+        ),
+        if (m.failedReplies > 0)
+          StatTile(
+            label: 'Başarısız yanıt',
+            value: formatCount(m.failedReplies),
+            footnote: 'WhatsApp\'a iletilemedi',
+            tone: FlowTone.danger,
+          ),
+      ]),
+      if (m.campaignAccepted > 0)
+        _TileGroup(title: 'Kampanyalar', tiles: [
+          StatTile(
+            label: 'Gönderilen',
+            value: formatCount(m.campaignAccepted),
+            footnote: m.campaignFailed > 0 ? '${formatCount(m.campaignFailed)} başarısız' : 'WhatsApp kabul etti',
+          ),
+          StatTile(
+            label: 'Teslim edilen',
+            value: formatPercent(m.deliveryRate),
+            footnote: '${formatCount(m.campaignDelivered)} kişiye ulaştı',
+          ),
+          StatTile(
+            label: 'Okunan',
+            value: formatPercent(m.readRate),
+            footnote: '${formatCount(m.campaignRead)} kişi okudu',
+          ),
+        ]),
+      if (m.daily.length > 1)
+        SectionCard(title: 'Günlük mesaj trafiği', child: ActivityChart(days: m.daily)),
+    ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (var i = 0; i < sections.length; i++) ...[
+        if (i > 0) const SizedBox(height: FlowSpace.xl),
+        sections[i],
+      ],
+    ]);
+  }
+}
+
+/// A heading over a balanced grid of KPI tiles: rows of equal length where possible,
+/// and a short last row stretched to the full width.
+class _TileGroup extends StatelessWidget {
+  const _TileGroup({required this.title, required this.tiles});
+
+  final String title;
+  final List<StatTile> tiles;
+
+  static const _minTile = 160.0;
+  static const _gap = FlowSpace.md;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Semantics(header: true, child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
+      const SizedBox(height: FlowSpace.md),
+      LayoutBuilder(builder: (context, constraints) {
+        final fit = ((constraints.maxWidth + _gap) / (_minTile + _gap)).floor().clamp(1, 4);
+        final rows = (tiles.length / fit).ceil();
+        final columns = (tiles.length / rows).ceil();
+        // Single-column phones get smaller numerals so the page stays short.
+        final size = columns == 1 ? 40.0 : 48.0;
+        final grid = <Widget>[];
+        for (var start = 0; start < tiles.length; start += columns) {
+          final row = tiles.sublist(start, (start + columns).clamp(0, tiles.length));
+          if (start > 0) grid.add(const SizedBox(height: _gap));
+          grid.add(Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (var i = 0; i < row.length; i++) ...[
+              if (i > 0) const SizedBox(width: _gap),
+              Expanded(
+                child: StatTile(
+                  label: row[i].label,
+                  value: row[i].value,
+                  footnote: row[i].footnote,
+                  tone: row[i].tone,
+                  size: size,
+                ),
+              ),
+            ],
+          ]));
+        }
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: grid);
+      }),
+    ]);
+  }
+}
+
+/// Places two panels side by side on wide screens, stacked on narrow ones.
+class _SideBySide extends StatelessWidget {
+  const _SideBySide({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      if (children.length < 2 || constraints.maxWidth < 940) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(height: FlowSpace.lg),
+            children[i],
+          ],
+        ]);
+      }
+      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: FlowSpace.lg),
+          Expanded(child: children[i]),
+        ],
+      ]);
+    });
+  }
+}
+
+class _LoadingCard extends StatelessWidget {
+  const _LoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: FlowSpace.sm),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: FlowRadius.cardAll,
+        border: Border.all(color: c.border),
       ),
+      child: const LoadingList(rows: 3),
+    );
+  }
+}
+
+/// The page's one staggered entrance: each section rises in 60 ms after the previous.
+class _StaggeredPage extends StatefulWidget {
+  const _StaggeredPage({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  State<_StaggeredPage> createState() => _StaggeredPageState();
+}
+
+class _StaggeredPageState extends State<_StaggeredPage> with SingleTickerProviderStateMixin {
+  static const _slots = 6;
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: FlowMotion.entrance + FlowMotion.stagger * (_slots - 1),
+  );
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (FlowMotion.reduced(context)) {
+      _controller.value = 1;
+    } else {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = _controller.duration!.inMilliseconds;
+    final step = FlowMotion.stagger.inMilliseconds;
+    final length = FlowMotion.entrance.inMilliseconds;
+    return AppPage(children: [
+      for (final (index, child) in widget.children.indexed)
+        _Rise(
+          animation: _controller.drive(CurveTween(
+            curve: Interval(
+              step * index.clamp(0, _slots - 1) / total,
+              (step * index.clamp(0, _slots - 1) + length) / total,
+              curve: FlowMotion.curve,
+            ),
+          )),
+          child: child,
+        ),
+    ]);
+  }
+}
+
+class _Rise extends AnimatedWidget {
+  const _Rise({required Animation<double> animation, required this.child}) : super(listenable: animation);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = (listenable as Animation<double>).value;
+    return Opacity(
+      opacity: t,
+      child: Transform.translate(offset: Offset(0, 10 * (1 - t)), child: child),
     );
   }
 }
@@ -262,58 +390,72 @@ class ActivityChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final c = FlowColors.of(context);
     final peak = days.fold<int>(1, (max, d) {
       final value = d.inbound > d.replies ? d.inbound : d.replies;
       return value > max ? value : max;
     });
-    final labelEvery = (days.length / 7).ceil();
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(children: [
-          SizedBox(
-            height: 140,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (final day in days)
-                  Expanded(
-                    child: Tooltip(
-                      message: '${day.day.day}.${day.day.month}: '
-                          '${day.inbound} gelen, ${day.replies} yanıt',
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _Bar(fraction: day.inbound / peak, color: scheme.primary),
-                          _Bar(fraction: day.replies / peak, color: scheme.tertiary),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(children: [
-            for (var i = 0; i < days.length; i++)
+    String label(DailyActivity d) => '${d.day.day}.${d.day.month}';
+    return LayoutBuilder(builder: (context, constraints) {
+      // At most one date label per 52 px, and never more than seven.
+      final slots = (constraints.maxWidth / 52).floor().clamp(1, 7);
+      final labelEvery = (days.length / slots).ceil();
+      return _chart(context, c, peak, labelEvery, label);
+    });
+  }
+
+  Widget _chart(
+    BuildContext context,
+    FlowColors c,
+    int peak,
+    int labelEvery,
+    String Function(DailyActivity) label,
+  ) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SizedBox(
+        height: 140,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (final day in days)
               Expanded(
-                child: Text(
-                  i % labelEvery == 0 ? '${days[i].day.day}.${days[i].day.month}' : '',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelSmall,
+                child: Tooltip(
+                  message: '${label(day)}: ${day.inbound} gelen, ${day.replies} yanıt',
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _Bar(fraction: day.inbound / peak, color: c.meter),
+                      _Bar(fraction: day.replies / peak, color: c.muted),
+                    ],
+                  ),
                 ),
               ),
-          ]),
-          const SizedBox(height: 8),
-          Wrap(spacing: 16, children: [
-            _Legend(color: scheme.primary, label: 'Gelen mesaj'),
-            _Legend(color: scheme.tertiary, label: 'Yanıt'),
-          ]),
+          ],
+        ),
+      ),
+      Divider(height: 1, color: c.border),
+      const SizedBox(height: 6),
+      ExcludeSemantics(
+        child: Row(children: [
+          for (var i = 0; i < days.length; i += labelEvery)
+            Expanded(
+              flex: (days.length - i).clamp(1, labelEvery),
+              child: Text(
+                label(days[i]),
+                style: FlowText.mono(context, size: 11, color: c.faint),
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+                softWrap: false,
+              ),
+            ),
         ]),
       ),
-    );
+      const SizedBox(height: FlowSpace.md),
+      Wrap(spacing: FlowSpace.lg, runSpacing: FlowSpace.xs, children: [
+        _Legend(color: c.meter, label: 'Gelen mesaj'),
+        _Legend(color: c.muted, label: 'Yanıt'),
+      ]),
+    ]);
   }
 }
 
@@ -344,8 +486,12 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 10, height: 10, color: color),
-        const SizedBox(width: 4),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        ),
+        const SizedBox(width: 6),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ]);
 }

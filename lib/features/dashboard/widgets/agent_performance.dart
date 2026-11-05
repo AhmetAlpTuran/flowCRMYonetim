@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../ui/ui.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../models/dashboard_metrics.dart';
 import '../providers/dashboard_providers.dart';
@@ -37,6 +40,10 @@ class AgentMetric {
   final int resolved;
   final int openAssigned;
   final Duration? medianFirstResponse;
+
+  /// One sentence for screen readers, e.g. "12 yanıt · ilk yanıt 3 dk · …".
+  String get summary => '$replies yanıt · ilk yanıt ${formatDuration(medianFirstResponse)}'
+      ' · $resolved çözüldü · $openAssigned açık konuşma';
 }
 
 typedef AgentMetricsLoader = Future<List<AgentMetric>> Function(String tenantId, int days);
@@ -65,7 +72,11 @@ final agentMetricsProvider = FutureProvider<List<AgentMetric>?>((ref) async {
   return ref.watch(agentMetricsLoaderProvider)(tenant.id, ref.watch(dashboardPeriodProvider));
 });
 
-/// "Ekip performansı" on the dashboard (administrators).
+/// "Bugün" or "Son 7 gün" for a reporting period.
+String dashboardPeriodLabel(int days) => days == 1 ? 'Bugün' : 'Son $days gün';
+
+/// "Ekip performansı" on the dashboard (administrators): a table with mono numbers
+/// and a reply meter that scrolls sideways on phones.
 class AgentPerformanceSection extends ConsumerWidget {
   const AgentPerformanceSection({super.key});
 
@@ -74,46 +85,159 @@ class AgentPerformanceSection extends ConsumerWidget {
     final agents = ref.watch(agentMetricsProvider);
     return agents.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => Card(
-        child: ListTile(
-          leading: const Icon(Icons.error_outline),
-          title: const Text('Ekip performansı yüklenemedi.'),
-          trailing: TextButton(
-            onPressed: () => ref.invalidate(agentMetricsProvider),
-            child: const Text('Tekrar dene'),
-          ),
-        ),
+      error: (_, __) => ErrorState(
+        title: 'Ekip performansı yüklenemedi',
+        onRetry: () => ref.invalidate(agentMetricsProvider),
       ),
       data: (list) {
         if (list == null) return const SizedBox.shrink();
-        final theme = Theme.of(context);
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const SizedBox(height: 16),
-          Text('Ekip performansı', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (list.isEmpty)
-            const Card(child: ListTile(title: Text('Henüz ekip üyesi yok.')))
-          else
-            Card(
-              child: Column(children: [
-                for (final (index, agent) in list.indexed) ...[
-                  if (index > 0) const Divider(height: 1),
-                  ListTile(
-                    leading: CircleAvatar(
-                      child: Text(agent.name.isEmpty ? '?' : agent.name.characters.first.toUpperCase()),
-                    ),
-                    title: Text(agent.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(
-                      '${agent.replies} yanıt · ilk yanıt ${formatDuration(agent.medianFirstResponse)}'
-                      ' · ${agent.resolved} çözüldü · ${agent.openAssigned} açık konuşma',
-                    ),
-                    isThreeLine: true,
-                  ),
-                ],
-              ]),
-            ),
-        ]);
+        final days = ref.watch(dashboardPeriodProvider);
+        return SectionCard(
+          title: 'Ekip performansı',
+          flush: true,
+          trailing: Text(upperTr(dashboardPeriodLabel(days)), style: FlowText.caps(context)),
+          child: list.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(20, FlowSpace.lg, 20, 20),
+                  child: Text('Henüz ekip üyesi yok.', style: Theme.of(context).textTheme.bodyMedium),
+                )
+              : _AgentTable(agents: list),
+        );
       },
+    );
+  }
+}
+
+/// Column widths as flex factors: person, replies (meter), first reply, resolved, open.
+const _flex = [5, 5, 3, 3, 2];
+const _tableMinWidth = 640.0;
+
+class _AgentTable extends StatelessWidget {
+  const _AgentTable({required this.agents});
+
+  final List<AgentMetric> agents;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final peak = agents.fold<int>(1, (max, agent) => math.max(max, agent.replies));
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = math.max(constraints.maxWidth, _tableMinWidth);
+      final table = SizedBox(
+        width: width,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const _HeaderRow(),
+          for (final (index, agent) in agents.indexed) ...[
+            Divider(height: 1, color: c.border),
+            _AgentRow(agent: agent, share: agent.replies / peak, last: index == agents.length - 1),
+          ],
+        ]),
+      );
+      if (width <= constraints.maxWidth) return table;
+      return SingleChildScrollView(scrollDirection: Axis.horizontal, child: table);
+    });
+  }
+}
+
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow();
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Kişi', 'Yanıt', 'İlk yanıt', 'Çözülen', 'Açık'];
+    return ExcludeSemantics(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: FlowSpace.md),
+        child: Row(children: [
+          for (var i = 0; i < labels.length; i++) ...[
+            if (i > 0) const SizedBox(width: FlowSpace.lg),
+            Expanded(
+              flex: _flex[i],
+              child: Text(
+                upperTr(labels[i]),
+                style: FlowText.caps(context),
+                textAlign: i < 2 ? TextAlign.left : TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class _AgentRow extends StatelessWidget {
+  const _AgentRow({required this.agent, required this.share, required this.last});
+
+  final AgentMetric agent;
+  final double share;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    Widget number(String value, int flex) => Expanded(
+          flex: flex,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            style: FlowText.mono(context, size: 14, color: c.text),
+          ),
+        );
+    return Semantics(
+      label: '${agent.name}: ${agent.summary}',
+      excludeSemantics: true,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 14, 20, last ? 16 : 14),
+        child: Row(children: [
+          Expanded(
+            flex: _flex[0],
+            child: Row(children: [
+              InitialsAvatar(agent.name.isEmpty ? '?' : agent.name, size: 30, accent: agent.role == 'admin'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(agent.name, style: theme.textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(
+                    agent.role == 'admin' ? 'YÖNETİCİ' : 'EKİP ÜYESİ',
+                    style: FlowText.caps(context, size: 10, color: c.faint),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+          const SizedBox(width: FlowSpace.lg),
+          Expanded(
+            flex: _flex[1],
+            child: Row(children: [
+              Expanded(child: LinearProgressIndicator(value: share.clamp(0.0, 1.0))),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  '${agent.replies}',
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  style: FlowText.mono(context, size: 14, color: c.text),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(width: FlowSpace.lg),
+          number(formatDuration(agent.medianFirstResponse), _flex[2]),
+          const SizedBox(width: FlowSpace.lg),
+          number('${agent.resolved}', _flex[3]),
+          const SizedBox(width: FlowSpace.lg),
+          number('${agent.openAssigned}', _flex[4]),
+        ]),
+      ),
     );
   }
 }

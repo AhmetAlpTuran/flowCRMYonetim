@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../ui/ui.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../data/contact_csv.dart';
 import '../models/contact.dart';
@@ -26,11 +27,15 @@ String contactsErrorMessage(Object error) {
   return 'İşlem tamamlanamadı. Tekrar deneyin.';
 }
 
-String _date(DateTime value) {
-  final local = value.toLocal();
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${two(local.day)}.${two(local.month)}.${local.year}';
-}
+/// How a marketing consent was recorded (`consented_contacts.consent_source`), or null
+/// when there is nothing useful to show.
+String? consentSourceLabel(String? source) => switch (source) {
+      'manual' => 'Elle',
+      'import' => 'CSV',
+      'whatsapp' => 'WhatsApp',
+      'form' => 'Form',
+      _ => null,
+    };
 
 bool _canManageConsent(WidgetRef ref) =>
     ref
@@ -39,6 +44,7 @@ bool _canManageConsent(WidgetRef ref) =>
         ?.hasPermission('campaigns') ??
     false;
 
+/// Müşteriler → Kişiler: search, CSV import and the contact list with consent state.
 class ContactsScreen extends ConsumerStatefulWidget {
   const ContactsScreen({super.key});
 
@@ -69,97 +75,73 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     final page = ref.watch(contactsControllerProvider);
     final tenant = ref.watch(selectedTenantProvider);
     if (tenant == null) return const SizedBox.shrink();
+    final searching = ref.read(contactsControllerProvider.notifier).search.isNotEmpty ||
+        _searchController.text.trim().isNotEmpty;
 
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(children: [
-          Row(children: [
-            Expanded(
-              child: Text('Kişiler', style: Theme.of(context).textTheme.titleLarge),
-            ),
-            IconButton(
-              tooltip: 'CSV içe aktar',
+    final Widget body;
+    if (page.hasError && !page.isLoading) {
+      body = ErrorState(
+        title: 'Kişiler yüklenemedi',
+        onRetry: () => ref.invalidate(contactsControllerProvider),
+      );
+    } else if (page.valueOrNull case final data?) {
+      body = data.items.isEmpty
+          ? _EmptyContacts(searching: searching)
+          : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              _ContactsSummary(page: data, searching: searching),
+              const SizedBox(height: FlowSpace.md),
+              _ContactList(
+                contacts: data.items,
+                onOpen: (contact) => _openEditor(tenant.id, contact),
+              ),
+              if (data.hasMore) ...[
+                const SizedBox(height: FlowSpace.md),
+                Center(
+                  child: data.loadingMore
+                      ? const Padding(
+                          padding: EdgeInsets.all(FlowSpace.md),
+                          child: SizedBox.square(dimension: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      : TextButton(onPressed: _loadMore, child: const Text('Daha fazla göster')),
+                ),
+              ],
+            ]);
+    } else {
+      body = const _ListFrame(child: LoadingList(rows: 6));
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.refresh(contactsControllerProvider.future),
+      child: AppPage(
+        toolbar: PageToolbar(
+          leading: SearchField(
+            hint: 'Ad, telefon veya etiket ara',
+            controller: _searchController,
+            onChanged: _onSearch,
+          ),
+          actions: [
+            OutlinedButton.icon(
               onPressed: () => _import(tenant.id),
-              icon: const Icon(Icons.upload_file),
+              icon: const Icon(Icons.file_upload_outlined, size: 18),
+              label: const Text('CSV ile içe aktar'),
             ),
             FilledButton.icon(
               onPressed: () => _openEditor(tenant.id, null),
-              icon: const Icon(Icons.person_add_alt),
+              icon: const Icon(Icons.add_rounded, size: 20),
               label: const Text('Kişi ekle'),
             ),
-          ]),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _searchController,
-            onChanged: _onSearch,
-            textInputAction: TextInputAction.search,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Ad, telefon veya etiket ara',
-            ),
-          ),
-        ]),
-      ),
-      Expanded(
-        child: page.when(
-          data: (data) {
-            if (data.items.isEmpty) {
-              return _EmptyContacts(
-                  searching: _searchController.text.trim().isNotEmpty);
-            }
-            return RefreshIndicator(
-              onRefresh: () => ref.refresh(contactsControllerProvider.future),
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: data.items.length + (data.hasMore ? 1 : 0),
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  if (index == data.items.length) {
-                    return Center(
-                      child: data.loadingMore
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : TextButton(
-                              onPressed: _loadMore,
-                              child: const Text('Daha fazla göster'),
-                            ),
-                    );
-                  }
-                  final contact = data.items[index];
-                  return _ContactTile(
-                    contact: contact,
-                    onTap: () => _openEditor(tenant.id, contact),
-                  );
-                },
-              ),
-            );
-          },
-          error: (_, __) => Center(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Kişiler yüklenemedi.'),
-              TextButton(
-                onPressed: () => ref.invalidate(contactsControllerProvider),
-                child: const Text('Tekrar dene'),
-              ),
-            ]),
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
+          ],
         ),
+        children: [body],
       ),
-    ]);
+    );
   }
 
   Future<void> _loadMore() async {
     try {
       await ref.read(contactsControllerProvider.notifier).loadMore();
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(contactsErrorMessage(error))));
-      }
+      if (mounted) showAppSnack(context, contactsErrorMessage(error), error: true);
     }
   }
 
@@ -168,6 +150,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
       builder: (_) => ContactEditorSheet(tenantId: tenantId, contact: contact),
     );
     if (saved == true) ref.invalidate(contactsControllerProvider);
@@ -185,8 +168,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     try {
       preview = parseContactCsv(bytes);
     } on ContactCsvException catch (error) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
+      showAppSnack(context, error.message, error: true);
       return;
     }
     final result = await showDialog<ContactImportResult>(
@@ -198,31 +180,96 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     ref.invalidate(contactsControllerProvider);
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('İçe aktarma tamamlandı'),
-        content: Column(
+      builder: (context) => ImportResultDialog(result: result),
+    );
+  }
+}
+
+/// What an import changed: mono counts and the first skipped lines.
+class ImportResultDialog extends StatelessWidget {
+  const ImportResultDialog({super.key, required this.result});
+
+  final ContactImportResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    return AlertDialog(
+      title: const Text('İçe aktarma tamamlandı'),
+      content: SingleChildScrollView(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Yeni kişi: ${result.created}'),
-            Text('Güncellenen kişi: ${result.updated}'),
-            Text('Pazarlama izni eklenen: ${result.consented}'),
+            KeyValueRow(label: 'Yeni kişi', value: formatCount(result.created), mono: true),
+            KeyValueRow(label: 'Güncellenen kişi', value: formatCount(result.updated), mono: true),
+            KeyValueRow(
+              label: 'Pazarlama izni eklenen',
+              value: formatCount(result.consented),
+              mono: true,
+              valueColor: result.consented > 0 ? c.accentText : null,
+            ),
             if (result.skippedLines.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('Atlanan satırlar (${result.skippedLines.length}):'),
+              KeyValueRow(
+                label: 'Atlanan satır',
+                value: formatCount(result.skippedLines.length),
+                mono: true,
+                valueColor: c.warning,
+              ),
+              const SizedBox(height: FlowSpace.sm),
               for (final (line, reason) in result.skippedLines.take(5))
-                Text('Satır $line: ${importSkipReason(reason)}',
-                    style: Theme.of(context).textTheme.bodySmall),
+                Padding(
+                  padding: const EdgeInsets.only(top: FlowSpace.xs),
+                  child: Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: 'Satır $line', style: FlowText.mono(context, size: 12, color: c.text)),
+                      TextSpan(text: ': ${importSkipReason(reason)}'),
+                    ]),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
             ],
           ],
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Tamam'),
-          ),
-        ],
       ),
+      actions: [
+        FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Tamam')),
+      ],
+    );
+  }
+}
+
+/// "214 KİŞİ · 168 PAZARLAMA İZNİ · 3 LİSTEDEN ÇIKTI" for the loaded rows.
+class _ContactsSummary extends StatelessWidget {
+  const _ContactsSummary({required this.page, required this.searching});
+
+  final ContactsPage page;
+  final bool searching;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final items = page.items;
+    final count = formatCount(items.length);
+    final total = searching
+        ? (page.hasMore ? 'İlk $count sonuç' : '$count sonuç')
+        : (page.hasMore ? 'İlk $count kişi' : '$count kişi');
+    final consentVisible = items.any((item) => item.consent != ConsentState.hidden);
+    final granted = items.where((item) => item.consent == ConsentState.granted).length;
+    final optedOut = items.where((item) => item.consent == ConsentState.optedOut).length;
+    // Lines break only between the parts, never inside "1 LİSTEDEN ÇIKTI".
+    String part(String text) => upperTr(text).replaceAll(' ', ' ');
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: part(total)),
+        if (consentVisible) ...[
+          const TextSpan(text: ' · '),
+          TextSpan(text: part('${formatCount(granted)} pazarlama izni'), style: TextStyle(color: c.accentText)),
+          const TextSpan(text: ' · '),
+          TextSpan(text: part('${formatCount(optedOut)} listeden çıktı')),
+        ],
+      ]),
+      style: FlowText.caps(context, color: c.muted),
     );
   }
 }
@@ -232,65 +279,297 @@ class _EmptyContacts extends StatelessWidget {
   final bool searching;
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            searching
-                ? 'Aramanızla eşleşen kişi yok.'
-                : 'Henüz kişi yok. WhatsApp\'tan yazan müşteriler otomatik eklenir; '
-                    'kişi ekleyebilir veya CSV dosyasından içe aktarabilirsiniz.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+  Widget build(BuildContext context) => searching
+      ? const EmptyState(
+          title: 'Eşleşen kişi yok',
+          message: 'Aramanızla eşleşen kişi yok. Farklı bir ad, numara veya etiket deneyin.',
+          icon: Icons.search_off_rounded,
+        )
+      : const EmptyState(
+          title: 'Henüz kişi yok',
+          message: 'WhatsApp\'tan yazan müşteriler otomatik eklenir; '
+              'kişi ekleyebilir veya CSV dosyasından içe aktarabilirsiniz.',
+          icon: Icons.people_outline_rounded,
+        );
 }
 
-class _ContactTile extends StatelessWidget {
-  const _ContactTile({required this.contact, required this.onTap});
-  final Contact contact;
-  final VoidCallback onTap;
+/// The bordered surface around the contact rows.
+class _ListFrame extends StatelessWidget {
+  const _ListFrame({required this.child, this.padded = true});
+
+  final Widget child;
+  final bool padded;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        title: Text(contact.fullName.isEmpty ? contact.displayPhone : contact.fullName),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (contact.fullName.isNotEmpty) Text(contact.displayPhone),
-            if (contact.tags.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(contact.tags.take(4).join(' · '),
-                    style: theme.textTheme.bodySmall),
-              ),
+    final c = FlowColors.of(context);
+    return Container(
+      padding: padded ? const EdgeInsets.symmetric(horizontal: 20, vertical: FlowSpace.sm) : null,
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: FlowRadius.cardAll,
+        border: Border.all(color: c.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
+}
+
+/// A table on wide screens (person, phone, consent, last conversation), a compact
+/// list on phones. Tapping a row opens the editor.
+class _ContactList extends StatelessWidget {
+  const _ContactList({required this.contacts, required this.onOpen});
+
+  final List<Contact> contacts;
+  final ValueChanged<Contact> onOpen;
+
+  static const _tableBreakpoint = 720.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final consentVisible = contacts.any((item) => item.consent != ConsentState.hidden);
+    return _ListFrame(
+      padded: false,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final table = constraints.maxWidth >= _tableBreakpoint;
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (table) ...[
+            _TableHeader(consentVisible: consentVisible),
+            Divider(height: 1, color: c.border),
           ],
-        ),
-        trailing: ConsentBadge(state: contact.consent),
+          for (final (index, contact) in contacts.indexed) ...[
+            if (index > 0) Divider(height: 1, color: c.border),
+            table
+                ? _TableRow(contact: contact, consentVisible: consentVisible, onTap: () => onOpen(contact))
+                : _CompactRow(contact: contact, onTap: () => onOpen(contact)),
+          ],
+        ]);
+      }),
+    );
+  }
+}
+
+/// Column flex factors: person, phone, consent, last conversation.
+const _columns = [5, 3, 3, 2];
+
+/// Turkish numbers grouped ("+90 555 111 22 33"); others as stored E.164 ("+4915123456789"),
+/// so a foreign country code is never split.
+String contactPhoneLabel(Contact contact) =>
+    contact.phone.startsWith('90') && contact.phone.length == 12 ? formatPhone(contact.phone) : contact.displayPhone;
+
+String _nameOf(Contact contact) => contact.fullName.isEmpty ? contactPhoneLabel(contact) : contact.fullName;
+
+String _lastContact(Contact contact) =>
+    contact.lastContactedAt == null ? '—' : upperTr(formatListStamp(contact.lastContactedAt!));
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader({required this.consentVisible});
+
+  final bool consentVisible;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget cell(String label, int flex, {TextAlign align = TextAlign.left}) => Expanded(
+          flex: flex,
+          child: Text(
+            upperTr(label),
+            style: FlowText.caps(context),
+            textAlign: align,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+    return ExcludeSemantics(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: FlowSpace.md),
+        child: Row(children: [
+          cell('Kişi', _columns[0]),
+          const SizedBox(width: FlowSpace.lg),
+          cell('Telefon', _columns[1]),
+          if (consentVisible) ...[
+            const SizedBox(width: FlowSpace.lg),
+            cell('Pazarlama izni', _columns[2]),
+          ],
+          const SizedBox(width: FlowSpace.lg),
+          cell('Son sohbet', _columns[3], align: TextAlign.right),
+        ]),
       ),
     );
   }
 }
 
-class ConsentBadge extends StatelessWidget {
-  const ConsentBadge({super.key, required this.state});
-  final ConsentState state;
+class _TableRow extends StatelessWidget {
+  const _TableRow({required this.contact, required this.consentVisible, required this.onTap});
+
+  final Contact contact;
+  final bool consentVisible;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (label, color) = switch (state) {
-      ConsentState.granted => ('İzinli', Colors.green.shade700),
-      ConsentState.optedOut => ('İzin geri alındı', scheme.error),
-      ConsentState.none => ('İzin yok', scheme.outline),
-      ConsentState.hidden => ('', scheme.outline),
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+        child: Row(children: [
+          Expanded(
+            flex: _columns[0],
+            child: Row(children: [
+              InitialsAvatar(contact.fullName.isEmpty ? '?' : contact.fullName, size: 32),
+              const SizedBox(width: FlowSpace.md),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // The phone has its own column, so an unnamed contact says so here.
+                  Text(
+                    contact.fullName.isEmpty ? 'Adı yok' : contact.fullName,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontSize: 15,
+                      color: contact.fullName.isEmpty ? c.muted : null,
+                      fontWeight: contact.fullName.isEmpty ? FontWeight.w500 : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (contact.tags.isNotEmpty)
+                    Text(
+                      contact.tags.take(4).join(' · '),
+                      style: theme.textTheme.bodySmall?.copyWith(color: c.faint),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ]),
+              ),
+            ]),
+          ),
+          const SizedBox(width: FlowSpace.lg),
+          Expanded(
+            flex: _columns[1],
+            child: Text(
+              contactPhoneLabel(contact),
+              style: FlowText.mono(context, size: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (consentVisible) ...[
+            const SizedBox(width: FlowSpace.lg),
+            Expanded(
+              flex: _columns[2],
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConsentBadge(state: contact.consent, source: contact.consentSource),
+              ),
+            ),
+          ],
+          const SizedBox(width: FlowSpace.lg),
+          Expanded(
+            flex: _columns[3],
+            child: Text(
+              _lastContact(contact),
+              textAlign: TextAlign.right,
+              style: FlowText.mono(context, size: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _CompactRow extends StatelessWidget {
+  const _CompactRow({required this.contact, required this.onTap});
+
+  final Contact contact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    final showBadge = contact.consent != ConsentState.hidden;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: FlowSpace.lg, vertical: FlowSpace.md),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          InitialsAvatar(contact.fullName.isEmpty ? '?' : contact.fullName, size: 40),
+          const SizedBox(width: FlowSpace.md),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                _nameOf(contact),
+                style: theme.textTheme.titleSmall?.copyWith(fontSize: 15),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (contact.fullName.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  contactPhoneLabel(contact),
+                  style: FlowText.mono(context, size: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (showBadge || contact.tags.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: FlowSpace.sm,
+                  runSpacing: FlowSpace.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (showBadge) ConsentBadge(state: contact.consent, source: contact.consentSource),
+                    if (contact.tags.isNotEmpty)
+                      Text(
+                        contact.tags.take(4).join(' · '),
+                        style: theme.textTheme.bodySmall?.copyWith(color: c.faint),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ],
+            ]),
+          ),
+          const SizedBox(width: FlowSpace.sm),
+          Text(_lastContact(contact), style: FlowText.mono(context, size: 12)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Marketing consent as a status badge: "VAR · CSV", "YOK" or "LİSTEDEN ÇIKTI".
+/// Nothing for members who may not see consent.
+class ConsentBadge extends StatelessWidget {
+  const ConsentBadge({super.key, required this.state, this.source});
+
+  final ConsentState state;
+
+  /// `consent_source` of a granted consent; adds where it came from.
+  final String? source;
+
+  @override
+  Widget build(BuildContext context) {
+    final from = consentSourceLabel(source);
+    final (label, tone, spoken) = switch (state) {
+      ConsentState.granted => (
+          from == null ? 'Var' : 'Var · $from',
+          FlowTone.accent,
+          from == null ? 'Pazarlama izni var' : 'Pazarlama izni var, kaynak: $from',
+        ),
+      ConsentState.optedOut => ('Listeden çıktı', FlowTone.danger, 'Pazarlama listesinden çıktı'),
+      ConsentState.none => ('Yok', FlowTone.neutral, 'Pazarlama izni yok'),
+      ConsentState.hidden => ('', FlowTone.neutral, ''),
     };
     if (label.isEmpty) return const SizedBox.shrink();
-    return Text(label, style: TextStyle(color: color, fontSize: 12));
+    return Semantics(label: spoken, excludeSemantics: true, child: StatusBadge(label, tone: tone));
   }
 }
 
@@ -330,25 +609,26 @@ class _ContactEditorSheetState extends ConsumerState<ContactEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = FlowColors.of(context);
     final contact = widget.contact;
     final canConsent = _canManageConsent(ref);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(contact == null ? 'Yeni kişi' : 'Kişiyi düzenle',
-                  style: theme.textTheme.titleLarge),
-              const SizedBox(height: 12),
+              Text(contact == null ? 'Yeni kişi' : 'Kişiyi düzenle', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: FlowSpace.lg),
               TextFormField(
                 controller: _phone,
                 readOnly: contact != null || _busy,
                 keyboardType: TextInputType.phone,
+                style: FlowText.mono(context, size: 15, color: c.text),
                 decoration: const InputDecoration(
                   labelText: 'Telefon',
                   hintText: '0555 111 22 33 veya +49 ...',
@@ -358,7 +638,7 @@ class _ContactEditorSheetState extends ConsumerState<ContactEditorSheet> {
                     ? 'Geçerli bir telefon numarası girin.'
                     : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FlowSpace.md),
               TextFormField(
                 controller: _name,
                 readOnly: _busy,
@@ -377,7 +657,7 @@ class _ContactEditorSheetState extends ConsumerState<ContactEditorSheet> {
                       : 'Geçerli bir e-posta girin.';
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: FlowSpace.md),
               TextFormField(
                 controller: _tags,
                 readOnly: _busy,
@@ -397,16 +677,17 @@ class _ContactEditorSheetState extends ConsumerState<ContactEditorSheet> {
                 ),
               ],
               if (_error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: FlowSpace.md),
                 Semantics(
                   liveRegion: true,
-                  child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                  child: Text(_error!, style: theme.textTheme.bodyMedium?.copyWith(color: c.danger)),
                 ),
               ],
-              const SizedBox(height: 16),
-              Wrap(alignment: WrapAlignment.end, spacing: 8, children: [
+              const SizedBox(height: FlowSpace.lg),
+              Wrap(alignment: WrapAlignment.end, spacing: FlowSpace.sm, runSpacing: FlowSpace.sm, children: [
                 TextButton(
                   onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+                  style: TextButton.styleFrom(foregroundColor: c.muted),
                   child: const Text('Kapat'),
                 ),
                 FilledButton(
@@ -498,18 +779,27 @@ class _ConsentSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = FlowColors.of(context);
     final status = switch (contact.consent) {
       ConsentState.granted =>
-        'Pazarlama izni var (${_date(contact.consentedAt!)}). Kampanyalara dahil edilir.',
+        'Pazarlama izni var (${formatDate(contact.consentedAt!)}). Kampanyalara dahil edilir.',
       ConsentState.optedOut =>
-        'Kişi ${_date(contact.optedOutAt!)} tarihinde izni geri aldı. Kampanya gönderilmez.',
+        'Kişi ${formatDate(contact.optedOutAt!)} tarihinde izni geri aldı. Kampanya gönderilmez.',
       _ => 'Pazarlama izni yok. Kampanya gönderilmez; destek mesajları etkilenmez.',
     };
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text('Pazarlama izni', style: theme.textTheme.titleMedium),
-      const SizedBox(height: 4),
-      Text(status),
-      const SizedBox(height: 8),
+      Wrap(
+        spacing: FlowSpace.sm,
+        runSpacing: FlowSpace.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text('Pazarlama izni', style: theme.textTheme.titleMedium),
+          ConsentBadge(state: contact.consent, source: contact.consentSource),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Text(status, style: theme.textTheme.bodyMedium?.copyWith(color: c.muted)),
+      const SizedBox(height: FlowSpace.sm),
       if (contact.consent != ConsentState.granted) ...[
         TextField(
           controller: noteController,
@@ -534,6 +824,7 @@ class _ConsentSection extends StatelessWidget {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: busy ? null : onRevoke,
+            style: TextButton.styleFrom(foregroundColor: c.danger),
             child: const Text('İzni geri al'),
           ),
         ),
@@ -571,6 +862,8 @@ class _ImportPreviewDialogState extends ConsumerState<ImportPreviewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = FlowColors.of(context);
     final preview = widget.preview;
     final canConsent = _canManageConsent(ref);
     final consentRows = canConsent ? preview.consentCount : 0;
@@ -584,25 +877,27 @@ class _ImportPreviewDialogState extends ConsumerState<ImportPreviewDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Aktarılacak kişi: ${preview.rows.length}'),
+            Text('Aktarılacak kişi: ${preview.rows.length}', style: theme.textTheme.bodyLarge),
             if (preview.issues.isNotEmpty) ...[
-              Text('Okunamayan satır: ${preview.issues.length}'),
+              const SizedBox(height: FlowSpace.xs),
+              Text('Okunamayan satır: ${preview.issues.length}',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: c.warning)),
               for (final issue in preview.issues.take(5))
                 Text(
                   issue.line > 0 ? 'Satır ${issue.line}: ${issue.message}' : issue.message,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: theme.textTheme.bodySmall,
                 ),
             ],
             if (preview.consentCount > 0 && !canConsent)
               const Padding(
-                padding: EdgeInsets.only(top: 8),
+                padding: EdgeInsets.only(top: FlowSpace.sm),
                 child: Text(
                     'Dosyadaki pazarlama izinleri aktarılmayacak: izin kaydetmek için kampanya yetkisi gerekir.'),
               ),
             if (needsBasis) ...[
-              const SizedBox(height: 12),
-              Text('Pazarlama izni olan kişi: $consentRows'),
-              const SizedBox(height: 8),
+              const SizedBox(height: FlowSpace.md),
+              Text('Pazarlama izni olan kişi: $consentRows', style: theme.textTheme.bodyLarge),
+              const SizedBox(height: FlowSpace.sm),
               TextField(
                 controller: _note,
                 readOnly: _busy,
@@ -615,6 +910,7 @@ class _ImportPreviewDialogState extends ConsumerState<ImportPreviewDialog> {
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
                 value: _confirmed,
                 onChanged: _busy ? null : (value) => setState(() => _confirmed = value ?? false),
                 title: const Text(
@@ -622,13 +918,17 @@ class _ImportPreviewDialogState extends ConsumerState<ImportPreviewDialog> {
               ),
             ],
             if (_error != null)
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Semantics(
+                liveRegion: true,
+                child: Text(_error!, style: theme.textTheme.bodyMedium?.copyWith(color: c.danger)),
+              ),
           ],
         ),
       ),
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(foregroundColor: c.muted),
           child: const Text('Vazgeç'),
         ),
         FilledButton(
