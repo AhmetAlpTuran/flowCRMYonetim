@@ -541,3 +541,16 @@ modified when this work began; preserve it outside milestone commits.
   lists the defaults chosen in code. The `ONLINE_PURCHASE` build flag can switch off
   in-app purchase buttons on Android too, if Google Play requires Play Billing.
   `docs/RELEASE.md` now describes the Android payment flow.
+
+- 2026-11-05: Redesign milestone 2, foundation of the "Gece mesaisi" design system (approved
+  canvas prototype). New `lib/ui/`: tokens (`FlowColors` dark and light, spacing, radii,
+  motion), both themes covering every Material widget in use, the Koyu/Açık/Sistem setting
+  (stored per device), Turkish formatters (local time, ₺, phone numbers, dates) and shared
+  components (page body, panels, badges, role tags, KPI tiles, meters, empty/error/loading
+  states, dot grid, signal rings, live dot, logomark). Fonts are bundled from google/fonts
+  (Bricolage Grotesque, JetBrains Mono; OFL) and `google_fonts` is removed; Material is
+  localized to Turkish. New shell: seven areas with tabs, an ink sidebar with the live queue
+  on desktop, a bottom bar on phones; new tabs Talepler, Rezervasyonlar, İşletme (placeholder)
+  and Görünüm. `DESIGN.md` is rewritten as the binding brief, plus the project skill
+  `.claude/skills/flow-crm-design`. Verified: 129/129 Flutter tests, including new format,
+  contrast, design-guard and shell tests.

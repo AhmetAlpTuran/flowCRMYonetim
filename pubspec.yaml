@@ -9,10 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^2.5.1
   shared_preferences: ^2.2.3
   file_picker: ^8.0.5
-  google_fonts: ^6.2.1
   supabase_flutter: ^2.6.1
   http: ^1.2.2
   url_launcher: ^6.3.3
@@ -24,3 +25,28 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Bricolage
+      fonts:
+        - asset: assets/fonts/Bricolage-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Bricolage-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Bricolage-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Bricolage-Bold.ttf
+          weight: 700
+    - family: BricolageDisplay
+      fonts:
+        - asset: assets/fonts/BricolageDisplay-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/BricolageDisplay-ExtraBold.ttf
+          weight: 800
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/JetBrainsMono-SemiBold.ttf
+          weight: 600

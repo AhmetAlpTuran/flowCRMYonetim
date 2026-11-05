@@ -107,9 +107,14 @@ void main() {
   });
 
   test('catalog members see the Katalog entry', () {
-    expect(shellDestinationIdsFor(false, const {'catalog'}, const {TenantFeature.catalog}),
-        [ShellDestinationId.catalog]);
-    expect(shellDestinationIdsFor(false, const {'inbox'}, const {TenantFeature.catalog}), isEmpty);
+    expect(shellDestinationIdsFor(false, const {'catalog'}, const {TenantFeature.catalog}), [
+      ShellDestinationId.leads,
+      ShellDestinationId.catalog,
+      ShellDestinationId.bookings,
+      ShellDestinationId.appearance,
+    ]);
+    expect(shellDestinationIdsFor(false, const {'inbox'}, const {TenantFeature.catalog}),
+        [ShellDestinationId.appearance]);
   });
 
   testWidgets('empty catalog offers business presets', (tester) async {

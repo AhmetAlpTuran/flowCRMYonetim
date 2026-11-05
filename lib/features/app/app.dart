@@ -1,8 +1,8 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../tenancy/providers/tenant_providers.dart';
+import '../../ui/ui.dart';
 import '../tenancy/screens/app_entry.dart';
 
 class App extends ConsumerWidget {
@@ -10,88 +10,16 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tenant = ref.watch(selectedTenantProvider);
-    final seedColor = tenant?.brandColor ?? const Color(0xFF1F4B99);
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
-      secondary: const Color(0xFF00A896),
-      tertiary: const Color(0xFFF2A541),
-      brightness: Brightness.light,
-    );
-
-    final baseTextTheme = GoogleFonts.interTextTheme();
-    final headlineTextTheme = GoogleFonts.manropeTextTheme();
-
+    final appearance = ref.watch(appearanceProvider);
     return MaterialApp(
       title: 'Flow CRM',
-      theme: ThemeData(
-        colorScheme: colorScheme,
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF4F6FA),
-        textTheme: baseTextTheme.copyWith(
-          headlineSmall: headlineTextTheme.headlineSmall,
-          headlineMedium: headlineTextTheme.headlineMedium,
-          titleLarge: headlineTextTheme.titleLarge,
-          titleMedium: headlineTextTheme.titleMedium,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: colorScheme.surface,
-          foregroundColor: colorScheme.onSurface,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          color: colorScheme.surface,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-        chipTheme: ChipThemeData(
-          backgroundColor: colorScheme.surfaceContainerHighest,
-          selectedColor: colorScheme.primaryContainer,
-          labelStyle: TextStyle(color: colorScheme.onSurface),
-          side: BorderSide(color: colorScheme.outlineVariant),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        navigationRailTheme: NavigationRailThemeData(
-          backgroundColor: colorScheme.surface,
-          indicatorColor: colorScheme.primaryContainer,
-          selectedIconTheme: IconThemeData(color: colorScheme.primary),
-          selectedLabelTextStyle: TextStyle(
-            color: colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
-          unselectedLabelTextStyle: TextStyle(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: colorScheme.surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: colorScheme.outlineVariant),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: colorScheme.outlineVariant),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
-          ),
-        ),
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: FlowTheme.light(),
+      darkTheme: FlowTheme.dark(),
+      themeMode: appearance.themeMode,
+      locale: const Locale('tr', 'TR'),
+      supportedLocales: const [Locale('tr', 'TR')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const AppEntry(),
     );
   }

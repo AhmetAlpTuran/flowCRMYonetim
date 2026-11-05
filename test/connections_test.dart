@@ -168,7 +168,7 @@ void main() {
     expect(shellDestinationIdsFor(false, const {'inbox', 'users'}, features),
         isNot(contains(ShellDestinationId.connections)));
     expect(shellDestinationIdsFor(false, const {'inbox'}, features),
-        [ShellDestinationId.inbox, ShellDestinationId.contacts]);
+        [ShellDestinationId.inbox, ShellDestinationId.contacts, ShellDestinationId.appearance]);
   });
 
   testWidgets('connect form validates locally and shows server guidance',
