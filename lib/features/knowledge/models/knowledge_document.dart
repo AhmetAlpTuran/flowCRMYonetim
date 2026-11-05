@@ -58,6 +58,7 @@ class KnowledgeDocument {
       'too_many_chunks' => 'Belge çok uzun. Bölerek yükleyin.',
       'unreadable' => 'Dosya okunamadı. Bozuk ya da şifreli olabilir.',
       'file_missing' => 'Dosya bulunamadı. Silip yeniden yükleyin.',
+      'attempts_exhausted' => 'Belge birkaç denemede okunamadı. Daha küçük parçalara bölüp yükleyin.',
       _ => 'İşlenemedi. Tekrar deneyin.',
     };
   }
@@ -88,6 +89,10 @@ class KnowledgeUpload {
 
 const knowledgeExtensions = ['pdf', 'docx', 'xlsx', 'csv', 'txt', 'md'];
 const knowledgeMaxBytes = 10 * 1024 * 1024;
+
+/// Server limits shown to the user (`register_knowledge_document`, `knowledge-worker`).
+const knowledgeMaxDocuments = 50;
+const knowledgeMaxPdfPages = 300;
 
 ({KnowledgeUpload? file, String? error}) knowledgeUploadFor({
   required String fileName,

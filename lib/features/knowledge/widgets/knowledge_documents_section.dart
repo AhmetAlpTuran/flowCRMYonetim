@@ -4,11 +4,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/request_id.dart';
-import '../../inbox/widgets/message_media_view.dart' show formatBytes;
+import '../../../ui/ui.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../data/knowledge_document_repository.dart';
 import '../models/knowledge_document.dart';
 import '../providers/knowledge_providers.dart';
+
+/// "200 KB", "1,4 MB": a file size in Turkish notation.
+String formatFileSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',')} MB';
+}
+
+/// The file type in plain words: "PDF", "Word", "Excel".
+String knowledgeFormatLabel(String format) => switch (format) {
+      'pdf' => 'PDF',
+      'docx' => 'Word',
+      'xlsx' => 'Excel',
+      'csv' => 'CSV',
+      'md' => 'Markdown',
+      'txt' => 'Metin',
+      _ => format.toUpperCase(),
+    };
+
+IconData knowledgeFormatIcon(String format) => switch (format) {
+      'pdf' => Icons.picture_as_pdf_outlined,
+      'xlsx' || 'csv' => Icons.table_chart_outlined,
+      'docx' => Icons.description_outlined,
+      _ => Icons.article_outlined,
+    };
 
 /// An upload whose outcome is unknown keeps its document ID, so a retry can never
 /// register the same file twice.
@@ -20,7 +45,7 @@ class _PendingUpload {
   final KnowledgeUpload file;
 }
 
-/// "Belgeler": upload business files for the bot, follow their processing, retry
+/// "Belgeler": upload business files for the assistant, follow their processing, retry
 /// failures and delete them. Refreshes itself while a document is being processed.
 class KnowledgeDocumentsSection extends ConsumerStatefulWidget {
   const KnowledgeDocumentsSection({super.key});
@@ -63,11 +88,9 @@ class _KnowledgeDocumentsSectionState extends ConsumerState<KnowledgeDocumentsSe
     super.dispose();
   }
 
-  void _say(String message) {
+  void _say(String message, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppSnack(context, message, error: error);
   }
 
   Future<void> _pick(String tenantId) async {
@@ -75,7 +98,7 @@ class _KnowledgeDocumentsSectionState extends ConsumerState<KnowledgeDocumentsSe
     if (picked == null || !mounted) return;
     final checked = knowledgeUploadFor(fileName: picked.name, bytes: picked.bytes);
     if (checked.file == null) {
-      _say(checked.error!);
+      _say(checked.error!, error: true);
       return;
     }
     final title = await showDialog<String>(
@@ -99,9 +122,9 @@ class _KnowledgeDocumentsSectionState extends ConsumerState<KnowledgeDocumentsSe
             file: upload.file,
           );
       if (mounted) setState(() => _pending = null);
-      _say('Belge yüklendi. Bot, işlendikten sonra bu belgeden yanıt verir.');
+      _say('Belge yüklendi. Asistan, belge okunduktan sonra bu bilgilerle yanıt verir.');
     } catch (error) {
-      _say(knowledgeDocumentErrorMessage(error));
+      _say(knowledgeDocumentErrorMessage(error), error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
       ref.invalidate(knowledgeDocumentsProvider);
@@ -109,24 +132,20 @@ class _KnowledgeDocumentsSectionState extends ConsumerState<KnowledgeDocumentsSe
   }
 
   Future<void> _delete(String tenantId, KnowledgeDocument document) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Belge silinsin mi?'),
-        content: Text('"${document.title}" ve botun bu belgeden öğrendikleri silinecek.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Vazgeç')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Sil')),
-        ],
-      ),
+    final confirmed = await confirmAction(
+      context,
+      title: 'Belge silinsin mi?',
+      message: '"${document.title}" ve asistanın bu belgeden öğrendikleri silinecek.',
+      confirmLabel: 'Sil',
+      destructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() => _busy = true);
     try {
       await ref.read(knowledgeDocumentRepositoryProvider).delete(tenantId: tenantId, document: document);
       _say('Belge silindi.');
     } catch (error) {
-      _say(knowledgeDocumentErrorMessage(error));
+      _say(knowledgeDocumentErrorMessage(error), error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
       ref.invalidate(knowledgeDocumentsProvider);
@@ -137,103 +156,165 @@ class _KnowledgeDocumentsSectionState extends ConsumerState<KnowledgeDocumentsSe
     try {
       await ref.read(knowledgeDocumentRepositoryProvider).retry(tenantId: tenantId, documentId: document.id);
     } catch (error) {
-      _say(knowledgeDocumentErrorMessage(error));
+      _say(knowledgeDocumentErrorMessage(error), error: true);
     }
     ref.invalidate(knowledgeDocumentsProvider);
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
     final theme = Theme.of(context);
     final tenant = ref.watch(selectedTenantProvider);
     final documents = ref.watch(knowledgeDocumentsProvider);
     final pending = _pending;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    final count = documents.valueOrNull?.length;
+    return SectionCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Wrap(
           alignment: WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 12,
-          runSpacing: 8,
+          spacing: FlowSpace.md,
+          runSpacing: FlowSpace.sm,
           children: [
-            Text('Belgeler', style: theme.textTheme.titleMedium),
-            FilledButton.tonalIcon(
+            Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text('Belgeler',
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleLarge),
+                  ),
+                  if (count != null) ...[
+                    const SizedBox(width: FlowSpace.sm),
+                    Text(
+                      '${formatCount(count)} / ${formatCount(knowledgeMaxDocuments)}',
+                      style: FlowText.mono(context, size: 12),
+                    ),
+                  ],
+                ]),
+            OutlinedButton.icon(
               onPressed: tenant == null || _busy ? null : () => _pick(tenant.id),
               icon: _busy
                   ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.upload_file_outlined),
+                  : const Icon(Icons.upload_outlined, size: 18),
               label: Text(_busy ? 'Bekleyin…' : 'Belge yükle'),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
-          'Fiyat listesi, oda kuralları veya stok listesi gibi dosyalar ekleyin; bot müşteri '
-          'sorularını bunlardan yanıtlar. PDF, Word, Excel, CSV, TXT veya Markdown, en fazla 10 MB.',
+          'Fiyat listesi, oda kuralları ya da stok listesi gibi dosyalar ekleyin; asistan müşteri '
+          'sorularını bunlardan yanıtlar.',
           style: theme.textTheme.bodySmall,
         ),
-        const SizedBox(height: 8),
-        if (pending != null && !_busy && tenant != null)
-          Card(
-            elevation: 0,
-            color: theme.colorScheme.errorContainer,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Icon(Icons.sync_problem_outlined),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Yükleme tamamlanmadı: ${pending.title}', style: theme.textTheme.titleSmall),
-                      const SizedBox(height: 2),
-                      const Text('Aynı belge iki kez eklenmez; güvenle tekrar deneyebilirsiniz.'),
-                    ]),
-                  ),
-                ]),
-                Wrap(alignment: WrapAlignment.end, spacing: 4, children: [
-                  TextButton(onPressed: () => setState(() => _pending = null), child: const Text('Vazgeç')),
-                  TextButton(onPressed: () => _send(tenant.id, pending), child: const Text('Tekrar dene')),
-                ]),
+        const SizedBox(height: FlowSpace.sm),
+        Text(upperTr('PDF · Word · Excel · CSV · TXT · Markdown'), style: FlowText.caps(context, size: 10)),
+        const SizedBox(height: FlowSpace.xs),
+        // Each limit is its own pill, so the row wraps between them on phones.
+        Wrap(spacing: 6, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          Text(upperTr('En fazla'), style: FlowText.caps(context, size: 10)),
+          const CountPill('${knowledgeMaxBytes ~/ (1024 * 1024)} MB', strong: false),
+          const CountPill("PDF'de $knowledgeMaxPdfPages sayfa", strong: false),
+          const CountPill('$knowledgeMaxDocuments belge', strong: false),
+        ]),
+        const SizedBox(height: FlowSpace.lg),
+        if (pending != null && !_busy && tenant != null) ...[
+          Container(
+            padding: const EdgeInsets.fromLTRB(FlowSpace.md, FlowSpace.md, FlowSpace.sm, FlowSpace.xs),
+            decoration: BoxDecoration(color: c.warningSoft, borderRadius: FlowRadius.controlAll),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.sync_problem_outlined, color: c.warning),
+                const SizedBox(width: FlowSpace.md),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Yükleme tamamlanmadı: ${pending.title}', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Aynı belge iki kez eklenmez; güvenle tekrar deneyebilirsiniz.',
+                      style: theme.textTheme.bodySmall?.copyWith(color: c.text),
+                    ),
+                  ]),
+                ),
               ]),
-            ),
+              Wrap(alignment: WrapAlignment.end, spacing: FlowSpace.xs, children: [
+                TextButton(
+                  onPressed: () => setState(() => _pending = null),
+                  style: TextButton.styleFrom(foregroundColor: c.muted),
+                  child: const Text('Vazgeç'),
+                ),
+                TextButton(onPressed: () => _send(tenant.id, pending), child: const Text('Tekrar dene')),
+              ]),
+            ]),
           ),
+          const SizedBox(height: FlowSpace.md),
+        ],
         documents.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: LinearProgressIndicator(),
-          ),
-          error: (error, _) => Card(
-            elevation: 0,
-            child: ListTile(
-              leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
-              title: const Text('Belgeler yüklenemedi.'),
-              subtitle: Text(knowledgeDocumentErrorMessage(error)),
-              trailing: TextButton(
-                onPressed: () => ref.invalidate(knowledgeDocumentsProvider),
-                child: const Text('Tekrar dene'),
-              ),
-            ),
+          loading: () => const LoadingList(rows: 2),
+          error: (error, _) => ErrorState(
+            title: 'Belgeler yüklenemedi',
+            message: knowledgeDocumentErrorMessage(error),
+            onRetry: () => ref.invalidate(knowledgeDocumentsProvider),
           ),
           data: (items) => items.isEmpty
-              ? Card(
-                  elevation: 0,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('Henüz belge yok.', style: theme.textTheme.bodyMedium),
-                  ),
+              ? const EmptyState(
+                  compact: true,
+                  icon: Icons.upload_file_outlined,
+                  title: 'Henüz belge yok',
+                  message: 'Fiyat listenizi ya da sık sorulan sorularınızı içeren bir dosya yükleyin.',
                 )
-              : Column(children: [
-                  for (final document in items)
+              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  for (var i = 0; i < items.length; i++) ...[
+                    if (i > 0) Divider(height: FlowSpace.xl, color: c.border),
                     DocumentTile(
-                      document: document,
-                      onDelete: tenant == null || _busy ? null : () => _delete(tenant.id, document),
-                      onRetry: tenant == null || !document.isFailed ? null : () => _retry(tenant.id, document),
+                      document: items[i],
+                      onDelete: tenant == null || _busy ? null : () => _delete(tenant.id, items[i]),
+                      onRetry: tenant == null || !items[i].isFailed ? null : () => _retry(tenant.id, items[i]),
                     ),
+                  ],
                 ]),
         ),
-      ],
+      ]),
+    );
+  }
+}
+
+/// The processing state of a document: SIRADA, OKUNUYOR, HAZIR or HATA.
+class KnowledgeDocumentBadge extends StatelessWidget {
+  const KnowledgeDocumentBadge(this.document, {super.key});
+
+  final KnowledgeDocument document;
+
+  @override
+  Widget build(BuildContext context) => switch (document.state) {
+        'ready' => const StatusBadge('Hazır', tone: FlowTone.accent),
+        'failed' => const StatusBadge('Hata', tone: FlowTone.danger),
+        'leased' => const StatusBadge('Okunuyor', tone: FlowTone.warning),
+        _ => const StatusBadge('Sırada', tone: FlowTone.warning),
+      };
+}
+
+/// A file-type icon on a raised tile.
+class KnowledgeFileIcon extends StatelessWidget {
+  const KnowledgeFileIcon(this.format, {super.key, this.size = 40});
+
+  final String format;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: c.raised,
+        borderRadius: FlowRadius.controlAll,
+        border: Border.all(color: c.border),
+      ),
+      child: Icon(knowledgeFormatIcon(format), size: size * 0.48, color: c.muted),
     );
   }
 }
@@ -247,48 +328,51 @@ class DocumentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
     final theme = Theme.of(context);
-    final icon = switch (document.format) {
-      'pdf' => Icons.picture_as_pdf_outlined,
-      'xlsx' || 'csv' => Icons.table_chart_outlined,
-      'docx' => Icons.description_outlined,
-      _ => Icons.article_outlined,
-    };
-    return Card(
-      elevation: 0,
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(document.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(
-            '${document.fileName} · ${formatBytes(document.sizeBytes)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Row(children: [
-            if (document.isProcessing) ...[
-              const SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 2)),
-              const SizedBox(width: 6),
-            ],
-            Flexible(
-              child: Text(
-                document.statusText(),
-                style: document.isFailed ? TextStyle(color: theme.colorScheme.error) : null,
-              ),
-            ),
-          ]),
-        ]),
-        isThreeLine: true,
-        trailing: PopupMenuButton<String>(
-          tooltip: 'Belge işlemleri',
-          onSelected: (value) => value == 'retry' ? onRetry?.call() : onDelete?.call(),
-          itemBuilder: (_) => [
-            if (onRetry != null) const PopupMenuItem(value: 'retry', child: Text('Tekrar işle')),
-            PopupMenuItem(value: 'delete', enabled: onDelete != null, child: const Text('Sil')),
+    final facts = [
+      knowledgeFormatLabel(document.format),
+      formatFileSize(document.sizeBytes),
+      if (document.pageCount != null) '${formatCount(document.pageCount!)} sayfa',
+      if (document.state == 'ready') '${formatCount(document.chunkCount)} bölüm',
+    ];
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      KnowledgeFileIcon(document.format),
+      const SizedBox(width: FlowSpace.md),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(document.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 2),
+          Text(document.fileName, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+          const SizedBox(height: FlowSpace.sm),
+          Wrap(
+              spacing: FlowSpace.sm,
+              runSpacing: FlowSpace.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                KnowledgeDocumentBadge(document),
+                Text(upperTr(facts.join(' · ')), style: FlowText.caps(context, size: 10)),
+              ]),
+          if (document.state == 'leased' && !FlowMotion.reduced(context)) ...[
+            const SizedBox(height: FlowSpace.sm),
+            LinearProgressIndicator(minHeight: 4, color: c.warning, semanticsLabel: 'Belge okunuyor'),
           ],
-        ),
+          if (document.isFailed) ...[
+            const SizedBox(height: 6),
+            Text(document.statusText(), style: theme.textTheme.bodySmall?.copyWith(color: c.danger)),
+          ],
+        ]),
       ),
-    );
+      PopupMenuButton<String>(
+        tooltip: 'Belge işlemleri',
+        icon: const Icon(Icons.more_vert),
+        onSelected: (value) => value == 'retry' ? onRetry?.call() : onDelete?.call(),
+        itemBuilder: (_) => [
+          if (onRetry != null) const PopupMenuItem(value: 'retry', child: Text('Tekrar işle')),
+          PopupMenuItem(value: 'delete', enabled: onDelete != null, child: const Text('Sil')),
+        ],
+      ),
+    ]);
   }
 }
 
@@ -314,7 +398,7 @@ class _DocumentTitleDialogState extends State<DocumentTitleDialog> {
   void _submit() {
     final value = _title.text.trim();
     if (value.isEmpty) {
-      setState(() => _error = 'Başlık zorunludur.');
+      setState(() => _error = 'Başlık boş olamaz.');
       return;
     }
     Navigator.of(context).pop(value);
@@ -322,25 +406,50 @@ class _DocumentTitleDialogState extends State<DocumentTitleDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
     return AlertDialog(
+      scrollable: true,
       title: const Text('Belge yükle'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.insert_drive_file_outlined),
-          title: Text(widget.file.fileName, maxLines: 2, overflow: TextOverflow.ellipsis),
-          subtitle: Text(formatBytes(widget.file.bytes.length)),
-        ),
-        TextField(
-          controller: _title,
-          maxLength: 250,
-          autofocus: true,
-          decoration: InputDecoration(labelText: 'Başlık', errorText: _error),
-          onSubmitted: (_) => _submit(),
-        ),
-      ]),
+      content: SizedBox(
+        width: 420,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            KnowledgeFileIcon(widget.file.extension),
+            const SizedBox(width: FlowSpace.md),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(widget.file.fileName,
+                    maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 2),
+                Text(formatFileSize(widget.file.bytes.length), style: FlowText.mono(context, size: 12)),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: FlowSpace.lg),
+          TextField(
+            controller: _title,
+            maxLength: 250,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: 'Başlık',
+              helperText: 'Belgeyi listede bu adla görürsünüz.',
+              errorText: _error,
+            ),
+            buildCounter: (context, {required currentLength, required maxLength, required isFocused}) => Text(
+              '${formatCount(currentLength)} / ${formatCount(maxLength ?? 250)}',
+              style: FlowText.mono(context, size: 11, color: c.faint),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ]),
+      ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Vazgeç')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(foregroundColor: c.muted),
+          child: const Text('Vazgeç'),
+        ),
         FilledButton(onPressed: _submit, child: const Text('Yükle')),
       ],
     );

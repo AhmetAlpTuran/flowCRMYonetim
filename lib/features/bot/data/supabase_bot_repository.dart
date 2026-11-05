@@ -6,17 +6,17 @@ import '../../billing/plan_limit.dart';
 import '../models/bot_config.dart';
 import '../models/bot_profile.dart';
 
-/// Turkish guidance for bot failures; raw server text is never shown.
+/// Turkish guidance for assistant failures; raw server text is never shown.
 String botErrorMessage(Object error) {
   final limit = planLimitKind(error);
   if (limit != null) return planLimitMessage(limit == 'plan' ? 'bots' : limit);
   if (error is PostgrestException) {
-    if (error.hint == 'bot_limit') return 'En fazla 10 ek bot oluşturabilirsiniz.';
+    if (error.hint == 'bot_limit') return 'En fazla 10 ek asistan oluşturabilirsiniz.';
     switch (error.code) {
       case '42501':
         return 'Bu işlem için yetkiniz yok.';
       case '22023':
-        return 'Bilgileri kontrol edin: ad, ton, dil ve talimat boş olamaz.';
+        return 'Bilgileri kontrol edin: ad, ton, yanıt dili ve talimatlar boş olamaz.';
     }
   }
   if (error is TimeoutException) {
@@ -139,9 +139,9 @@ class SupabaseBotRepository implements BotRepository {
     return BotConfig(
       name: row['name'] as String? ?? 'Ava',
       tone: row['tone'] as String? ?? 'Profesyonel ve net',
-      language: row['language'] as String? ?? 'Turkce',
+      language: row['language'] as String? ?? 'Türkçe',
       systemPrompt: row['system_prompt'] as String? ??
-          'Kisa, profesyonel bir musteri temsilcisi gibi yanit ver.',
+          'Kısa, profesyonel bir müşteri temsilcisi gibi yanıt ver.',
       model: row['model'] as String? ?? 'gpt-4o-mini',
       temperature: (row['temperature'] as num?)?.toDouble() ?? 0.3,
       memoryHours: (row['memory_hours'] as int?) ?? 6,
