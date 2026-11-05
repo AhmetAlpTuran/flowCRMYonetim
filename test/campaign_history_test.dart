@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wpapp/features/campaigns/models/campaign.dart';
 import 'package:wpapp/features/campaigns/providers/campaign_providers.dart';
 import 'package:wpapp/features/campaigns/widgets/campaign_history.dart';
+import 'package:wpapp/ui/ui.dart';
 
 // Authored only. Widget execution and visual review are deferred.
 void main() {
@@ -40,10 +41,22 @@ void main() {
                     child: CampaignProgressPanel(
                         tenantId: 'tenant', campaignId: 'campaign'))))));
     await tester.pumpAndSettle();
-    expect(find.text('API kabulü: 1'), findsOneWidget);
-    expect(find.text('Teslim edildi: 0'), findsOneWidget);
-    expect(find.text('Doğrulanamadı: 1'), findsOneWidget);
+    final semantics = tester.ensureSemantics();
+    expect(find.bySemanticsLabel('API kabulü: 1'), findsOneWidget);
+    expect(find.bySemanticsLabel('Teslim edildi: 0'), findsOneWidget);
+    expect(find.bySemanticsLabel('Doğrulanamadı: 1'), findsOneWidget);
     expect(find.textContaining('Mesaj gönderilmiş olabilir.'), findsOneWidget);
+    expect(find.text('İNCELEME GEREKİYOR'), findsOneWidget);
+    semantics.dispose();
     expect(tester.takeException(), isNull);
+  });
+
+  test('campaign states map to plain badges', () {
+    expect(campaignStatusBadge('draft'), ('Taslak', FlowTone.neutral));
+    expect(campaignStatusBadge('queued').$1, 'Sırada');
+    expect(campaignStatusBadge('running').$1, 'Gönderiliyor');
+    expect(campaignStatusBadge('completed'), ('Tamamlandı', FlowTone.accent));
+    expect(campaignStatusBadge('failed'), ('Başarısız', FlowTone.danger));
+    expect(campaignStatusBadge('mystery').$1, 'Bekleniyor');
   });
 }

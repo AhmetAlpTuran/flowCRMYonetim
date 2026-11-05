@@ -1,12 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/message_template.dart';
+import 'template_repository.dart';
 
-class SupabaseTemplateRepository {
+class SupabaseTemplateRepository implements TemplateRepository {
   SupabaseTemplateRepository(this._client);
 
   final SupabaseClient _client;
 
+  @override
   Future<List<MessageTemplate>> fetchTemplates(String tenantId) async {
     final response = await _client
         .from('templates')
@@ -17,6 +19,7 @@ class SupabaseTemplateRepository {
     return response.map<MessageTemplate>(MessageTemplate.fromRow).toList();
   }
 
+  @override
   Future<MessageTemplate> createTemplate({
     required String tenantId,
     required String name,
@@ -35,17 +38,18 @@ class SupabaseTemplateRepository {
       },
     );
     if (response.data == null) {
-      throw Exception('Sablon olusturulamadi.');
+      throw const FormatException('Şablon oluşturulamadı.');
     }
     final templateId = response.data['template_id'] as String?;
     if (templateId == null) {
-      throw Exception('Sablon ID alinamadi.');
+      throw const FormatException('Şablon kimliği alınamadı.');
     }
     final row =
         await _client.from('templates').select().eq('id', templateId).single();
     return MessageTemplate.fromRow(row);
   }
 
+  @override
   Future<void> syncTemplates(String tenantId, {String? connectionId}) async {
     String? cursor;
     var selectedConnection = connectionId;
@@ -75,6 +79,7 @@ class SupabaseTemplateRepository {
         'Şablon eşitleme tamamlanamadı. Kaydedilen şablonlar korundu; tekrar deneyin.');
   }
 
+  @override
   Future<String> uploadTemplateMedia({
     required String tenantId,
     required String fileName,
@@ -93,11 +98,11 @@ class SupabaseTemplateRepository {
       },
     );
     if (response.data == null) {
-      throw Exception('Medya yuklenemedi.');
+      throw const FormatException('Medya yüklenemedi.');
     }
     final handle = response.data['handle'] as String?;
     if (handle == null || handle.isEmpty) {
-      throw Exception('Medya handle alinamadi.');
+      throw const FormatException('Medya yükleme kimliği alınamadı.');
     }
     return handle;
   }
