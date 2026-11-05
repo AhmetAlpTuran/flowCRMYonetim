@@ -3,23 +3,445 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flow CRM</title>
-<style>
-  :root { --bg: #fff; --fg: #1d2330; --accent: #1f4b99; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #12151b; --fg: #e8ebf1; --accent: #8fb0ff; } }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 48px 16px; }
-  a { color: var(--accent); }
-</style>
+<title>Flow CRM · WhatsApp için ortak gelen kutusu ve yapay zekâ asistanı</title>
+<meta name="description" content="Flow CRM, işletmenizin WhatsApp mesajlarını tek ekranda toplar. Yapay zekâ asistanı müşterilerinize gece gündüz yanıt verir, talepleri ve randevuları kaydeder. 14 gün ücretsiz deneyin.">
+<meta name="theme-color" content="#0E1116">
+<meta name="color-scheme" content="dark light">
+<!-- TODO(owner): if the site moves to its own domain, update canonical, og:url and og:image. -->
+<link rel="canonical" href="https://ahmetalpturan.github.io/flowCRMYonetim/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:site_name" content="Flow CRM">
+<meta property="og:title" content="Flow CRM · Tüm WhatsApp'ınız tek bir komuta merkezinde">
+<meta property="og:description" content="Asistanınız müşterilerinize gece gündüz yanıt verir, talepleri ve randevuları kaydeder. Ekibiniz yalnızca satışı kapatmaya odaklanır.">
+<meta property="og:url" content="https://ahmetalpturan.github.io/flowCRMYonetim/">
+<meta property="og:image" content="https://ahmetalpturan.github.io/flowCRMYonetim/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Flow CRM logosu ve “Tüm WhatsApp'ınız tek bir komuta merkezinde.” başlığı">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/BricolageDisplay-ExtraBold.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/fonts/Bricolage-Regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="assets/flow.css">
+<link rel="stylesheet" href="assets/landing.css">
+<script src="assets/theme.js"></script>
 </head>
 <body>
-<main>
-<h1>Flow CRM</h1>
-<p>WhatsApp müşteri hizmetleri, yapay zeka asistanı ve kampanya yönetimi.</p>
-<ul>
-  <li><a href="gizlilik/">Gizlilik Politikası ve KVKK Aydınlatma Metni</a></li>
-  <li><a href="privacy/">Privacy Policy (English)</a></li>
-</ul>
+<a class="skip-link" href="#icerik">İçeriğe geç</a>
+
+<header class="site-header">
+  <a class="logo" href="./" aria-label="Flow CRM ana sayfa">
+    <svg class="logo-mark" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false"><circle class="ring-outer" cx="15" cy="15" r="13.5"/><circle class="ring-inner" cx="15" cy="15" r="8.5"/><circle class="core" cx="15" cy="15" r="4"/></svg>
+    <span class="logo-word">flow</span>
+    <span class="logo-badge">CRM</span>
+  </a>
+  <nav class="site-nav" aria-label="Sayfa bölümleri">
+    <a href="#nasil">Nasıl çalışır</a>
+    <a href="#ozellikler">Özellikler</a>
+    <a href="#sektorler">Sektörler</a>
+    <a href="#fiyatlar">Fiyatlar</a>
+    <a href="#sss">SSS</a>
+  </nav>
+  <div class="header-actions">
+    <button type="button" class="icon-btn theme-toggle js-only" data-theme-toggle data-label-light="Açık görünüme geç" data-label-dark="Koyu görünüme geç" aria-label="Açık görünüme geç" title="Açık görünüme geç">
+      <svg class="icon-sun" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
+      <svg class="icon-moon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+    </button>
+    <!-- TODO(owner): web app URL -->
+    <a class="btn btn-ghost" href="#uygulama">Giriş yap</a>
+    <!-- TODO(owner): web app URL -->
+    <a class="btn btn-primary header-cta" href="#uygulama">Ücretsiz dene</a>
+  </div>
+</header>
+
+<main id="icerik">
+
+  <section class="hero dots" aria-labelledby="hero-title">
+    <svg class="hero-rings" aria-hidden="true" focusable="false" width="980" height="980" viewBox="0 0 980 980">
+      <circle cx="490" cy="490" r="150"/>
+      <circle cx="490" cy="490" r="255" stroke-opacity=".75"/>
+      <circle cx="490" cy="490" r="360" stroke-opacity=".5"/>
+      <circle cx="490" cy="490" r="465" stroke-opacity=".28"/>
+    </svg>
+    <div class="hero-inner">
+      <div class="rise">
+        <p class="hero-chip"><span class="live-dot" aria-hidden="true"></span>WHATSAPP + YAPAY ZEKÂ · 7/24</p>
+        <h1 class="hero-title" id="hero-title">Tüm WhatsApp'ınız <span class="hl">tek bir komuta merkezinde.</span></h1>
+        <p class="hero-lead">Asistanınız müşterilerinize gece gündüz yanıt verir, talepleri ve randevuları kaydeder. Ekibiniz yalnızca satışı kapatmaya odaklanır.</p>
+        <div class="hero-actions">
+          <!-- TODO(owner): web app URL -->
+          <a class="btn btn-primary btn-lg" href="#uygulama">14 gün ücretsiz dene <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn-secondary btn-lg" href="#nasil">Nasıl çalışır</a>
+        </div>
+        <p class="hero-note">KREDİ KARTI GEREKMEZ · İSTEDİĞİNİZ AN İPTAL</p>
+      </div>
+
+      <figure class="demo rise" style="--d: 140ms" aria-label="Örnek sohbet ekranı: asistan gece bir müşteriye yanıt veriyor">
+        <div class="demo-bar">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="label-live">CANLI</span>
+          <span class="title">Sohbetler</span>
+          <span class="count">12 AÇIK · 3 BEKLİYOR</span>
+        </div>
+        <div class="demo-contact">
+          <span class="avatar" aria-hidden="true">AY</span>
+          <div class="who">
+            <div class="name">Ayşe Yılmaz</div>
+            <div class="phone">+90 555 111 22 33</div>
+          </div>
+          <span class="tag tag-assistant">ASİSTANDA</span>
+        </div>
+        <div class="demo-body">
+          <div class="msg msg-in rise" style="--d: 500ms">
+            <div class="bubble bubble-customer">Merhaba, 1 milyon altı otomatik vites aracınız var mı?</div>
+            <div class="msg-time">02:14</div>
+          </div>
+          <div class="msg msg-out rise" style="--d: 1100ms">
+            <div class="msg-meta"><span class="role-bot">BOT</span><span class="by">AVA · 02:14</span></div>
+            <div class="bubble bubble-bot">Merhaba Ayşe Hanım! Bütçenize uygun otomatik aracımız: 2021 Renault Clio 1.0 TCe, 40.000 km, <span class="amount">900.000 ₺</span>. Fotoğraflarını göndereyim mi?</div>
+            <div class="quick-replies">
+              <span class="chip">Fotoğrafları gönder</span>
+              <span class="chip">Test sürüşü ayarla</span>
+            </div>
+          </div>
+          <div class="msg msg-in rise" style="--d: 1700ms">
+            <div class="bubble bubble-customer">Evet! Yarın öğleden sonra test sürüşü yapabilir miyim?</div>
+            <div class="msg-time">02:15</div>
+          </div>
+          <div class="demo-event rise" style="--d: 2300ms">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
+            <span>TALEP OLUŞTU · TEST SÜRÜŞÜ · YARIN 14:00</span>
+          </div>
+        </div>
+        <div class="demo-foot">
+          <span class="left">SİZ UYURKEN · 3 SOHBET YANITLANDI</span>
+          <span class="right">SABAH 09:00 · EKİBE DEVİR</span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section section-first" id="nasil" aria-labelledby="nasil-title">
+    <p class="eyebrow">01 — NASIL ÇALIŞIR</p>
+    <h2 class="section-title" id="nasil-title">Üç adımda kurulur, ilk geceden çalışır.</h2>
+    <ol class="steps">
+      <li class="step">
+        <span class="step-num" aria-hidden="true">01</span>
+        <h3 class="card-title">Numaranızı bağlayın</h3>
+        <p class="card-text">WhatsApp Business numaranızı Flow'a bağlayın. Bütün mesajlar tek ekranda, tüm ekibin önünde toplanır.</p>
+      </li>
+      <li class="step">
+        <span class="step-num" aria-hidden="true">02</span>
+        <h3 class="card-title">Asistanı tanıtın</h3>
+        <p class="card-text">Sektörünüzü seçin, birkaç soruyu yanıtlayın. Adresiniz, fiyatlarınız ve kurallarınız asistanın bilgisine eklenir.</p>
+      </li>
+      <li class="step">
+        <span class="step-num" aria-hidden="true">03</span>
+        <h3 class="card-title">Gerisini Flow yapsın</h3>
+        <p class="card-text">Asistan soruları yanıtlar, talep ve randevuları kaydeder. Emin olmadığı her konuda sohbeti ekibinize devreder.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="section" id="ozellikler" aria-labelledby="ozellikler-title">
+    <p class="eyebrow">02 — ÖZELLİKLER</p>
+    <h2 class="section-title" id="ozellikler-title">Müşteri yazdığı an, ekip ve asistan aynı ekranda.</h2>
+    <div class="features">
+
+      <article class="feature">
+        <div>
+          <h3 class="card-title">Ortak gelen kutusu</h3>
+          <p class="card-text">Tüm ekip aynı sohbetleri görür. Kimin yanıtladığı, kimin beklediği, hangisinin asistanda olduğu ilk bakışta belli.</p>
+        </div>
+        <div class="mock mock-list">
+          <div class="mock-row">
+            <span class="avatar-sm" aria-hidden="true">MK</span>
+            <span class="name">Mehmet Kaya</span>
+            <span class="tag tag-warning">TEMSİLCİ BEKLİYOR</span>
+          </div>
+          <div class="mock-row">
+            <span class="avatar-sm" aria-hidden="true">AY</span>
+            <span class="name">Ayşe Yılmaz</span>
+            <span class="tag tag-assistant">ASİSTANDA</span>
+          </div>
+          <div class="mock-row">
+            <span class="avatar-sm" aria-hidden="true">ZD</span>
+            <span class="name">Zeynep Demir</span>
+            <span class="tag tag-accent">EKİP YANITLADI</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="feature">
+        <div>
+          <h3 class="card-title">Yapay zekâ asistanı</h3>
+          <p class="card-text">Kataloğunuzdan, notlarınızdan ve belgelerinizden yanıt verir. Bilmediği konuda uydurmaz, sohbeti temsilcinize aktarır.</p>
+        </div>
+        <div class="mock mock-chat">
+          <div class="bubble bubble-customer">Takas kabul ediyor musunuz?</div>
+          <div class="bubble bubble-bot">Evet, takas kabul ediyoruz. Aracınızı ekspertizden sonra değerlendiriyoruz.</div>
+          <div class="mock-source">KAYNAK · BİLGİ BANKASI · TAKAS NOTU</div>
+        </div>
+      </article>
+
+      <article class="feature">
+        <div>
+          <h3 class="card-title">Katalog ve randevular</h3>
+          <p class="card-text">Araç, oda ya da hizmetlerinizi fotoğraflarıyla ekleyin. Asistan müsaitliği kontrol eder, talebi ve randevuyu kaydeder.</p>
+        </div>
+        <div class="mock mock-catalog">
+          <div class="thumb dots" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 15v-3l2.2-4.4A2 2 0 0 1 7 6.5h10a2 2 0 0 1 1.8 1.1L21 12v3a1 1 0 0 1-1 1h-1"/><path d="M5 16H4a1 1 0 0 1-1-1"/><circle cx="7" cy="16" r="2"/><circle cx="17" cy="16" r="2"/><path d="M9 16h6M3.5 12h17"/></svg>
+          </div>
+          <div class="info">
+            <div class="item">2021 Renault Clio 1.0 TCe</div>
+            <div class="meta">900.000 ₺ · 40.000 KM</div>
+            <span class="tag tag-accent">TEST SÜRÜŞÜ · YARIN 14:00</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="feature">
+        <div>
+          <h3 class="card-title">İzinli kampanyalar</h3>
+          <p class="card-text">Yalnızca izin veren müşterilere, Meta onaylı şablonlarla toplu mesaj gönderin. "RET" yazan kişi listeden kendiliğinden çıkar.</p>
+        </div>
+        <div class="mock mock-campaign">
+          <div class="head"><span class="title">Kasım fırsatları</span><span class="count">156 / 160 İLETİLDİ</span></div>
+          <div class="meter" aria-hidden="true"><span style="width: 97%"></span></div>
+          <div class="foot">İZİNSİZ 0 · LİSTEDEN ÇIKAN 3 OTOMATİK HARİÇ</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="sektorler" aria-labelledby="sektorler-title">
+    <p class="eyebrow">03 — SEKTÖRLER</p>
+    <h2 class="section-title" id="sektorler-title">İşinizin dilini bilen hazır paketler.</h2>
+    <div class="sectors">
+      <article class="sector">
+        <span class="kicker">PAKET · OTO GALERİ</span>
+        <h3 class="card-title">Oto galeriler</h3>
+        <div class="bubble bubble-customer">"Kredi ile alabilir miyim?"</div>
+        <ul class="dash-list">
+          <li><span aria-hidden="true">—</span>Araç kataloğu ve fotoğraflar</li>
+          <li><span aria-hidden="true">—</span>Test sürüşü talepleri</li>
+          <li><span aria-hidden="true">—</span>Takas, kredi ve garanti yanıtları</li>
+        </ul>
+      </article>
+      <article class="sector">
+        <span class="kicker">PAKET · KONAKLAMA</span>
+        <h3 class="card-title">Otel ve pansiyonlar</h3>
+        <div class="bubble bubble-customer">"Hafta sonu iki kişilik oda var mı?"</div>
+        <ul class="dash-list">
+          <li><span aria-hidden="true">—</span>Oda tipleri ve fiyatlar</li>
+          <li><span aria-hidden="true">—</span>Tarihe göre müsaitlik</li>
+          <li><span aria-hidden="true">—</span>Rezervasyon talebi ve ön tutma</li>
+        </ul>
+      </article>
+      <article class="sector">
+        <span class="kicker">PAKET · RANDEVU</span>
+        <h3 class="card-title">Salon ve klinikler</h3>
+        <div class="bubble bubble-customer">"Cumartesi öğleden sonra yer var mı?"</div>
+        <ul class="dash-list">
+          <li><span aria-hidden="true">—</span>Hizmet listesi ve süreleri</li>
+          <li><span aria-hidden="true">—</span>Uzmana göre boş saatler</li>
+          <li><span aria-hidden="true">—</span>Randevu kaydı ve onayı</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="fiyatlar" aria-labelledby="fiyatlar-title">
+    <div class="pricing-head">
+      <div>
+        <p class="eyebrow">04 — FİYATLAR</p>
+        <h2 class="section-title" id="fiyatlar-title">Sade fiyat, sürpriz yok.</h2>
+      </div>
+      <div class="segmented js-only" role="group" aria-label="Ödeme dönemi" data-billing-toggle>
+        <button type="button" data-period="monthly" aria-pressed="true">Aylık</button>
+        <button type="button" data-period="yearly" aria-pressed="false">Yıllık · 2 ay bizden</button>
+      </div>
+    </div>
+    <div class="plans">
+
+      <article class="plan">
+        <div>
+          <h3 class="card-title">Başlangıç</h3>
+          <p class="plan-desc">Tek numara ve küçük ekipler için.</p>
+        </div>
+        <p class="price-row"><span class="price" data-price-monthly="1.490" data-price-yearly="14.900">1.490</span> <span class="unit" data-unit>₺ / ay</span></p>
+        <ul class="plan-features">
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>2 kullanıcı</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>1 WhatsApp numarası</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>1 asistan</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Ayda ~1.000 yapay zekâ yanıtı</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Ayda 1.000 kampanya mesajı</span></li>
+        </ul>
+        <!-- TODO(owner): web app URL -->
+        <a class="btn btn-outline" href="#uygulama">Bu planla başla</a>
+      </article>
+
+      <article class="plan is-featured">
+        <span class="plan-badge">DENEME BU PLANLA</span>
+        <div>
+          <h3 class="card-title">Profesyonel</h3>
+          <p class="plan-desc">Birden fazla numara, ek asistanlar, düzenli kampanyalar.</p>
+        </div>
+        <p class="price-row"><span class="price" data-price-monthly="3.490" data-price-yearly="34.900">3.490</span> <span class="unit" data-unit>₺ / ay</span></p>
+        <ul class="plan-features">
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>5 kullanıcı</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>2 WhatsApp numarası</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>3 asistan</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Ayda ~5.000 yapay zekâ yanıtı</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Ayda 10.000 kampanya mesajı</span></li>
+        </ul>
+        <!-- TODO(owner): web app URL -->
+        <a class="btn btn-primary" href="#uygulama">Denemeyi başlat</a>
+      </article>
+
+      <article class="plan">
+        <div>
+          <h3 class="card-title">İşletme</h3>
+          <p class="plan-desc">Büyük ekipler, şubeler ve yüksek hacim.</p>
+        </div>
+        <p class="price-row"><span class="price" data-price-monthly="7.990" data-price-yearly="79.900">7.990</span> <span class="unit" data-unit>₺ / ay</span></p>
+        <ul class="plan-features">
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>15 kullanıcı</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>5 WhatsApp numarası</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>11 asistan</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Ayda ~20.000 yapay zekâ yanıtı</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Ayda 50.000 kampanya mesajı</span></li>
+        </ul>
+        <!-- TODO(owner): web app URL -->
+        <a class="btn btn-outline" href="#uygulama">Bu planla başla</a>
+      </article>
+    </div>
+    <p class="fine-print">Fiyatlara KDV dahil değildir. WhatsApp şablon mesaj ücretleri Meta tarafından doğrudan işletmenize faturalanır. Yapay zekâ yanıt sayıları ortalama yanıt uzunluğuna göre tahminidir.</p>
+  </section>
+
+  <section class="section" id="guvenlik" aria-labelledby="guvenlik-title">
+    <div class="security">
+      <div>
+        <p class="eyebrow">05 — GÜVENLİK VE KVKK</p>
+        <h2 class="section-title" id="guvenlik-title">Müşteri verisi sizindir, sizde kalır.</h2>
+        <p class="security-lead">Flow, işletmenizin verisini yalnızca size ve yetki verdiğiniz ekip üyelerine açar. Pazarlama izinleri kayıt altındadır.</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 4.5 6v6c0 4.4 3.2 7.9 7.5 9 4.3-1.1 7.5-4.6 7.5-9V6z"/></svg>
+          <h3>Her işletme ayrı</h3>
+          <p>Verileriniz başka işletmelerle karışmaz; her sorgu işletme bazında yetkilendirilir.</p>
+        </div>
+        <div class="trust">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+          <h3>Şifreli anahtarlar</h3>
+          <p>WhatsApp bağlantı anahtarlarınız işletme başına şifrelenerek saklanır.</p>
+        </div>
+        <div class="trust">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 11.5 11 13.5 15.5 9"/><circle cx="12" cy="12" r="8.5"/></svg>
+          <h3>İzinsiz pazarlama yok</h3>
+          <p>Kampanyalar yalnızca kayıtlı izni olan kişilere gider; izin kaynağı saklanır.</p>
+        </div>
+        <div class="trust">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="m16 11 2 2 4-4"/></svg>
+          <h3>Yetkiye göre ekran</h3>
+          <p>Her ekip üyesine yalnızca işi için gereken ekranları açarsınız.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-narrow" id="sss" aria-labelledby="sss-title">
+    <p class="eyebrow">06 — SIK SORULANLAR</p>
+    <h2 class="section-title faq-title" id="sss-title">Aklınızdaki sorular.</h2>
+    <div class="faq">
+      <details>
+        <summary>WhatsApp Business hesabım olmalı mı?<span class="faq-icon" aria-hidden="true">+</span></summary>
+        <p>Evet. Flow, Meta'nın resmi WhatsApp Business Platform'u üzerinden çalışır. Numaranızı bağlarken her adımda size yol gösteririz.</p>
+      </details>
+      <details>
+        <summary>Asistan yanlış bilgi verirse ne olur?<span class="faq-icon" aria-hidden="true">+</span></summary>
+        <p>Asistan yalnızca sizin girdiğiniz bilgilerden yanıt verir. Emin olmadığında ya da müşteri bir yetkili istediğinde sohbeti ekibinize aktarır.</p>
+      </details>
+      <details>
+        <summary>Deneme süresinde ücret alınır mı?<span class="faq-icon" aria-hidden="true">+</span></summary>
+        <p>Hayır. 14 gün boyunca Profesyonel plan ücretsizdir ve kart bilgisi istenmez. Süre bitince dilediğiniz planı seçersiniz.</p>
+      </details>
+      <details>
+        <summary>Meta mesaj ücretleri fiyata dahil mi?<span class="faq-icon" aria-hidden="true">+</span></summary>
+        <p>Hayır. WhatsApp şablon mesaj ücretlerini Meta doğrudan işletmenize faturalar. Flow aboneliği bunlardan ayrıdır.</p>
+      </details>
+      <details>
+        <summary>Ekibimden kaç kişi kullanabilir?<span class="faq-icon" aria-hidden="true">+</span></summary>
+        <p>Planınıza göre 2 ile 15 kullanıcı. Her üyeye yalnızca ihtiyaç duyduğu ekranları açabilirsiniz.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="section cta-section" aria-labelledby="cta-title">
+    <div class="cta dots">
+      <svg class="cta-rings" aria-hidden="true" focusable="false" width="720" height="720" viewBox="0 0 720 720">
+        <circle cx="360" cy="360" r="120"/>
+        <circle cx="360" cy="360" r="220" stroke-opacity=".6"/>
+        <circle cx="360" cy="360" r="320" stroke-opacity=".3"/>
+      </svg>
+      <div class="cta-inner">
+        <p class="eyebrow">BU GECE BAŞLAYIN</p>
+        <h2 class="cta-title" id="cta-title">Müşterileriniz bir daha yanıtsız kalmasın.</h2>
+        <!-- TODO(owner): web app URL -->
+        <a class="btn btn-primary btn-lg" href="#uygulama">14 gün ücretsiz dene <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <span class="logo logo-sm">
+      <svg class="logo-mark" width="22" height="22" viewBox="0 0 30 30" aria-hidden="true" focusable="false"><circle class="ring-outer" cx="15" cy="15" r="13.5"/><circle class="ring-inner" cx="15" cy="15" r="8.5"/><circle class="core" cx="15" cy="15" r="4"/></svg>
+      <span class="logo-word">flow</span>
+    </span>
+    <nav class="footer-nav" aria-label="Alt bağlantılar">
+      <a href="gizlilik/">Gizlilik politikası</a>
+      <a href="privacy/" hreflang="en" lang="en">Privacy policy</a>
+      <!-- TODO(owner): replace [E-POSTA] with the contact address and make it a mailto: link. -->
+      <span class="footer-text">İletişim:&nbsp;<mark class="todo">[E-POSTA]</mark></span>
+    </nav>
+    <span class="copyright">© 2026 FLOW CRM</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var group = document.querySelector("[data-billing-toggle]");
+  if (!group) return;
+  var buttons = group.querySelectorAll("button[data-period]");
+  var prices = document.querySelectorAll("[data-price-monthly]");
+  var units = document.querySelectorAll("[data-unit]");
+  function select(period) {
+    var yearly = period === "yearly";
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute("aria-pressed", String(buttons[i].getAttribute("data-period") === period));
+    }
+    for (var j = 0; j < prices.length; j++) {
+      prices[j].textContent = prices[j].getAttribute(yearly ? "data-price-yearly" : "data-price-monthly");
+    }
+    for (var k = 0; k < units.length; k++) {
+      units[k].textContent = yearly ? "₺ / yıl" : "₺ / ay";
+    }
+  }
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", function () {
+      select(this.getAttribute("data-period"));
+    });
+  }
+})();
+</script>
 </body>
 </html>
