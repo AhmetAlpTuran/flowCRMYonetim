@@ -535,3 +535,9 @@ modified when this work began; preserve it outside milestone commits.
   The CLI is `scripts/bot_eval.ts` (owner runs it with an OpenAI key). The checks are
   verified by `bot_eval_test.ts` (98/98 Deno tests); real-model results are runtime
   unverified.
+
+- 2026-11-10: Owner handoff. New `docs/OWNER_CHECKLIST.md` collects every account, key,
+  legal and store step in order (pilot, then store submission, then public launch) and
+  lists the defaults chosen in code. The `ONLINE_PURCHASE` build flag can switch off
+  in-app purchase buttons on Android too, if Google Play requires Play Billing.
+  `docs/RELEASE.md` now describes the Android payment flow.

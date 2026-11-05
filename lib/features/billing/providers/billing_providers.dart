@@ -23,9 +23,13 @@ final billingProfileProvider = FutureProvider<BillingProfile?>((ref) async {
   return ref.watch(billingRepositoryProvider).fetchProfile(tenant.id);
 });
 
-/// Whether this build may start purchases (never on iOS, where the app stores'
-/// purchase rules apply; plans are managed there by contacting support).
-final onlinePurchaseAllowedProvider = Provider<bool>((ref) => defaultTargetPlatform != TargetPlatform.iOS);
+/// Whether this build may start purchases: never on iOS (App Store purchase rules), and
+/// switchable off for store builds with `--dart-define=ONLINE_PURCHASE=false` (for
+/// example if Google Play asks for its own billing). Plans are then managed by support.
+const onlinePurchaseBuildFlag = bool.fromEnvironment('ONLINE_PURCHASE', defaultValue: true);
+final onlinePurchaseAllowedProvider = Provider<bool>(
+  (ref) => onlinePurchaseBuildFlag && defaultTargetPlatform != TargetPlatform.iOS,
+);
 
 /// Opens the payment page in the browser; overridden in widget tests.
 final openPaymentPageProvider = Provider<Future<bool> Function(String url)>(

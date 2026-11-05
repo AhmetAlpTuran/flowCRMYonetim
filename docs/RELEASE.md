@@ -52,8 +52,11 @@ bundle ID in App Store Connect.
 - **Data safety / privacy labels** — the app processes: account email, business contact
   names/phone numbers/emails, WhatsApp message content and media, and AI processing of
   messages (OpenAI). No advertising or tracking.
-- **Payments** — subscriptions are sold outside the app (roadmap Phase 3); the app has
-  no purchase buttons.
+- **Payments** — on Android the Abonelik screen opens iyzico's payment page in the
+  browser (docs/BILLING.md); iOS builds show no purchase buttons. Before submitting to Google
+  Play, confirm that a B2B service used mainly through WhatsApp may take payment outside Play
+  Billing. If not, build with `--dart-define=ONLINE_PURCHASE=false` (no purchase buttons on
+  any platform) and manage plans by hand (SQL in docs/BILLING.md).
 - **Demo account for review** — create a reviewer login on the production project with a
   demo business; Apple and Google both ask for one.
 
@@ -82,3 +85,5 @@ site URL. `delete-account` keeps gateway JWT verification on.
 - App icon and launch screen artwork (currently the Flutter defaults).
 - Push notifications (needs a Firebase project).
 - Store screenshots and descriptions in Turkish.
+
+The full owner checklist, from pilot to public launch, is `docs/OWNER_CHECKLIST.md`.
