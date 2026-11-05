@@ -320,6 +320,10 @@ verify_jwt = false
 [functions.iyzico-gateway]
 verify_jwt = false
 
+# Uptime monitors: authenticates HEALTH_CHECK_SECRET itself.
+[functions.health]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

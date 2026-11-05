@@ -25,6 +25,7 @@ risks. Read it before starting work and append a dated milestone log entry after
   in `campaign-worker`). `bot-reply` is only a legacy alias of the webhook URL.
   `billing` (admins) and `iyzico-gateway` (public: payment page, callback, signed webhooks)
   run iyzico subscriptions; plan limits raise SQLSTATE `P0020` (`docs/BILLING.md`).
+  `health` serves `ops_health()` to uptime monitors (`docs/OPERATIONS.md`).
 - `supabase/ops/schedule_*.sql`: cron/Vault scheduler scripts for each worker (webhook,
   inbox, campaign, bot, media, knowledge); run them manually per environment.
 - `docs/`: per-area design and backend setup notes. `docs/gizlilik`, `docs/privacy` and

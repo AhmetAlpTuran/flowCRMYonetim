@@ -509,3 +509,16 @@ modified when this work began; preserve it outside milestone commits.
   `send_photos` tool, `trackPhotos`, bot-worker and inbox-worker wiring. App: Fotoğraflar in
   the item editor. Verified: 29/29 SQL fixtures (new `catalog_photos.sql`), 94/94 Deno tests,
   104/104 Flutter tests, and a live local Storage/PostgREST run.
+
+- 2026-11-10: Per-agent dashboard metrics. Migration `20261110110000_agent_metrics.sql`
+  (`dashboard_agent_metrics`, admins only: replies, first responses and median time,
+  resolved, open assigned). App: Ekip performansı on the dashboard for administrators.
+  Verified: SQL fixture `agent_metrics.sql`, 2 Flutter tests.
+
+- 2026-11-10: Roadmap Phase 4, operations health. Migration `20261110120000_ops_health.sql`
+  (`ops_health()` reports every queue's waiting, stuck, unknown and failed counts and lists
+  problems), plus a `health` Edge Function (GET/POST with `HEALTH_CHECK_SECRET`, 200 or 503
+  for uptime monitors). New `docs/OPERATIONS.md`: deploy order, worker schedules and Vault
+  names, a monitoring runbook per problem code, backups and a restore drill, and error
+  tracking options. Verified: 31/31 SQL fixtures (new `ops_health.sql`, `agent_metrics.sql`),
+  106/106 Flutter tests, and the health function on the local Edge runtime.
