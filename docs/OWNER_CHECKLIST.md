@@ -49,8 +49,8 @@ cannot do it. Steps are in order. Each links to the doc with the details.
    - See [RELEASE.md](RELEASE.md).
 2. **iOS.** Set the Apple Developer team in Xcode and create the App Store Connect app (bundle
    `com.flowcrm.app`), plus privacy labels and a demo account.
-3. **Brand.** Provide the app icon and launch screen artwork (the logo), store screenshots and
-   Turkish descriptions.
+3. **Brand.** The app icon and launch screens use your "f" logo (`assets/brand`, regenerate
+   with `scripts/brand_icons.py`). Still needed: store screenshots and Turkish descriptions.
 4. **Push notifications.** Create a Firebase project (FCM, with APNs key for iOS). The app
    does not send pushes yet; the device-token table and a push worker get built once the
    project exists.

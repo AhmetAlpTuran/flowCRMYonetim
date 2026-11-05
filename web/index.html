@@ -28,14 +28,13 @@
   <link rel="apple-touch-icon" href="icons/Icon-maskable-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon.png"/>
 
   <title>Flow CRM</title>
   <link rel="manifest" href="manifest.json">
 
   <style>
-    /* Dark loading splash ("Gece mesaisi"): ink ground, dot grid, the ring logo.
+    /* Dark loading splash ("Gece mesaisi"): ink ground, dot grid, the f logo.
        Flutter's view is appended after it and paints on top; the first frame removes it. */
     html, body { margin: 0; background: #0E1116; }
     #flow-splash {
@@ -48,15 +47,19 @@
       background-image: radial-gradient(#262E3A 1px, transparent 1.3px);
       background-size: 16px 16px;
     }
+    #flow-splash .mark { position: relative; border-radius: 18px; }
     #flow-splash .pulse {
-      transform-box: fill-box;
-      transform-origin: center;
+      position: absolute;
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      border: 2px solid #C6F432;
       animation: flow-splash-pulse 2s ease-out infinite;
     }
     @keyframes flow-splash-pulse {
-      0% { transform: scale(1); opacity: .55; }
-      70% { transform: scale(2.4); opacity: 0; }
-      100% { transform: scale(2.4); opacity: 0; }
+      0% { transform: scale(1); opacity: .6; }
+      70% { transform: scale(1.6); opacity: 0; }
+      100% { transform: scale(1.6); opacity: 0; }
     }
     @media (prefers-reduced-motion: reduce) {
       #flow-splash .pulse { animation: none; opacity: 0; }
@@ -75,12 +78,8 @@
 </head>
 <body>
   <div id="flow-splash" role="img" aria-label="Flow CRM yükleniyor">
-    <svg width="72" height="72" viewBox="0 0 30 30" aria-hidden="true" focusable="false">
-      <circle cx="15" cy="15" r="13.5" fill="none" stroke="#C6F432" stroke-opacity="0.35" stroke-width="1.5"/>
-      <circle cx="15" cy="15" r="8.5" fill="none" stroke="#C6F432" stroke-opacity="0.75" stroke-width="1.5"/>
-      <circle class="pulse" cx="15" cy="15" r="4" fill="#C6F432"/>
-      <circle cx="15" cy="15" r="4" fill="#C6F432"/>
-    </svg>
+    <span class="pulse" aria-hidden="true"></span>
+    <img class="mark" src="icons/Icon-192.png" width="72" height="72" alt="">
   </div>
   <noscript><p class="flow-noscript">Flow CRM'i kullanmak için tarayıcınızda JavaScript'i açın.</p></noscript>
   <script>

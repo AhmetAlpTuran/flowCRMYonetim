@@ -96,7 +96,7 @@ class _RingsPainter extends CustomPainter {
   bool shouldRepaint(_RingsPainter old) => old.color != color || old.rings != rings || old.dotColor != dotColor;
 }
 
-/// The interim logomark: three lime rings and the "flow" wordmark.
+/// The logo: the lime "f" monogram on an ink tile, and the "flow" wordmark.
 class FlowLogo extends StatelessWidget {
   const FlowLogo({super.key, this.size = 26, this.wordmark = true, this.color});
 
@@ -109,7 +109,15 @@ class FlowLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mark = ExcludeSemantics(
-      child: CustomPaint(size: Size.square(size), painter: _LogoPainter()),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.24),
+        child: Image.asset(
+          'assets/brand/flow-mark.png',
+          width: size,
+          height: size,
+          filterQuality: FilterQuality.medium,
+        ),
+      ),
     );
     if (!wordmark) return Semantics(label: 'Flow CRM', child: mark);
     return Semantics(
@@ -136,24 +144,6 @@ class FlowLogo extends StatelessWidget {
       ),
     );
   }
-}
-
-class _LogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    const lime = Color(0xFFC6F432);
-    final center = size.center(Offset.zero);
-    final unit = size.shortestSide / 30;
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5 * unit;
-    canvas.drawCircle(center, 13.5 * unit, stroke..color = lime.withValues(alpha: 0.35));
-    canvas.drawCircle(center, 8.5 * unit, stroke..color = lime.withValues(alpha: 0.75));
-    canvas.drawCircle(center, 4 * unit, Paint()..color = lime);
-  }
-
-  @override
-  bool shouldRepaint(_LogoPainter oldDelegate) => false;
 }
 
 /// The pulsing lime dot. Static when animations are disabled.

@@ -89,7 +89,7 @@ light ("Açık") is a full second theme. The sidebar stays ink in both.
 ## Signature motifs (sparingly)
 
 - `DotGrid` behind welcome, sign-in, empty states and hero cards; never behind lists.
-- `SignalRings` in the logo, empty states and hero cards.
+- `SignalRings` in empty states and hero cards.
 - `LiveLine` ("● CANLI · 3 SOHBET BEKLİYOR") for live counts.
 - Chat roles: customer = raised bubble on the left; bot = teal outline on the right
   with `RoleTag.bot()`; team = lime tint on the right with `RoleTag.agent(initials)`.
@@ -114,7 +114,7 @@ light ("Açık") is a full second theme. The sidebar stays ink in both.
 | Numbers and limits | `StatTile`, `UsageBar`, `KeyValueRow` |
 | Search and filters | `SearchField`, `FilterChipsRow` |
 | Empty, failed, loading | `EmptyState`, `ErrorState`, `LoadingList` |
-| Motifs | `DotGrid`, `SignalRings`, `FlowLogo`, `LiveDot`, `LiveLine` |
+| Motifs and logo | `DotGrid`, `SignalRings`, `FlowLogo` (the lime f on an ink tile, `assets/brand`), `LiveDot`, `LiveLine` |
 | Feedback | `confirmAction`, `showAppSnack` |
 | Formatting | `lib/ui/format.dart` (local time, ₺, phone, Turkish dates, initials) |
 

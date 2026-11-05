@@ -205,10 +205,8 @@ html:not(.js) .js-only { display: none !important; }
 }
 .logo:hover { color: var(--text); }
 
-.logo-mark circle { fill: none; stroke: var(--mark-ring); stroke-width: 1.5; }
-.logo-mark .ring-outer { stroke-opacity: .35; }
-.logo-mark .ring-inner { stroke-opacity: .75; }
-.logo-mark .core { fill: var(--lime); stroke: var(--lime-edge); stroke-width: 1; }
+/* The f monogram on its ink tile (assets/flow-mark.png). */
+img.logo-mark { display: block; border-radius: 24%; }
 
 .logo-word {
   font-family: var(--font-display);
