@@ -316,6 +316,10 @@ verify_jwt = false
 [functions.knowledge-worker]
 verify_jwt = false
 
+# Public payment endpoint: the payment page, iyzico's browser callback and signed webhooks.
+[functions.iyzico-gateway]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

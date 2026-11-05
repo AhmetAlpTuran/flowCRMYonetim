@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Flow CRM Ödeme</title>
+<!--
+  Payment page for Flow CRM subscriptions (docs/BILLING.md). The app opens
+  ?oturum=<checkout id>; this page loads that checkout's iyzico form from the
+  iyzico-gateway Edge Function and shows it. iyzico then returns the customer to the
+  gateway, which confirms the payment and redirects to sonuc/.
+  BEFORE PUBLISHING: set flow-functions-url to the project's functions URL.
+-->
+<meta name="flow-functions-url" content="https://YOUR-PROJECT-REF.supabase.co/functions/v1">
+<style>
+  :root { --bg: #ffffff; --fg: #1d2330; --muted: #5b6475; --line: #e3e7ee; --accent: #1f4b99; --error: #b3261e; --card: #f6f8fb; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #12151b; --fg: #e8ebf1; --muted: #a3abba; --line: #2a303b; --accent: #8fb0ff; --error: #ffb4ab; --card: #1a1e26; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: .95rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 16px 0; }
+  .error { color: var(--error); }
+  #iyzipay-checkout-form { margin-top: 16px; min-height: 120px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Flow CRM aboneliği</h1>
+  <p class="muted" id="summary">Ödeme formu yükleniyor…</p>
+  <div class="card" id="message" hidden></div>
+  <div id="iyzipay-checkout-form" class="responsive"></div>
+  <p class="muted">Kart bilgileriniz Flow CRM'e iletilmez; ödeme iyzico güvenli ödeme formunda alınır.</p>
+</main>
+<script>
+(function () {
+  "use strict";
+  var functionsUrl = document.querySelector('meta[name="flow-functions-url"]').content.replace(/\/+$/, "");
+  var summary = document.getElementById("summary");
+  var message = document.getElementById("message");
+  function show(text, isError) {
+    summary.hidden = true;
+    message.hidden = false;
+    message.textContent = text;
+    message.className = "card" + (isError ? " error" : "");
+  }
+  var id = new URLSearchParams(location.search).get("oturum") || "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) {
+    show("Ödeme bağlantısı geçersiz. Uygulamadaki Abonelik ekranından yeniden başlatın.", true);
+    return;
+  }
+  if (functionsUrl.indexOf("YOUR-PROJECT-REF") !== -1) {
+    show("Ödeme sayfası henüz yapılandırılmadı.", true);
+    return;
+  }
+  fetch(functionsUrl + "/iyzico-gateway/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ checkout_id: id })
+  }).then(function (response) {
+    if (!response.ok) throw new Error("unavailable");
+    return response.json();
+  }).then(function (data) {
+    if (data.status === "completed") {
+      show("Bu ödeme tamamlandı. Uygulamaya dönebilirsiniz.", false);
+      return;
+    }
+    if (data.status !== "ready" || typeof data.content !== "string") {
+      show("Ödeme oturumunun süresi doldu. Uygulamadaki Abonelik ekranından yeniden başlatın.", true);
+      return;
+    }
+    var period = data.billing_period === "yearly" ? "yıllık" : "aylık";
+    summary.textContent = (data.plan_name || "Plan") + " (" + period + ") için ödeme";
+    // The iyzico form arrives as HTML with scripts; scripts inserted through innerHTML
+    // do not run, so recreate each one.
+    var holder = document.createElement("div");
+    holder.innerHTML = data.content;
+    Array.prototype.forEach.call(holder.querySelectorAll("script"), function (old) {
+      var script = document.createElement("script");
+      Array.prototype.forEach.call(old.attributes, function (a) { script.setAttribute(a.name, a.value); });
+      script.text = old.text;
+      document.body.appendChild(script);
+    });
+  }).catch(function () {
+    show("Ödeme formu yüklenemedi. Bağlantınızı kontrol edip sayfayı yenileyin.", true);
+  });
+})();
+</script>
+</body>
+</html>

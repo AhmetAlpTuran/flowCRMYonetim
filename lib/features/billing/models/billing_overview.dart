@@ -7,6 +7,8 @@ class BillingPlan {
     required this.monthlyPrice,
     required this.yearlyPrice,
     required this.limits,
+    this.onlineMonthly = false,
+    this.onlineYearly = false,
   });
 
   factory BillingPlan.fromJson(Map<String, dynamic> json) => BillingPlan(
@@ -16,6 +18,8 @@ class BillingPlan {
         monthlyPrice: (json['monthly_price_try'] as num?)?.toDouble() ?? 0,
         yearlyPrice: (json['yearly_price_try'] as num?)?.toDouble(),
         limits: PlanLimits.fromJson(json),
+        onlineMonthly: json['online_monthly'] == true,
+        onlineYearly: json['online_yearly'] == true,
       );
 
   final String key;
@@ -24,6 +28,12 @@ class BillingPlan {
   final double monthlyPrice;
   final double? yearlyPrice;
   final PlanLimits limits;
+
+  /// Whether the plan can be paid online (an iyzico pricing plan exists) per period.
+  final bool onlineMonthly;
+  final bool onlineYearly;
+
+  bool online(String period) => period == 'yearly' ? onlineYearly : onlineMonthly;
 }
 
 class PlanLimits {
@@ -86,6 +96,8 @@ class BillingOverview {
     required this.usage,
     required this.plans,
     this.billingPeriod,
+    this.provider,
+    this.hasBillingProfile = false,
     this.trialEndsAt,
     this.currentPeriodEnd,
     this.graceEndsAt,
@@ -101,6 +113,8 @@ class BillingOverview {
       planName: plan['name'] as String? ?? '',
       monthlyPrice: (plan['monthly_price_try'] as num?)?.toDouble() ?? 0,
       billingPeriod: json['billing_period'] as String?,
+      provider: json['provider'] as String?,
+      hasBillingProfile: json['has_billing_profile'] == true,
       trialEndsAt: date('trial_ends_at'),
       currentPeriodEnd: date('current_period_end'),
       graceEndsAt: date('grace_ends_at'),
@@ -119,12 +133,60 @@ class BillingOverview {
   final String planName;
   final double monthlyPrice;
   final String? billingPeriod;
+
+  /// `iyzico` for online subscriptions, `manual` for owner-managed ones.
+  final String? provider;
+  final bool hasBillingProfile;
   final DateTime? trialEndsAt;
   final DateTime? currentPeriodEnd;
   final DateTime? graceEndsAt;
   final PlanLimits limits;
   final BillingUsage usage;
   final List<BillingPlan> plans;
+
+  /// An iyzico subscription that is being paid: plan changes and cancellation go
+  /// through iyzico instead of a new checkout.
+  bool get hasOnlineSubscription => provider == 'iyzico' && (status == 'active' || status == 'past_due');
+}
+
+/// Billing details iyzico requires (`tenant_billing_profiles`).
+class BillingProfile {
+  const BillingProfile({
+    required this.contactName,
+    required this.contactSurname,
+    required this.email,
+    required this.phone,
+    required this.identityNumber,
+    required this.address,
+    required this.city,
+    this.companyName,
+    this.taxOffice,
+    this.zipCode,
+  });
+
+  factory BillingProfile.fromJson(Map<String, dynamic> json) => BillingProfile(
+        contactName: json['contact_name'] as String? ?? '',
+        contactSurname: json['contact_surname'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        phone: json['phone'] as String? ?? '',
+        identityNumber: json['identity_number'] as String? ?? '',
+        address: json['address'] as String? ?? '',
+        city: json['city'] as String? ?? '',
+        companyName: json['company_name'] as String?,
+        taxOffice: json['tax_office'] as String?,
+        zipCode: json['zip_code'] as String?,
+      );
+
+  final String contactName;
+  final String contactSurname;
+  final String email;
+  final String phone;
+  final String identityNumber;
+  final String address;
+  final String city;
+  final String? companyName;
+  final String? taxOffice;
+  final String? zipCode;
 }
 
 /// Average tokens of one bot reply, used to show the AI allowance as replies.

@@ -470,3 +470,22 @@ modified when this work began; preserve it outside milestone commits.
   (new `billing_plans.sql`), 96/96 Flutter tests (6 new), 84/84 Deno tests, and a live
   PostgREST run of business creation and the overview. See `docs/BILLING.md`.
   Next: iyzico checkout and webhooks (3b).
+
+- 2026-11-09: Roadmap Phase 3b, iyzico subscriptions. Migration `20261109100000_iyzico_billing.sql`:
+  - `tenant_billing_profiles`, `billing_checkouts` and `billing_events`.
+  - Service-only checkout, completion, webhook and subscription-change functions, plus
+    `save_billing_profile` for admins.
+  - The overview now reports the provider and whether billing details exist.
+  Edge Functions:
+  - `billing` (admins: checkout, refresh, change plan, cancel).
+  - `iyzico-gateway` (public: the payment page's form, iyzico's browser callback confirmed
+    by token with iyzico, V3-signed webhooks).
+  - `_shared/iyzico.ts` (IYZWSv2 signing, subscription API, webhook signature).
+  Static payment and result pages are in `docs/odeme`. App: Fatura bilgileri form,
+  Satın al with an Aylık/Yıllık choice (not on iOS), Bu plana geç and Aboneliği iptal et for
+  online subscriptions, and a payment re-check on open and on return from the browser. The
+  privacy pages now name iyzico and the billing data.
+  Verified: 27/27 SQL fixtures (new `iyzico_billing.sql`), 91/91 Deno tests (7 new, signatures
+  checked against Python vectors), Flutter billing tests (9), and a local end-to-end run on the
+  Edge runtime against a signature-checking fake iyzico. Real iyzico sandbox behaviour is
+  runtime unverified (needs merchant keys). See `docs/BILLING.md`.

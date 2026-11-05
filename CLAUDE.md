@@ -11,7 +11,7 @@ risks. Read it before starting work and append a dated milestone log entry after
 
 - `lib/features/<feature>/{data,models,providers,screens,widgets}`: feature-first Flutter.
   Features: app, shell, tenancy, onboarding, users, connections, contacts, inbox, handoff,
-  campaigns, templates, bot, knowledge, dashboard (`dashboard_metrics` RPC).
+  campaigns, templates, bot, knowledge, catalog, account, billing, dashboard (`dashboard_metrics` RPC).
 - `lib/config/supabase_config.dart`: Supabase URL/anon key from `--dart-define`
   (`SUPABASE_URL`, `SUPABASE_ANON_KEY`); defaults target the local `supabase start` stack.
   Android emulator: `--dart-define=SUPABASE_URL=http://10.0.2.2:54321`.
@@ -23,9 +23,12 @@ risks. Read it before starting work and append a dated milestone log entry after
   `whatsapp-webhook` = HMAC-verified Meta receiver, `_shared` = common helpers).
   `send-campaign` is the current authenticated campaign enqueue endpoint (sends happen
   in `campaign-worker`). `bot-reply` is only a legacy alias of the webhook URL.
+  `billing` (admins) and `iyzico-gateway` (public: payment page, callback, signed webhooks)
+  run iyzico subscriptions; plan limits raise SQLSTATE `P0020` (`docs/BILLING.md`).
 - `supabase/ops/schedule_*.sql`: cron/Vault scheduler scripts for each worker (webhook,
   inbox, campaign, bot, media, knowledge); run them manually per environment.
-- `docs/`: per-area design and backend setup notes. `DESIGN.md` / `UX-CONTRACT.md`:
+- `docs/`: per-area design and backend setup notes. `docs/gizlilik`, `docs/privacy` and
+  `docs/odeme` (payment page) are published with GitHub Pages. `DESIGN.md` / `UX-CONTRACT.md`:
   theme and UI behavior contract.
 - `AppServer/` (NestJS) is git-ignored and unused by the app (`useEdgeFunctions = true`).
 - `WPAPI/`: Meta Postman collections, reference only.

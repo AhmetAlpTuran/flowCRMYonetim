@@ -1,24 +1,146 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../config/app_links.dart';
+import '../../tenancy/providers/tenant_providers.dart';
+import '../data/billing_repository.dart';
 import '../models/billing_overview.dart';
 import '../providers/billing_providers.dart';
-
-/// Whether this build may link to the web plan page (never on iOS).
-final billingLinkAllowedProvider = Provider<bool>(
-  (ref) => AppLinks.billingUrl.isNotEmpty && defaultTargetPlatform != TargetPlatform.iOS,
-);
+import '../widgets/billing_profile_sheet.dart';
 
 /// "Abonelik" (administrators): the plan and its status, this month's usage against
-/// the limits, and the plans available.
-class BillingScreen extends ConsumerWidget {
+/// the limits, billing details, and the plans with online payment through iyzico.
+class BillingScreen extends ConsumerStatefulWidget {
   const BillingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BillingScreen> createState() => _BillingScreenState();
+}
+
+class _BillingScreenState extends ConsumerState<BillingScreen> with WidgetsBindingObserver {
+  String _period = 'monthly';
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // A payment whose callback never arrived is confirmed when the screen opens.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPayment(quiet: true));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back from the payment page in the browser.
+    if (state == AppLifecycleState.resumed) _refreshPayment(quiet: true);
+  }
+
+  void _say(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _refreshPayment({bool quiet = false}) async {
+    if (!mounted) return;
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null || !ref.read(onlinePurchaseAllowedProvider)) return;
+    try {
+      final outcome = await ref.read(billingRepositoryProvider).refresh(tenant.id);
+      if (!mounted) return;
+      if (outcome == 'completed') _say('Ödemeniz alındı; aboneliğiniz etkin.');
+      if (outcome != 'none') ref.invalidate(billingOverviewProvider);
+    } catch (error) {
+      if (!quiet) _say(billingErrorMessage(error));
+    }
+  }
+
+  Future<bool?> _editProfile(BillingProfile? initial) => showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (_) => BillingProfileSheet(initial: initial),
+      );
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } catch (error) {
+      _say(billingErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      ref.invalidate(billingOverviewProvider);
+    }
+  }
+
+  Future<void> _buy(BillingOverview overview, BillingPlan plan) async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) return;
+    if (!overview.hasBillingProfile && await _editProfile(null) != true) return;
+    if (!mounted) return;
+    await _run(() async {
+      final url = await ref.read(billingRepositoryProvider).startCheckout(tenant.id, plan.key, _period);
+      final opened = await ref.read(openPaymentPageProvider)(url);
+      if (!opened) throw const BillingFailure('billing_unconfirmed');
+      _say('Ödeme sayfası tarayıcıda açıldı. Ödemeden sonra uygulamaya dönün.');
+    });
+  }
+
+  Future<void> _changePlan(BillingPlan plan) async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) return;
+    final confirmed = await _confirm('Plan değiştirilsin mi?',
+        '${plan.name} planına hemen geçilir. Ücret farkını iyzico kayıtlı kartınızdan tahsil eder.', 'Planı değiştir');
+    if (!confirmed) return;
+    await _run(() async {
+      await ref.read(billingRepositoryProvider).changePlan(tenant.id, plan.key);
+      _say('Planınız ${plan.name} olarak değiştirildi.');
+    });
+  }
+
+  Future<void> _cancel(BillingOverview overview) async {
+    final tenant = ref.read(selectedTenantProvider);
+    if (tenant == null) return;
+    final end = overview.currentPeriodEnd;
+    final until = end == null ? 'dönem sonuna' : '${formatDate(end)} tarihine';
+    final confirmed = await _confirm(
+      'Abonelik iptal edilsin mi?',
+      'Yeni ödeme alınmaz. $until kadar planınızı kullanmaya devam edersiniz.',
+      'İptal et',
+    );
+    if (!confirmed) return;
+    await _run(() async {
+      await ref.read(billingRepositoryProvider).cancel(tenant.id);
+      _say('Aboneliğiniz iptal edildi.');
+    });
+  }
+
+  Future<bool> _confirm(String title, String text, String action) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(text),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(action)),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final overview = ref.watch(billingOverviewProvider);
     return overview.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -36,34 +158,99 @@ class BillingScreen extends ConsumerWidget {
           ]),
         ),
       ),
-      data: (data) => data == null
-          ? const SizedBox.shrink()
-          : RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(billingOverviewProvider);
-                await ref.read(billingOverviewProvider.future);
+      data: (data) => data == null ? const SizedBox.shrink() : _content(context, data),
+    );
+  }
+
+  Widget _content(BuildContext context, BillingOverview data) {
+    final theme = Theme.of(context);
+    final purchase = ref.watch(onlinePurchaseAllowedProvider);
+    final online = data.plans.any((p) => p.onlineMonthly || p.onlineYearly);
+    final period = data.hasOnlineSubscription ? (data.billingPeriod ?? 'monthly') : _period;
+    String? actionFor(BillingPlan plan) {
+      if (!purchase || _busy || !plan.online(period)) return null;
+      if (data.hasOnlineSubscription) return plan.key == data.planKey ? null : 'Bu plana geç';
+      return 'Satın al';
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _refreshPayment();
+        ref.invalidate(billingOverviewProvider);
+        await ref.read(billingOverviewProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text('Abonelik', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 12),
+          _StatusCard(overview: data),
+          const SizedBox(height: 16),
+          Text('Bu ayki kullanım', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          _UsageCard(overview: data),
+          const SizedBox(height: 16),
+          Card(
+            elevation: 0,
+            child: ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('Fatura bilgileri'),
+              subtitle: Text(data.hasBillingProfile ? 'Kayıtlı' : 'Eksik: online ödeme için gerekli'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                BillingProfile? profile;
+                try {
+                  profile = await ref.read(billingProfileProvider.future);
+                } catch (_) {
+                  profile = null;
+                }
+                if (!mounted) return;
+                if (await _editProfile(profile) == true) _say('Fatura bilgileri kaydedildi.');
               },
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Text('Abonelik', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 12),
-                  _StatusCard(overview: data),
-                  const SizedBox(height: 16),
-                  Text('Bu ayki kullanım', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  _UsageCard(overview: data),
-                  const SizedBox(height: 24),
-                  Text('Planlar', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Text('Fiyatlar KDV hariçtir.', style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 8),
-                  for (final plan in data.plans) _PlanCard(plan: plan, current: plan.key == data.planKey),
-                  const SizedBox(height: 8),
-                  const _ChangePlan(),
-                ],
-              ),
             ),
+          ),
+          const SizedBox(height: 24),
+          Text('Planlar', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('Fiyatlar KDV hariçtir.', style: theme.textTheme.bodySmall),
+          if (purchase && online && !data.hasOnlineSubscription) ...[
+            const SizedBox(height: 8),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'monthly', label: Text('Aylık')),
+                ButtonSegment(value: 'yearly', label: Text('Yıllık')),
+              ],
+              selected: {_period},
+              onSelectionChanged: (value) => setState(() => _period = value.first),
+            ),
+          ],
+          const SizedBox(height: 8),
+          for (final plan in data.plans)
+            _PlanCard(
+              plan: plan,
+              current: plan.key == data.planKey,
+              action: actionFor(plan),
+              onAction: () => data.hasOnlineSubscription ? _changePlan(plan) : _buy(data, plan),
+            ),
+          if (data.hasOnlineSubscription) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : () => _cancel(data),
+              icon: const Icon(Icons.cancel_outlined),
+              label: const Text('Aboneliği iptal et'),
+            ),
+          ],
+          if (!purchase || !online) ...[
+            const SizedBox(height: 8),
+            Text(
+              AppLinks.supportEmail.isEmpty
+                  ? 'Plan değişikliği için hesap yöneticinizle iletişime geçin.'
+                  : 'Plan değişikliği için bize yazın: ${AppLinks.supportEmail}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -110,8 +297,8 @@ class _StatusCard extends StatelessWidget {
       return (
         'Ödeme alınamadı',
         end == null
-            ? 'Ödeme bilgilerinizi güncelleyin.'
-            : 'Ödeme bilgilerinizi güncelleyin; hizmet ${formatDate(end)} tarihine kadar sürer.',
+            ? 'Kartınızı kontrol edin; iyzico ödemeyi yeniden deneyecek.'
+            : 'Kartınızı kontrol edin; iyzico ödemeyi yeniden deneyecek. Hizmet ${formatDate(end)} tarihine kadar sürer.',
         true,
       );
     case 'canceled':
@@ -201,10 +388,12 @@ class UsageMeter extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.current});
+  const _PlanCard({required this.plan, required this.current, this.action, this.onAction});
 
   final BillingPlan plan;
   final bool current;
+  final String? action;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -248,30 +437,15 @@ class _PlanCard extends StatelessWidget {
                 Expanded(child: Text(line)),
               ]),
             ),
+          if (action != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(onPressed: onAction, child: Text(action!)),
+            ),
+          ],
         ]),
       ),
-    );
-  }
-}
-
-class _ChangePlan extends ConsumerWidget {
-  const _ChangePlan();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(billingLinkAllowedProvider)) {
-      return FilledButton.icon(
-        onPressed: () => launchUrl(Uri.parse(AppLinks.billingUrl), mode: LaunchMode.externalApplication),
-        icon: const Icon(Icons.open_in_new),
-        label: const Text('Planı değiştir'),
-      );
-    }
-    const email = AppLinks.supportEmail;
-    return Text(
-      email.isEmpty
-          ? 'Plan değişikliği için hesap yöneticinizle iletişime geçin.'
-          : 'Plan değişikliği için bize yazın: $email',
-      style: Theme.of(context).textTheme.bodySmall,
     );
   }
 }
