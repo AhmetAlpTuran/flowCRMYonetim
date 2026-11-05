@@ -51,7 +51,7 @@ void main() {
     expect(find.text('WhatsApp numaranız bağlı'), findsOneWidget, reason: 'a done step reads as done');
     expect(find.text('İSTEĞE BAĞLI'), findsNWidgets(4));
     expect(find.textContaining('ekip adımını atlayabilirsiniz'), findsOneWidget);
-    await tester.tap(find.text('Botu yapılandırıp etkinleştirin'));
+    await tester.tap(find.text('Asistanı kurup açın'));
     await tester.pump();
     expect(container.read(shellDestinationProvider), ShellDestinationId.bot);
     expect(container.read(shellAreaMemoryProvider)[ShellArea.assistant], ShellDestinationId.bot);

@@ -28,7 +28,7 @@ const setupSteps = [
       doneTitle: 'WhatsApp numaranız bağlı'),
   SetupStep('knowledge', 'Bilgi bankasına not veya belge ekleyin', ShellDestinationId.knowledge,
       doneTitle: 'Bilgi bankasında içerik var'),
-  SetupStep('bot', 'Botu yapılandırıp etkinleştirin', ShellDestinationId.bot, doneTitle: 'Bot etkin'),
+  SetupStep('bot', 'Asistanı kurup açın', ShellDestinationId.bot, doneTitle: 'Asistan açık'),
   SetupStep('team', 'Ekip arkadaşınızı davet edin', ShellDestinationId.users,
       optional: true, doneTitle: 'Ekip arkadaşınız davet edildi'),
   SetupStep('catalog', 'Kataloğa ürün, oda veya araç ekleyin', ShellDestinationId.catalog,

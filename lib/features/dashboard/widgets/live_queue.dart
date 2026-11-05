@@ -106,7 +106,11 @@ class LiveQueueHero extends ConsumerWidget {
         if (handoffButton != null) actions.add(handoffButton);
       } else if (handoffs > 0) {
         headline = '$handoffs sohbet temsilci bekliyor.';
-        actions.add(handoffButton ?? fill(OutlinedButton(onPressed: openInbox, child: const Text('Sohbetlere git'))));
+        // A customer is waiting for a person: this is the page's one primary action.
+        actions.add(fill(FilledButton(
+          onPressed: handoffAllowed ? openHandoff : openInbox,
+          child: Text(handoffAllowed ? 'Temsilci bekleyenleri aç' : 'Sohbetlere git'),
+        )));
       } else {
         headline = 'Bekleyen sohbet yok.';
         actions.add(fill(OutlinedButton(onPressed: openInbox, child: const Text('Sohbetlere git'))));

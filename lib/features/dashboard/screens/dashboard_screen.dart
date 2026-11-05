@@ -161,9 +161,9 @@ class _MetricsView extends StatelessWidget {
           footnote: '${formatCount(m.startedConversations)} yeni konuşma',
         ),
         StatTile(
-          label: 'Asistan yanıt oranı',
+          label: 'Asistan payı',
           value: formatPercent(m.botShare),
-          footnote: '${formatCount(m.botReplies)} bot · ${formatCount(m.humanReplies)} temsilci',
+          footnote: '${formatCount(m.botReplies)} asistan · ${formatCount(m.humanReplies)} ekip yanıtı',
           tone: FlowTone.assistant,
         ),
         StatTile(

@@ -24,7 +24,7 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(
         upperTr(label),
-        style: FlowText.caps(context, size: 10, color: c.toneText(tone)),
+        style: FlowText.caps(context, size: 11, color: c.toneText(tone)),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

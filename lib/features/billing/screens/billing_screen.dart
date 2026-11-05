@@ -305,7 +305,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> with WidgetsBindi
     default:
       return (
         'Süresi doldu',
-        'Bot yanıtları ve kampanyalar durdu; gelen kutusu çalışmaya devam ediyor. Devam etmek için bir plan seçin.',
+        'Asistan yanıtları ve kampanyalar durdu; gelen kutusu çalışmaya devam ediyor. Devam etmek için bir plan seçin.',
         true,
       );
   }
