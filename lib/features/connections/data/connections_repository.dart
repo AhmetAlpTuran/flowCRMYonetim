@@ -109,6 +109,8 @@ String connectionErrorMessage(String code) => switch (code) {
       'server_configuration' ||
       'graph_version_missing' =>
         'Sunucu yapılandırması eksik. Destek ekibiyle iletişime geçin.',
+      'plan_limit' =>
+        'Planınızın WhatsApp numarası sınırına ulaşıldı. Abonelik ekranından planınızı yükseltebilirsiniz.',
       'connection_save_failed' =>
         'Bağlantı kaydedilemedi. Listeyi yenileyip tekrar deneyin.',
       'disconnect_failed' =>

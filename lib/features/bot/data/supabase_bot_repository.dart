@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../billing/plan_limit.dart';
 import '../models/bot_config.dart';
 import '../models/bot_profile.dart';
 
 /// Turkish guidance for bot failures; raw server text is never shown.
 String botErrorMessage(Object error) {
+  final limit = planLimitKind(error);
+  if (limit != null) return planLimitMessage(limit == 'plan' ? 'bots' : limit);
   if (error is PostgrestException) {
     if (error.hint == 'bot_limit') return 'En fazla 10 ek bot oluşturabilirsiniz.';
     switch (error.code) {

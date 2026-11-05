@@ -13,6 +13,7 @@ enum ShellDestinationId {
   users,
   catalog,
   connections,
+  billing,
 }
 
 final shellDestinationProvider = StateProvider<ShellDestinationId>(

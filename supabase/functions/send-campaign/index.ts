@@ -148,6 +148,13 @@ Deno.serve(endpoint(async (req) => {
     if (error.code === "42501") {
       throw new ApiError(403, "forbidden", "Campaign permission required");
     }
+    if (error.code === "P0020") {
+      throw new ApiError(
+        402,
+        "plan_limit",
+        "This month's campaign message allowance is not enough for this audience",
+      );
+    }
     if (error.code === "40001") {
       throw new ApiError(
         409,

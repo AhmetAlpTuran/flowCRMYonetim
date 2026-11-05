@@ -2,8 +2,13 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../billing/plan_limit.dart';
+
 /// Turkish guidance for onboarding RPC failures. Raw provider text is never shown.
 String onboardingErrorMessage(Object error) {
+  if (planLimitKind(error) == 'seats') {
+    return 'İşletmenin kullanıcı sınırı dolu. Yönetici, Abonelik ekranından planı yükseltebilir.';
+  }
   if (error is PostgrestException) {
     switch (error.code) {
       case 'P0013':

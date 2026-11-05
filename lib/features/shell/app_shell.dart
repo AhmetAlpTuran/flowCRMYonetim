@@ -5,6 +5,7 @@ import '../account/widgets/account_menu.dart';
 import '../bot/screens/bot_screen.dart';
 import '../campaigns/screens/campaigns_screen.dart';
 import '../catalog/screens/catalog_screen.dart';
+import '../billing/screens/billing_screen.dart';
 import '../connections/screens/connections_screen.dart';
 import '../contacts/screens/contacts_screen.dart';
 import '../dashboard/screens/dashboard_screen.dart';
@@ -360,6 +361,14 @@ List<_ShellDestination> _destinationsFor(
       icon: Icons.phonelink_setup_outlined,
       selectedIcon: Icons.phonelink_setup,
       screen: ConnectionsScreen(),
+      adminOnly: true,
+    ),
+    const _ShellDestination(
+      id: ShellDestinationId.billing,
+      label: 'Abonelik',
+      icon: Icons.workspace_premium_outlined,
+      selectedIcon: Icons.workspace_premium,
+      screen: BillingScreen(),
       adminOnly: true,
     ),
   ];

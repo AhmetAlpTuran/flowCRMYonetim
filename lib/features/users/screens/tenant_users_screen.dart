@@ -890,6 +890,12 @@ class _RequestApprovalSheetState extends ConsumerState<_RequestApprovalSheet> {
       if (mounted) {
         Navigator.of(context).pop(true);
       }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(onboardingErrorMessage(error))),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

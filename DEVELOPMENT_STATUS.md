@@ -454,3 +454,19 @@ modified when this work began; preserve it outside milestone commits.
   (new `multiple_bots.sql`), 90/90 Flutter tests (5 new), 84/84 Deno tests, and a live local
   webhook → bot-worker run where an English extra bot handled its number. Next: Phase 3
   billing.
+
+- 2026-11-09: Roadmap Phase 3a, plans and limits. Migration `20261109090000_billing_plans.sql`:
+  - The price list in `billing_plans` (Başlangıç/Profesyonel/İşletme plus Pilot and expired;
+    starting prices to test in the pilot), and `tenant_subscriptions`. Existing businesses
+    are on Pilot, and new businesses get a 14-day Profesyonel trial.
+  - The status that applies is computed from timestamps.
+  - Limits on users, WhatsApp numbers, bots, monthly campaign messages (statement
+    trigger) and the AI allowance in `prepare_bot_reply`, on every write path (`P0020`).
+  - The `tenant_billing_overview` RPC.
+  `send-campaign` and `manage-whatsapp-connection` answer 402 `plan_limit`. App: the
+  admin-only Abonelik screen (status, usage meters, plans; the upgrade link only off iOS
+  via `BILLING_URL`), Turkish plan-limit guidance on bots, numbers, campaigns, invites and
+  join approvals (which previously had no error handling). Verified: 26/26 SQL fixtures
+  (new `billing_plans.sql`), 96/96 Flutter tests (6 new), 84/84 Deno tests, and a live
+  PostgREST run of business creation and the overview. See `docs/BILLING.md`.
+  Next: iyzico checkout and webhooks (3b).

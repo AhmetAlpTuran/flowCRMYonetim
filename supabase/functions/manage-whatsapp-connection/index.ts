@@ -122,6 +122,9 @@ Deno.serve(endpoint(async (req) => {
     p_is_default: body.is_default ?? false,
   });
   if (error) {
+    if (error.code === "P0020") {
+      throw new ApiError(402, "plan_limit", "The plan's WhatsApp number limit is reached");
+    }
     throw new ApiError(
       409,
       "connection_save_failed",

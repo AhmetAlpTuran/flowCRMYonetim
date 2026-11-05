@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/request_id.dart';
+import '../../billing/plan_limit.dart';
 import '../../tenancy/providers/tenant_providers.dart';
 import '../data/campaign_repository.dart';
 import '../data/supabase_campaign_repository.dart';
@@ -197,6 +198,7 @@ class CampaignActions extends StateNotifier<CampaignActionState> {
   }
 
   String _knownError(Object error) {
+    if (planLimitKind(error) != null) return planLimitMessage('campaign_messages');
     if (error is FunctionException) {
       final details = error.details;
       final code = details is Map ? details['code'] : null;
