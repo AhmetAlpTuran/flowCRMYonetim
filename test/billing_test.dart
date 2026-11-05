@@ -18,6 +18,7 @@ import 'package:wpapp/features/shell/app_shell.dart';
 import 'package:wpapp/features/shell/shell_providers.dart';
 import 'package:wpapp/features/tenancy/models/tenant.dart';
 import 'package:wpapp/features/tenancy/providers/tenant_providers.dart';
+import 'package:wpapp/ui/ui.dart';
 
 const tenant = Tenant(id: 'tenant-a', name: 'Galeri', brandColor: Colors.blue, features: {}, allowedDomains: []);
 
@@ -129,8 +130,8 @@ void main() {
   test('numbers, prices and dates use Turkish formatting', () {
     expect(formatCount(15000000), '15.000.000');
     expect(formatCount(999), '999');
-    expect(formatPrice(3490), '₺3.490');
-    expect(formatDate(DateTime(2026, 3, 7)), '07.03.2026');
+    expect(formatPrice(3490), '3.490 ₺');
+    expect(formatDate(DateTime(2026, 3, 7)), '7 Mart 2026');
   });
 
   test('statuses explain what applies now', () {
@@ -140,7 +141,7 @@ void main() {
     expect(label, 'Deneme');
     expect(detail, contains('2 gün sonra'));
     expect(warning, isTrue, reason: 'three days or fewer left');
-    expect(statusTexts(BillingOverview.fromJson(overviewJson(status: 'past_due')), now).$2, contains('08.12.2026'));
+    expect(statusTexts(BillingOverview.fromJson(overviewJson(status: 'past_due')), now).$2, contains('8 Aralık 2026'));
     expect(statusTexts(BillingOverview.fromJson(overviewJson(status: 'expired')), now).$2,
         contains('gelen kutusu çalışmaya devam ediyor'));
     expect(statusTexts(BillingOverview.fromJson(overviewJson(status: 'pilot')), now).$3, isFalse);
@@ -194,14 +195,18 @@ void main() {
     final fake = FakeBilling(overviewJson());
     await tester.pumpWidget(app(fake));
     await tester.pumpAndSettle();
-    expect(find.text('Profesyonel · Deneme'), findsOneWidget);
+    expect(find.text('DENEMENİN BİTMESİNE'), findsOneWidget);
+    expect(find.text('10'), findsOneWidget, reason: 'days left of the trial');
+    expect(find.text('DENEME'), findsOneWidget);
     expect(find.text('1 / 5'), findsOneWidget);
     expect(find.text('2 / 2'), findsOneWidget, reason: 'numbers at the limit');
-    expect(find.text('%20 · aylık yaklaşık 5.000 yanıt'), findsOneWidget);
+    expect(find.text('~1.000 / 5.000'), findsOneWidget, reason: 'AI tokens shown as replies');
     expect(find.text('2.500 / 10.000'), findsOneWidget);
     expect(fake.refreshes, 1, reason: 'an unfinished payment is re-checked on open');
-    await scrollTo(tester, find.text('Mevcut plan'));
-    expect(find.text('₺3.490 / ay veya ₺34.900 / yıl'), findsOneWidget);
+    await scrollTo(tester, find.text('DENEMEDESİNİZ'));
+    expect(find.text('3.490'), findsOneWidget, reason: 'the monthly price of the current plan');
+    expect(find.text('₺ / ay'), findsNWidgets(2));
+    expect(find.text('Yıllık ödemede 34.900 ₺ / yıl'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -261,8 +266,8 @@ void main() {
     await scrollTo(tester, find.text('Aboneliği iptal et'));
     await tester.tap(find.text('Aboneliği iptal et'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('01.12.2026 tarihine kadar'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'İptal et'));
+    expect(find.textContaining('1 Aralık 2026 tarihine kadar'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'İptal et'));
     await tester.pumpAndSettle();
     expect(fake.cancels, 1);
   });

@@ -12,6 +12,8 @@ class WhatsAppConnection {
     required this.status,
     required this.isDefault,
     required this.tokenExpiresAt,
+    this.botEnabled = true,
+    this.botProfileId,
   });
 
   factory WhatsAppConnection.fromRow(Map<String, dynamic> row) =>
@@ -30,6 +32,8 @@ class WhatsAppConnection {
         tokenExpiresAt: row['token_expires_at'] is String
             ? DateTime.parse(row['token_expires_at'] as String)
             : null,
+        botEnabled: row['bot_enabled'] as bool? ?? true,
+        botProfileId: row['bot_profile_id'] as String?,
       );
 
   final String id;
@@ -42,6 +46,12 @@ class WhatsAppConnection {
 
   /// Null means the token does not expire (e.g. a system user token).
   final DateTime? tokenExpiresAt;
+
+  /// False when only the team answers on this number.
+  final bool botEnabled;
+
+  /// The extra assistant answering here; null means the main assistant.
+  final String? botProfileId;
 
   bool isExpired(DateTime now) =>
       tokenExpiresAt != null && !tokenExpiresAt!.isAfter(now);

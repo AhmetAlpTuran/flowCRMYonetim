@@ -191,20 +191,3 @@ class BillingProfile {
 
 /// Average tokens of one bot reply, used to show the AI allowance as replies.
 const tokensPerReply = 3000;
-
-String formatCount(int value) {
-  final digits = value.abs().toString();
-  final buffer = StringBuffer(value < 0 ? '-' : '');
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-    buffer.write(digits[i]);
-  }
-  return buffer.toString();
-}
-
-String formatPrice(double value) => '₺${formatCount(value.round())}';
-
-String formatDate(DateTime value) {
-  String two(int n) => n.toString().padLeft(2, '0');
-  return '${two(value.day)}.${two(value.month)}.${value.year}';
-}
