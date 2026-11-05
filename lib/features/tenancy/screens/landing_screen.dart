@@ -1,479 +1,355 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../../../ui/ui.dart';
+import '../../onboarding/widgets/onboarding_parts.dart';
 import 'login_screen.dart';
+import 'web_landing.dart';
 
+/// The signed-out entry. The web build shows the one-screen card landing
+/// ([WebLanding]); phone and tablet apps open the three-step welcome ([WelcomeFlow]).
 class LandingScreen extends StatelessWidget {
-  const LandingScreen({super.key});
+  const LandingScreen({super.key, this.web = kIsWeb});
+
+  /// True shows the web landing instead of the app welcome.
+  final bool web;
+
+  @override
+  Widget build(BuildContext context) => web ? const WebLanding() : const WelcomeFlow();
+}
+
+class _WelcomeStep {
+  const _WelcomeStep(this.eyebrow, this.title, this.body);
+
+  final String eyebrow;
+  final String title;
+  final String body;
+}
+
+const _steps = [
+  _WelcomeStep(
+    '01 / 03 · 7/24 yanıt',
+    'WhatsApp’ınız artık uyumuyor.',
+    'Gece 02:00’de gelen soruya bile asistanınız anında, sizin bilgilerinizle yanıt verir.',
+  ),
+  _WelcomeStep(
+    '02 / 03 · Tek ekran',
+    'Ekip ve asistan aynı ekranda.',
+    'Asistan zorlandığında sohbet ekibinize geçer. Kimin neyi beklediği her an belli.',
+  ),
+  _WelcomeStep(
+    '03 / 03 · Talepler',
+    'Talepler kendiliğinden kayda girer.',
+    'Test sürüşü, rezervasyon ya da randevu: hepsi Müşteriler ekranında sizi bekler.',
+  ),
+];
+
+/// Three short pages on the dot grid: "İleri" walks through them, the last one leads
+/// to sign-up, and sign-in is always one tap away.
+class WelcomeFlow extends StatefulWidget {
+  const WelcomeFlow({super.key});
+
+  @override
+  State<WelcomeFlow> createState() => _WelcomeFlowState();
+}
+
+class _WelcomeFlowState extends State<WelcomeFlow> {
+  int _index = 0;
+
+  bool get _isLast => _index == _steps.length - 1;
+
+  void _go(int index) => setState(() => _index = index.clamp(0, _steps.length - 1));
+
+  void _openLogin({bool signUp = false}) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => LoginScreen(startWithSignUp: signUp)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isWide = MediaQuery.of(context).size.width >= 900;
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    final step = _steps[_index];
+    final switchDuration = FlowMotion.reduced(context) ? Duration.zero : FlowMotion.entrance;
+
+    Widget swap(Widget child) => AnimatedSwitcher(
+          duration: switchDuration,
+          switchInCurve: FlowMotion.curve,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(animation),
+              child: child,
+            ),
+          ),
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.topLeft,
+            children: [...previous, if (current != null) current],
+          ),
+          child: KeyedSubtree(key: ValueKey(_index), child: child),
+        );
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: scheme.primary,
-                    child: const Icon(Icons.message, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Flow CRM',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      Text(
-                        'WhatsApp tabanli musteri yonetimi',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  if (isWide)
-                    FilledButton.icon(
-                      onPressed: () => _openLogin(context),
-                      icon: const Icon(Icons.login),
-                      label: const Text('Giris / Kayit'),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _HeroCard(isWide: isWide, onLogin: () => _openLogin(context)),
-              const SizedBox(height: 24),
-              Text(
-                'Nasil calisir?',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              const Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  _StepCard(
-                    icon: Icons.alternate_email,
-                    title: '1. Kayit ol',
-                    description:
-                        'Kurumsal e-posta ile hesap olustur ve giris yap.',
-                  ),
-                  _StepCard(
-                    icon: Icons.apartment_outlined,
-                    title: '2. Tenant eslesmesi',
-                    description:
-                        'Yonetici seni dogru tenant icine ekler veya onaylar.',
-                  ),
-                  _StepCard(
-                    icon: Icons.tune,
-                    title: '3. Yetkiler ve ayarlar',
-                    description:
-                        'Rolun ve izinlerin tanimlandiktan sonra moduller acilir.',
-                  ),
-                  _StepCard(
-                    icon: Icons.forum_outlined,
-                    title: '4. Operasyon baslar',
-                    description:
-                        'Gelen kutusu, kampanyalar ve bot modulleri aktif olur.',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Neler sunar?',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              const Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  _FeatureCard(
-                    icon: Icons.inbox_outlined,
-                    title: 'Gelen Kutusu',
-                    description:
-                        'WhatsApp gorusmelerini tek merkezde yonetin.',
-                  ),
-                  _FeatureCard(
-                    icon: Icons.auto_awesome_outlined,
-                    title: 'AI ve Bilgi Bankasi',
-                    description:
-                        'Otomatik yanitlar ve bilgi bankasi senaryolari.',
-                  ),
-                  _FeatureCard(
-                    icon: Icons.campaign_outlined,
-                    title: 'Kampanyalar',
-                    description:
-                        'Onayli kisilere toplu mesaj ve teklif gonderimi.',
-                  ),
-                  _FeatureCard(
-                    icon: Icons.bar_chart_outlined,
-                    title: 'Raporlar',
-                    description:
-                        'Basari, durum ve ekip performans ozetleri.',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Giris nasil yapilir?',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      const _BulletLine(
-                        icon: Icons.check_circle_outline,
-                        text:
-                            'Kayit olduktan sonra e-posta dogrulamasini tamamla.',
-                      ),
-                      const SizedBox(height: 8),
-                      const _BulletLine(
-                        icon: Icons.check_circle_outline,
-                        text:
-                            'Yonetici tarafindan tenant atamasi yapildiginda',
-                      ),
-                      const _BulletLine(
-                        icon: Icons.check_circle_outline,
-                        text:
-                            'giris ekranindan hesabinla sisteme baglan.',
-                      ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: FilledButton.icon(
-                          onPressed: () => _openLogin(context),
-                          icon: const Icon(Icons.login),
-                          label: const Text('Giris ekranina git'),
+      body: DotGrid(
+        child: Stack(fit: StackFit.expand, children: [
+          const Positioned(left: -115, top: 40, child: SignalRings(size: 620)),
+          SafeArea(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: (details) {
+                final velocity = details.primaryVelocity ?? 0;
+                if (velocity < -200) _go(_index + 1);
+                if (velocity > 200) _go(_index - 1);
+              },
+              child: LayoutBuilder(builder: (context, constraints) {
+                final gutter = constraints.maxWidth < 600 ? 20.0 : FlowSpace.xxl;
+                const top = FlowSpace.md;
+                const bottom = 28.0;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(gutter, top, gutter, bottom),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: math.max(0, constraints.maxHeight - top - bottom)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: 48,
+                          child: Row(children: [
+                            const FlowLogo(size: 26),
+                            const Spacer(),
+                            if (!_isLast)
+                              TextButton(
+                                onPressed: _openLogin,
+                                style: TextButton.styleFrom(foregroundColor: c.muted),
+                                child: const Text('Atla'),
+                              ),
+                          ]),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (!isWide) ...[
-                const SizedBox(height: 24),
-                Center(
-                  child: FilledButton.icon(
-                    onPressed: () => _openLogin(context),
-                    icon: const Icon(Icons.login),
-                    label: const Text('Giris / Kayit'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _openLogin(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
-      ),
-    );
-  }
-}
-
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.isWide, required this.onLogin});
-
-  final bool isWide;
-  final VoidCallback onLogin;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          colors: [
-            scheme.primary,
-            scheme.tertiary,
-          ],
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: isWide
-            ? Row(
-                children: [
-                  Expanded(child: _HeroText(onLogin: onLogin)),
-                  const SizedBox(width: 20),
-                  const _HeroMock(),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _HeroText(onLogin: onLogin),
-                  const SizedBox(height: 20),
-                  const _HeroMock(),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-class _HeroText extends StatelessWidget {
-  const _HeroText({required this.onLogin});
-
-  final VoidCallback onLogin;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tek panelden WhatsApp operasyonu',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Flow CRM ile gelen kutusu, kampanyalar ve AI destekli yanitlari tek '
-          'ekranda yonetin. Multi-tenant yapi sayesinde her musteri kendi '
-          'verisini guvenle kullanir.',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withOpacity(0.92),
-              ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: onLogin,
-          icon: const Icon(Icons.login),
-          label: const Text('Hemen giris yap'),
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HeroMock extends StatelessWidget {
-  const _HeroMock();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 18,
-            color: Color(0x22000000),
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: const Column(
-        children: [
-          _HeroRow(
-            icon: Icons.chat_bubble_outline,
-            title: 'Gelen Kutusu',
-            subtitle: 'Canli gorusmeler',
-          ),
-          Divider(height: 24),
-          _HeroRow(
-            icon: Icons.auto_awesome_outlined,
-            title: 'AI Asistani',
-            subtitle: 'Akilli yanitlar',
-          ),
-          Divider(height: 24),
-          _HeroRow(
-            icon: Icons.campaign_outlined,
-            title: 'Kampanyalar',
-            subtitle: 'Hedefli gonderim',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroRow extends StatelessWidget {
-  const _HeroRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        CircleAvatar(
-          backgroundColor: scheme.primaryContainer,
-          child: Icon(icon, color: scheme.primary),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StepCard extends StatelessWidget {
-  const _StepCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: 240,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: scheme.primary),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: FlowSpace.xxl),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: swap(_Illustration(_index)),
+                            ),
+                          ),
+                        ),
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 440),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                swap(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Eyebrow(step.eyebrow),
+                                  const SizedBox(height: 14),
+                                  Semantics(
+                                    header: true,
+                                    child: Text(step.title, style: theme.textTheme.displaySmall?.copyWith(height: 1)),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(step.body, style: theme.textTheme.bodyLarge?.copyWith(color: c.muted)),
+                                ])),
+                                const SizedBox(height: 20),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: StepBars(count: _steps.length, index: _index),
+                                ),
+                                const SizedBox(height: 18),
+                                FilledButton(
+                                  onPressed: _isLast ? () => _openLogin(signUp: true) : () => _go(_index + 1),
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(52),
+                                    textStyle: theme.textTheme.labelLarge?.copyWith(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  child: Text(_isLast ? 'İşletmeni oluştur' : 'İleri'),
+                                ),
+                                const SizedBox(height: 14),
+                                OutlinedButton(
+                                  onPressed: _openLogin,
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(48),
+                                    padding: const EdgeInsets.symmetric(horizontal: FlowSpace.lg, vertical: 10),
+                                  ),
+                                  child: const Text('Zaten hesabım var · Giriş yap', textAlign: TextAlign.center),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-              ),
-            ],
+                  ),
+                );
+              }),
+            ),
           ),
-        ),
+        ]),
       ),
     );
   }
 }
 
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
+/// The picture for each step, built from the app's own bubbles, badges and role tags.
+/// Sample content only: no live numbers.
+class _Illustration extends StatelessWidget {
+  const _Illustration(this.index);
 
-  final IconData icon;
-  final String title;
-  final String description;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: switch (index) {
+          0 => const _ChatSample(),
+          1 => const _QueueSample(),
+          _ => const _RequestSample(),
+        },
+      );
+}
+
+class _ChatSample extends StatelessWidget {
+  const _ChatSample();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: 240,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: scheme.tertiary),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
+    final c = FlowColors.of(context);
+    final body = Theme.of(context).textTheme.bodyMedium;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 260),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+          decoration: BoxDecoration(
+            color: c.raised,
+            border: Border.all(color: c.border),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(FlowRadius.card),
+              topRight: Radius.circular(FlowRadius.card),
+              bottomRight: Radius.circular(FlowRadius.card),
+              bottomLeft: Radius.circular(4),
+            ),
           ),
+          child: Text('Saat kaça kadar açıksınız?', style: body),
         ),
       ),
-    );
+      const SizedBox(height: FlowSpace.md),
+      FractionallySizedBox(
+        alignment: Alignment.centerRight,
+        widthFactor: 0.84,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            const RoleTag.bot(),
+            const SizedBox(width: 6),
+            Text('02:14', style: FlowText.mono(context, size: 11)),
+          ]),
+          const SizedBox(height: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+            decoration: BoxDecoration(
+              color: c.tealSoft,
+              border: Border.all(color: c.teal),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(FlowRadius.card),
+                topRight: Radius.circular(FlowRadius.card),
+                bottomLeft: Radius.circular(FlowRadius.card),
+                bottomRight: Radius.circular(4),
+              ),
+            ),
+            child: Text(
+              'Hafta içi 19:00’a kadar açığız. Yarın için randevu ayarlayayım mı?',
+              style: body?.copyWith(height: 1.45),
+            ),
+          ),
+        ]),
+      ),
+    ]);
   }
 }
 
-class _BulletLine extends StatelessWidget {
-  const _BulletLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
+class _QueueSample extends StatelessWidget {
+  const _QueueSample();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: scheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
+    final c = FlowColors.of(context);
+    const rows = [
+      ('Mehmet Kaya', 'Temsilci bekliyor', FlowTone.warning),
+      ('Ayşe Yılmaz', 'Asistanda', FlowTone.assistant),
+      ('Zeynep Demir', 'Ekip yanıtladı', FlowTone.accent),
+    ];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: FlowRadius.cardAll,
+        border: Border.all(color: c.border),
+      ),
+      child: Column(children: [
+        for (var i = 0; i < rows.length; i++)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: FlowSpace.md),
+            decoration: BoxDecoration(
+              border: i < rows.length - 1 ? Border(bottom: BorderSide(color: c.border)) : null,
+            ),
+            child: Row(children: [
+              InitialsAvatar(rows[i].$1, size: 32),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  rows[i].$1,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 15),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              const SizedBox(width: FlowSpace.sm),
+              Flexible(child: StatusBadge(rows[i].$2, tone: rows[i].$3)),
+            ]),
           ),
+      ]),
+    );
+  }
+}
+
+class _RequestSample extends StatelessWidget {
+  const _RequestSample();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: FlowRadius.cardAll,
+        border: Border.all(color: c.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Wrap(spacing: 6, runSpacing: 6, children: [
+          StatusBadge('Yeni talep', tone: FlowTone.accent),
+          StatusBadge('Test sürüşü'),
+        ]),
+        const SizedBox(height: FlowSpace.md),
+        Text('Ayşe Yılmaz', style: theme.textTheme.titleLarge),
+        const SizedBox(height: FlowSpace.xs),
+        Text('2021 Renault Clio 1.0 TCe', style: theme.textTheme.bodyMedium?.copyWith(color: c.muted)),
+        const SizedBox(height: FlowSpace.md),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(upperTr('Yarın 14:00'), style: FlowText.number(context, size: 26)),
         ),
-      ],
+      ]),
     );
   }
 }

@@ -54,8 +54,8 @@ Future<void> pump(WidgetTester tester, FakeAccountRepository repository) async {
   await tester.pumpAndSettle();
 }
 
-FilledButton deleteButton(WidgetTester tester) => tester.widget<FilledButton>(
-    find.widgetWithText(FilledButton, 'Hesabımı kalıcı olarak sil'));
+OutlinedButton deleteButton(WidgetTester tester) => tester.widget<OutlinedButton>(
+    find.widgetWithText(OutlinedButton, 'Hesabımı kalıcı olarak sil'));
 
 void main() {
   test('deletion plan parses blocked names and tenant ids', () {
@@ -110,7 +110,16 @@ void main() {
     await pump(tester, repository);
     await tester.enterText(find.byType(TextField), 'owner@example.invalid');
     await tester.pump();
+    // The irreversible step asks once more; cancelling keeps everything.
     await tester.tap(find.text('Hesabımı kalıcı olarak sil'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hesabınız silinsin mi?'), findsOneWidget);
+    await tester.tap(find.text('Vazgeç'));
+    await tester.pumpAndSettle();
+    expect(repository.confirmations, isEmpty);
+    await tester.tap(find.text('Hesabımı kalıcı olarak sil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Evet, kalıcı olarak sil'));
     await tester.pumpAndSettle();
     expect(repository.confirmations, ['owner@example.invalid']);
     expect(find.textContaining('devredin'), findsOneWidget);

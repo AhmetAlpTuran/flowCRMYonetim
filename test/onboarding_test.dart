@@ -184,6 +184,7 @@ void main() {
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Doğrulama kodu'), '12');
     await tester.enterText(find.widgetWithText(TextFormField, 'Yeni şifre'), 'short');
+    await tester.ensureVisible(find.text('Şifreyi değiştir'));
     await tester.tap(find.text('Şifreyi değiştir'));
     await tester.pump();
     expect(find.text('E-postadaki kodu girin.'), findsOneWidget);
@@ -195,6 +196,7 @@ void main() {
         find.widgetWithText(TextFormField, 'Doğrulama kodu'), '123456');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Yeni şifre'), 'yeni-sifre-123');
+    await tester.ensureVisible(find.text('Şifreyi değiştir'));
     await tester.tap(find.text('Şifreyi değiştir'));
     await tester.pumpAndSettle();
     expect(auth.calls.last,
