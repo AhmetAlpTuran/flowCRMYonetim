@@ -9,6 +9,11 @@ contract; a documented legacy gap is not evidence of completion.
 
 | Capability | Owner | Variants / evidence |
 |---|---|---|
+| Navigation | AppShell + `ShellArea` / `ShellDestinationId` (shell_providers.dart) | 7 areas with tabs; sidebar ≥ 720 px (labels ≥ 1100 px), bottom bar + "Daha fazla" below; last tab per area remembered; `test/ui/shell_test.dart` |
+| Page title and tabs | AppShell | screens render only their body (`AppPage`); pushed routes may own an AppBar |
+| Visual system | `lib/ui` per DESIGN.md | tokens, themes, components; `design_guard_test` and `tokens_contrast_test` |
+| Appearance | `appearanceProvider` + Ayarlar → Görünüm and the account menu | Koyu (default) / Açık / Sistem, stored per device, defaults to dark without storage |
+| Time and money display | `lib/ui/format.dart` | local time always, Turkish dates, `900.000 ₺`, `+90 555 111 22 33` |
 | Select | Material DropdownButtonFormField | expanded within bounded width; default keyboard/popup behavior |
 | Form | Material Form/TextFormField | create/edit; TemplateParameterFields adapts the server manifest |
 | Scroll | owning ListView/SingleChildScrollView | no unbounded Expanded on scroll axis |

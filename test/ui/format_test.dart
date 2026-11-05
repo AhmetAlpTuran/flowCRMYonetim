@@ -40,6 +40,18 @@ void main() {
     expect(formatPhone(''), '');
   });
 
+  test('amounts typed the Turkish way', () {
+    expect(parseAmount('900.000'), 900000);
+    expect(parseAmount('1.490,50'), 1490.5);
+    expect(parseAmount('1490,5'), 1490.5);
+    expect(parseAmount('1490.5'), 1490.5);
+    expect(parseAmount('900000.0'), 900000);
+    expect(parseAmount(' 3.490 ₺ '), 3490);
+    expect(parseAmount(''), isNull);
+    expect(parseAmount('abc'), isNull);
+    expect(formatPhone('4915123456789'), '+4915123456789');
+  });
+
   test('initials use Turkish capitals', () {
     expect(initialsOf('Ayşe Yılmaz'), 'AY');
     expect(initialsOf('işletme'), 'İ');

@@ -95,11 +95,21 @@ String formatPhone(String raw) {
         '${digits.substring(7, 9)} ${digits.substring(9)}';
   }
   if (digits.isEmpty) return raw;
-  final groups = <String>[];
-  for (var i = 0; i < digits.length; i += 3) {
-    groups.add(digits.substring(i, i + 3 > digits.length ? digits.length : i + 3));
+  // Other countries group differently; show the international number unsplit.
+  return '+$digits';
+}
+
+/// Reads an amount typed the Turkish way: "900.000" → 900000, "1.490,50" → 1490.5.
+/// A lone dot with one or two decimals ("1490.5") still reads as a decimal point.
+double? parseAmount(String input) {
+  var text = input.replaceAll(RegExp(r'[\s₺]'), '');
+  if (text.isEmpty) return null;
+  if (text.contains(',')) {
+    text = text.replaceAll('.', '').replaceAll(',', '.');
+  } else if (RegExp(r'^-?\d{1,3}(\.\d{3})+$').hasMatch(text)) {
+    text = text.replaceAll('.', '');
   }
-  return '+${groups.join(' ')}';
+  return double.tryParse(text);
 }
 
 /// Up to two initials in Turkish capitals: "Ayşe Yılmaz" → "AY", "işletme" → "İ".

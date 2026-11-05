@@ -72,7 +72,14 @@ class UsageBar extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
         Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: c.muted))),
-        Text(valueLabel, style: FlowText.mono(context, color: warn ? c.warning : c.text)),
+        const SizedBox(width: FlowSpace.sm),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(valueLabel, style: FlowText.mono(context, color: warn ? c.warning : c.text)),
+          ),
+        ),
       ]),
       const SizedBox(height: FlowSpace.sm),
       LinearProgressIndicator(

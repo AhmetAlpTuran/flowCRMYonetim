@@ -2,20 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Screens must take colors and fonts from `lib/ui` (DESIGN.md). Files that predate the
-/// design system are listed here and come off the list as they are redesigned; never
-/// add a new file to it.
-const _legacy = <String>{
-  'lib/features/account/screens/account_deletion_screen.dart',
-  'lib/features/catalog/screens/catalog_screen.dart',
-  'lib/features/connections/screens/connections_screen.dart',
-  'lib/features/contacts/screens/contacts_screen.dart',
-  'lib/features/inbox/screens/chat_screen.dart',
-  'lib/features/inbox/screens/inbox_list_screen.dart',
-  'lib/features/inbox/widgets/message_media_view.dart',
-  'lib/features/onboarding/widgets/pending_invites_section.dart',
-  'lib/features/tenancy/screens/landing_screen.dart',
-};
+/// Screens must take colors and fonts from `lib/ui` (DESIGN.md). Every feature file
+/// was migrated in the redesign; keep this set empty.
+const _legacy = <String>{};
 
 final _rules = <String, RegExp>{
   'a stock Material color (Colors.x)': RegExp(r'(?<![A-Za-z_])Colors\.(?!transparent\b)\w+'),

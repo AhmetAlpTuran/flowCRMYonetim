@@ -100,7 +100,7 @@ class _ResourceEditorSheetState extends ConsumerState<ResourceEditorSheet> {
     final price = ValueListenableBuilder<TextEditingValue>(
       valueListenable: _price,
       builder: (context, value, _) {
-        final parsed = double.tryParse(value.text.trim());
+        final parsed = parseAmount(value.text);
         return TextFormField(
           controller: _price,
           readOnly: _busy,
@@ -118,7 +118,7 @@ class _ResourceEditorSheetState extends ConsumerState<ResourceEditorSheet> {
                     style: Theme.of(context).textTheme.bodySmall),
           ),
           validator: (v) =>
-              (v?.trim().isEmpty ?? true) || double.tryParse(v!.trim()) != null ? null : 'Sayı girin.',
+              (v?.trim().isEmpty ?? true) || parseAmount(v!) != null ? null : 'Sayı girin.',
         );
       },
     );
@@ -314,7 +314,7 @@ class _ResourceEditorSheetState extends ConsumerState<ResourceEditorSheet> {
             name: _name.text,
             description: _description.text,
             attributes: _collectAttributes(),
-            price: double.tryParse(_price.text.trim()),
+            price: parseAmount(_price.text),
             capacity: int.tryParse(_capacity.text.trim()),
             status: _status,
           );
