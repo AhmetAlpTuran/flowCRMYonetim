@@ -49,8 +49,8 @@ class BotConfig {
     return const BotConfig(
       name: 'Ava',
       tone: 'Profesyonel ve net',
-      language: 'Turkce',
-      systemPrompt: 'Kisa, profesyonel bir musteri temsilcisi gibi yanit ver.',
+      language: 'Türkçe',
+      systemPrompt: 'Kısa, profesyonel bir müşteri temsilcisi gibi yanıt ver.',
       model: 'gpt-4o-mini',
       temperature: 0.3,
       memoryHours: 6,

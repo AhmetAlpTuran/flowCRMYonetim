@@ -122,7 +122,10 @@ void main() {
     ]);
     await tester.pumpWidget(app(fake));
     await tester.pumpAndSettle();
-    expect(find.text('Hazır · 4 bölüm · 2 sayfa'), findsOneWidget);
+    expect(find.text('2 / 50'), findsOneWidget);
+    expect(find.text('HAZIR'), findsOneWidget);
+    expect(find.text('PDF · 200 KB · 2 SAYFA · 4 BÖLÜM'), findsOneWidget);
+    expect(find.text('HATA'), findsOneWidget);
     expect(find.textContaining('Metin bulunamadı'), findsOneWidget);
 
     // The failed document can be processed again; the ready one can be deleted.
@@ -138,12 +141,12 @@ void main() {
     await tester.tap(find.text('Sil'));
     await tester.pumpAndSettle();
     expect(find.text('Belge silinsin mi?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Sil'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Sil'));
     await tester.pumpAndSettle();
     expect(fake.deleted, ['11111111-1111-4111-8111-111111111111']);
     expect(find.text('Belge silindi.'), findsOneWidget);
 
-    // Upload last: the queued document's spinner never settles.
+    // Upload last: the upload button's spinner never settles.
     await tester.tap(find.text('Belge yükle'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Fiyat Listesi'), findsOneWidget);
@@ -159,7 +162,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
     expect(find.textContaining('Belge yüklendi'), findsOneWidget);
     await tester.pump();
-    expect(find.text('İşleniyor…'), findsOneWidget);
+    expect(find.text('SIRADA'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
@@ -170,7 +173,7 @@ void main() {
     final fake = FakeDocuments([])..uploadError = TimeoutException('slow');
     await tester.pumpWidget(app(fake, fileName: 'kurallar.docx'));
     await tester.pumpAndSettle();
-    expect(find.text('Henüz belge yok.'), findsOneWidget);
+    expect(find.text('Henüz belge yok'), findsOneWidget);
 
     await tester.tap(find.text('Belge yükle'));
     await tester.pumpAndSettle();
@@ -192,13 +195,13 @@ void main() {
     final fake = FakeDocuments([doc('33333333-3333-4333-8333-333333333333', 'leased')]);
     await tester.pumpWidget(app(fake));
     await tester.pump();
-    expect(find.text('İşleniyor…'), findsOneWidget);
+    expect(find.text('OKUNUYOR'), findsOneWidget);
     final before = fake.fetches;
     fake.documents = [doc('33333333-3333-4333-8333-333333333333', 'ready')];
     await tester.pump(const Duration(seconds: 5));
     await tester.pump();
     expect(fake.fetches, before + 1);
-    expect(find.text('Hazır · 4 bölüm · 2 sayfa'), findsOneWidget);
+    expect(find.text('HAZIR'), findsOneWidget);
     // Polling stops once nothing is processing.
     await tester.pump(const Duration(seconds: 15));
     expect(fake.fetches, before + 1);
@@ -208,5 +211,8 @@ void main() {
   test('server errors become Turkish guidance', () {
     expect(knowledgeDocumentErrorMessage(TimeoutException('x')), contains('Sunucu yanıt vermedi'));
     expect(knowledgeDocumentErrorMessage(Exception('raw')), 'İşlem tamamlanamadı. Tekrar deneyin.');
+    expect(doc('a', 'failed', error: 'attempts_exhausted').statusText(), contains('Daha küçük parçalara'));
+    expect(formatFileSize(204800), '200 KB');
+    expect(formatFileSize(1468006), '1,4 MB');
   });
 }

@@ -10,7 +10,7 @@ import '../data/supabase_knowledge_repository.dart';
 import '../models/knowledge_document.dart';
 import '../models/knowledge_entry.dart';
 
-final knowledgeRepositoryProvider = Provider<SupabaseKnowledgeRepository>((ref) {
+final knowledgeRepositoryProvider = Provider<KnowledgeRepository>((ref) {
   return SupabaseKnowledgeRepository(Supabase.instance.client);
 });
 
