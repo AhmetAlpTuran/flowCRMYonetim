@@ -118,7 +118,10 @@ class _InboxListScreenState extends ConsumerState<InboxListScreen> {
     final notifier = ref.read(inboxFiltersProvider.notifier);
     final scrollChips = split || width < 600;
     final tags = _collectTags(items ?? const []);
-    final waiting = (items ?? const <Conversation>[]).where((item) => InboxView.waiting.matches(item, userId)).length;
+    // Same rule as the sidebar and Ana sayfa: unread messages or a pending handoff.
+    final waiting = (items ?? const <Conversation>[])
+        .where((item) => InboxView.waiting.matches(item, userId) || InboxView.handoff.matches(item, userId))
+        .length;
 
     final header = Padding(
       padding: EdgeInsets.fromLTRB(gutter, FlowSpace.lg, gutter, FlowSpace.sm),
@@ -127,7 +130,7 @@ class _InboxListScreenState extends ConsumerState<InboxListScreen> {
         if (items != null && width < FlowBreakpoints.wide) ...[
           Align(
             alignment: Alignment.centerLeft,
-            child: LiveLine(waiting == 0 ? 'Canlı · bekleyen sohbet yok' : 'Canlı · $waiting sohbet yanıt bekliyor'),
+            child: LiveLine(waiting == 0 ? 'Canlı · bekleyen sohbet yok' : 'Canlı · $waiting sohbet bekliyor'),
           ),
           const SizedBox(height: FlowSpace.md),
         ],

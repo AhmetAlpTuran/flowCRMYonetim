@@ -108,8 +108,12 @@ class AppShell extends ConsumerWidget {
   }
 }
 
+/// Conversations that need a person: unread customer messages or a pending handoff.
+/// Matches the dashboard's live queue so the sidebar and Ana sayfa agree.
 int _waitingCount(List<Conversation>? conversations) => (conversations ?? const <Conversation>[])
-    .where((item) => item.status != ConversationStatus.closed && item.unreadCount > 0)
+    .where((item) =>
+        item.status != ConversationStatus.closed &&
+        (item.unreadCount > 0 || item.status == ConversationStatus.handoff))
     .length;
 
 class _ScreenSwitcher extends StatelessWidget {
@@ -346,7 +350,7 @@ class _LiveBox extends StatelessWidget {
         const LiveLine('Canlı'),
         const SizedBox(height: 6),
         Text(
-          waiting == 0 ? 'Bekleyen sohbet yok' : '$waiting sohbet yanıt bekliyor',
+          waiting == 0 ? 'Bekleyen sohbet yok' : '$waiting sohbet bekliyor',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 15),
         ),
       ]),
