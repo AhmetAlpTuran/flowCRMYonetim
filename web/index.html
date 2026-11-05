@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,21 +18,77 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="WhatsApp müşteri hizmetleri, yapay zeka asistanı ve kampanya yönetimi.">
+  <meta name="description" content="Flow CRM: WhatsApp müşteri hizmetleri, yapay zekâ asistanı ve izinli kampanyalar tek bir komuta merkezinde.">
+  <meta name="theme-color" content="#0E1116">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Flow CRM">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" href="icons/Icon-maskable-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png"/>
 
   <title>Flow CRM</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Dark loading splash ("Gece mesaisi"): ink ground, dot grid, the ring logo.
+       Flutter's view is appended after it and paints on top; the first frame removes it. */
+    html, body { margin: 0; background: #0E1116; }
+    #flow-splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0E1116;
+      background-image: radial-gradient(#262E3A 1px, transparent 1.3px);
+      background-size: 16px 16px;
+    }
+    #flow-splash .pulse {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: flow-splash-pulse 2s ease-out infinite;
+    }
+    @keyframes flow-splash-pulse {
+      0% { transform: scale(1); opacity: .55; }
+      70% { transform: scale(2.4); opacity: 0; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #flow-splash .pulse { animation: none; opacity: 0; }
+    }
+    .flow-noscript {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: 32px;
+      margin: 0;
+      text-align: center;
+      color: #F4F6F8;
+      font: 16px/1.5 sans-serif;
+    }
+  </style>
 </head>
 <body>
+  <div id="flow-splash" role="img" aria-label="Flow CRM yükleniyor">
+    <svg width="72" height="72" viewBox="0 0 30 30" aria-hidden="true" focusable="false">
+      <circle cx="15" cy="15" r="13.5" fill="none" stroke="#C6F432" stroke-opacity="0.35" stroke-width="1.5"/>
+      <circle cx="15" cy="15" r="8.5" fill="none" stroke="#C6F432" stroke-opacity="0.75" stroke-width="1.5"/>
+      <circle class="pulse" cx="15" cy="15" r="4" fill="#C6F432"/>
+      <circle cx="15" cy="15" r="4" fill="#C6F432"/>
+    </svg>
+  </div>
+  <noscript><p class="flow-noscript">Flow CRM'i kullanmak için tarayıcınızda JavaScript'i açın.</p></noscript>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('flow-splash');
+      if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+    }, { once: true });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -1,11 +1,13 @@
 {
     "name": "Flow CRM",
-    "short_name": "Flow CRM",
+    "short_name": "Flow",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "WhatsApp müşteri hizmetleri, yapay zeka asistanı ve kampanya yönetimi.",
+    "background_color": "#0E1116",
+    "theme_color": "#0E1116",
+    "description": "WhatsApp müşteri hizmetleri, yapay zekâ asistanı ve izinli kampanyalar tek bir komuta merkezinde.",
+    "lang": "tr",
+    "dir": "ltr",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
