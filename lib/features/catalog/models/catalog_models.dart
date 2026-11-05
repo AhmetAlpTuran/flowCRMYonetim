@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../ui/format.dart' as fmt;
+
 /// Field definition of a resource type (mirrors `valid_resource_fields`).
 class ResourceField {
   const ResourceField({
@@ -233,15 +235,17 @@ const leadKindLabels = {
   'other': 'Diğer',
 };
 
+/// Lead stages, in board order.
 const leadStatusLabels = {
   'new': 'Yeni',
-  'contacted': 'Arandı',
+  'contacted': 'İletişimde',
   'won': 'Kazanıldı',
   'lost': 'Kaybedildi',
 };
 
+/// Item states. The assistant offers only `active` items to customers.
 const resourceStatusLabels = {
-  'active': 'Aktif',
+  'active': 'Yayında',
   'inactive': 'Pasif',
   'reserved': 'Rezerve',
   'sold': 'Satıldı',
@@ -340,9 +344,8 @@ const resourceTypePresets = [
   ),
 ];
 
+/// An item price for display: lira through `lib/ui/format.dart`, other currencies by code.
 String formatPrice(double? price, String currency) {
   if (price == null) return 'Fiyat yok';
-  final whole = price.round().toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.');
-  return currency == 'TRY' ? '$whole ₺' : '$whole $currency';
+  return currency == 'TRY' ? fmt.formatPrice(price) : '${fmt.formatCount(price.round())} $currency';
 }

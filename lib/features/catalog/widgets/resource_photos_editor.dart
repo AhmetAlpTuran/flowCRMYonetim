@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -6,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/request_id.dart';
+import '../../../ui/ui.dart';
 import '../providers/catalog_providers.dart';
+import 'catalog_layout.dart';
 
 const maxItemPhotos = 10;
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -54,6 +57,20 @@ final catalogPhotoStoreProvider = Provider<CatalogPhotoStore>(
   (ref) => SupabaseCatalogPhotoStore(Supabase.instance.client),
 );
 
+/// A signed link to one photo. Links last an hour; each is reused for 50 minutes so
+/// scrolling back to a card does not download the photo again.
+final catalogPhotoUrlProvider = FutureProvider.autoDispose.family<String, String>((ref, path) async {
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 50), link.close);
+  ref.onDispose(timer.cancel);
+  try {
+    return await ref.watch(catalogPhotoStoreProvider).signedUrl(path);
+  } catch (_) {
+    link.close();
+    rethrow;
+  }
+});
+
 /// Picks one JPG/PNG; overridden in widget tests.
 final catalogPhotoPickerProvider = Provider<Future<({String name, Uint8List bytes})?> Function()>(
   (ref) => () async {
@@ -68,14 +85,51 @@ final catalogPhotoPickerProvider = Provider<Future<({String name, Uint8List byte
   },
 );
 
-/// "Fotoğraflar" of a saved item: add, remove and choose the cover (first photo, which
-/// the bot sends first). Changes apply immediately.
+/// One stored photo, or [placeholder] while it loads, when it is missing or broken.
+class CatalogPhotoImage extends ConsumerWidget {
+  const CatalogPhotoImage({super.key, required this.path, required this.placeholder, this.cacheWidth});
+
+  final String? path;
+  final Widget placeholder;
+
+  /// Decode width in pixels; keeps thumbnails light.
+  final int? cacheWidth;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photo = path;
+    if (photo == null) return placeholder;
+    final url = ref.watch(catalogPhotoUrlProvider(photo)).valueOrNull;
+    if (url == null || url.isEmpty) return placeholder;
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      cacheWidth: cacheWidth,
+      gaplessPlayback: true,
+      loadingBuilder: (context, child, progress) => progress == null ? child : placeholder,
+      errorBuilder: (_, __, ___) => placeholder,
+    );
+  }
+}
+
+/// "Fotoğraflar" of a saved item: a large preview with the cover badge, thumbnails,
+/// and an add tile. Changes apply immediately; the first photo is the cover, which the
+/// assistant sends first.
 class ResourcePhotosEditor extends ConsumerStatefulWidget {
-  const ResourcePhotosEditor({super.key, required this.tenantId, required this.resourceId, required this.photos});
+  const ResourcePhotosEditor({
+    super.key,
+    required this.tenantId,
+    required this.resourceId,
+    required this.photos,
+    this.icon = Icons.image_outlined,
+  });
 
   final String tenantId;
   final String resourceId;
   final List<String> photos;
+
+  /// Placeholder icon for the item's kind.
+  final IconData icon;
 
   @override
   ConsumerState<ResourcePhotosEditor> createState() => _ResourcePhotosEditorState();
@@ -83,6 +137,7 @@ class ResourcePhotosEditor extends ConsumerStatefulWidget {
 
 class _ResourcePhotosEditorState extends ConsumerState<ResourcePhotosEditor> {
   late List<String> _photos = [...widget.photos];
+  int _selected = 0;
   bool _busy = false;
   String? _error;
 
@@ -90,10 +145,13 @@ class _ResourcePhotosEditorState extends ConsumerState<ResourcePhotosEditor> {
   void didUpdateWidget(ResourcePhotosEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Shown for another item: start from that item's photos.
-    if (oldWidget.resourceId != widget.resourceId) _photos = [...widget.photos];
+    if (oldWidget.resourceId != widget.resourceId) {
+      _photos = [...widget.photos];
+      _selected = 0;
+    }
   }
 
-  Future<void> _apply(List<String> next, {String? uploaded, String? removed}) async {
+  Future<void> _apply(List<String> next, {String? uploaded, String? removed, int? select}) async {
     final store = ref.read(catalogPhotoStoreProvider);
     try {
       await store.setPhotos(widget.tenantId, widget.resourceId, next);
@@ -103,7 +161,12 @@ class _ResourcePhotosEditorState extends ConsumerState<ResourcePhotosEditor> {
     }
     if (removed != null) await store.remove(removed).catchError((_) {});
     ref.invalidate(resourcesProvider);
-    if (mounted) setState(() => _photos = next);
+    if (mounted) {
+      setState(() {
+        _photos = next;
+        _selected = (select ?? _selected).clamp(0, next.isEmpty ? 0 : next.length - 1);
+      });
+    }
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -137,103 +200,163 @@ class _ResourcePhotosEditorState extends ConsumerState<ResourcePhotosEditor> {
     await _run(() async {
       final path = await ref.read(catalogPhotoStoreProvider)
           .upload(widget.tenantId, widget.resourceId, picked.bytes, ext == 'png' ? 'png' : 'jpg');
-      await _apply([..._photos, path], uploaded: path);
+      await _apply([..._photos, path], uploaded: path, select: _photos.length);
     });
   }
+
+  void _makeCover(String path) =>
+      _run(() => _apply([path, ..._photos.where((p) => p != path)], select: 0));
+
+  void _remove(String path) =>
+      _run(() => _apply(_photos.where((p) => p != path).toList(), removed: path));
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = FlowColors.of(context);
+    final selected = _photos.isEmpty ? null : _photos[_selected.clamp(0, _photos.length - 1)];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Expanded(child: Text('Fotoğraflar (${_photos.length}/$maxItemPhotos)', style: theme.textTheme.titleSmall)),
-        TextButton.icon(
-          onPressed: _busy || _photos.length >= maxItemPhotos ? null : _add,
-          icon: _busy
-              ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.add_a_photo_outlined),
-          label: const Text('Fotoğraf ekle'),
-        ),
+        Expanded(child: Text('Fotoğraflar', style: theme.textTheme.titleMedium)),
+        if (_busy) const CatalogSpinner(),
       ]),
-      Text('Müşteri isterse bot ilk fotoğrafları WhatsApp\'tan gönderir. JPG veya PNG, en fazla 5 MB.',
+      const SizedBox(height: 2),
+      Text("Müşteri isterse asistan fotoğrafları WhatsApp'tan gönderir; önce kapak gider.",
           style: theme.textTheme.bodySmall),
-      const SizedBox(height: 8),
-      if (_photos.isEmpty)
-        Text('Henüz fotoğraf yok.', style: theme.textTheme.bodyMedium)
-      else
-        Wrap(spacing: 8, runSpacing: 8, children: [
+      const SizedBox(height: FlowSpace.md),
+      ClipRRect(
+        borderRadius: FlowRadius.controlAll,
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              borderRadius: FlowRadius.controlAll,
+              border: Border.all(color: c.border),
+            ),
+            child: selected == null
+                ? CatalogPhotoPlaceholder(icon: widget.icon, iconSize: 44, message: 'Henüz fotoğraf yok.')
+                : _Preview(
+                    path: selected,
+                    icon: widget.icon,
+                    index: _photos.indexOf(selected),
+                    count: _photos.length,
+                    enabled: !_busy,
+                    onCover: () => _makeCover(selected),
+                    onRemove: () => _remove(selected),
+                  ),
+          ),
+        ),
+      ),
+      const SizedBox(height: FlowSpace.sm),
+      LayoutBuilder(builder: (context, constraints) {
+        final perRow = constraints.maxWidth < 320 ? 4 : 5;
+        final width = ((constraints.maxWidth - FlowSpace.sm * (perRow - 1)) / perRow).floorToDouble();
+        return Wrap(spacing: FlowSpace.sm, runSpacing: FlowSpace.sm, children: [
           for (final (index, path) in _photos.indexed)
             _Thumbnail(
               key: ValueKey(path),
               path: path,
+              number: index + 1,
+              width: width,
+              icon: widget.icon,
               cover: index == 0,
-              enabled: !_busy,
-              onCover: () => _run(() => _apply([path, ..._photos.where((p) => p != path)])),
-              onRemove: () => _run(() => _apply(_photos.where((p) => p != path).toList(), removed: path)),
+              selected: path == selected,
+              onTap: () => setState(() => _selected = index),
             ),
-        ]),
+          _AddTile(
+            width: width,
+            busy: _busy,
+            onTap: _busy || _photos.length >= maxItemPhotos ? null : _add,
+          ),
+        ]);
+      }),
+      const SizedBox(height: FlowSpace.sm),
+      Text(
+        upperTr('$maxItemPhotos fotoğrafa kadar · JPG veya PNG · en fazla 5 MB'),
+        style: FlowText.caps(context, size: 10, color: c.faint),
+      ),
       if (_error != null) ...[
-        const SizedBox(height: 8),
-        Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+        const SizedBox(height: FlowSpace.md),
+        CatalogNotice(_error!),
       ],
     ]);
   }
 }
 
-class _Thumbnail extends ConsumerWidget {
-  const _Thumbnail({
-    super.key,
+class _Preview extends StatelessWidget {
+  const _Preview({
     required this.path,
-    required this.cover,
+    required this.icon,
+    required this.index,
+    required this.count,
     required this.enabled,
     required this.onCover,
     required this.onRemove,
   });
 
   final String path;
-  final bool cover;
+  final IconData icon;
+  final int index;
+  final int count;
   final bool enabled;
   final VoidCallback onCover;
   final VoidCallback onRemove;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final placeholder = ColoredBox(
-      color: theme.colorScheme.surfaceContainerHighest,
-      child: const Center(child: Icon(Icons.image_outlined)),
-    );
-    return SizedBox.square(
-      dimension: 88,
-      child: Stack(fit: StackFit.expand, children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: FutureBuilder<String>(
-            future: ref.read(catalogPhotoStoreProvider).signedUrl(path),
-            builder: (context, url) => url.hasData && url.data!.isNotEmpty
-                ? Image.network(url.data!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => placeholder)
-                : placeholder,
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final cover = index == 0;
+    return Stack(fit: StackFit.expand, children: [
+      Semantics(
+        image: true,
+        label: 'Fotoğraf ${index + 1}${cover ? ', kapak' : ''}',
+        child: CatalogPhotoImage(
+          path: path,
+          cacheWidth: 1200,
+          placeholder: CatalogPhotoPlaceholder(icon: icon, iconSize: 44),
+        ),
+      ),
+      if (cover)
+        Positioned(
+          top: 10,
+          left: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: c.lime,
+              borderRadius: BorderRadius.circular(FlowRadius.pill),
+              border: Border.all(color: c.limeEdge),
+            ),
+            child: Text('KAPAK', style: FlowText.caps(context, size: 10, color: c.onLime)),
           ),
         ),
-        if (cover)
-          Positioned(
-            left: 4,
-            bottom: 4,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(4)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                child: Text('Kapak', style: TextStyle(color: theme.colorScheme.onPrimary, fontSize: 11)),
-              ),
-            ),
+      Positioned(
+        right: 10,
+        bottom: 10,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: FlowSpace.sm, vertical: 4),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: c.border),
           ),
-        Positioned(
-          right: 0,
-          top: 0,
+          child: Text('${index + 1} / $count', style: FlowText.mono(context, size: 11, color: c.text)),
+        ),
+      ),
+      Positioned(
+        top: 4,
+        right: 4,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: c.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: c.border),
+          ),
           child: PopupMenuButton<String>(
             tooltip: 'Fotoğraf işlemleri',
             enabled: enabled,
-            icon: const Icon(Icons.more_vert, size: 20),
+            icon: const Icon(Icons.more_horiz, size: 20),
             onSelected: (value) => value == 'cover' ? onCover() : onRemove(),
             itemBuilder: (_) => [
               if (!cover) const PopupMenuItem(value: 'cover', child: Text('Kapak yap')),
@@ -241,7 +364,124 @@ class _Thumbnail extends ConsumerWidget {
             ],
           ),
         ),
-      ]),
+      ),
+    ]);
+  }
+}
+
+class _Thumbnail extends StatelessWidget {
+  const _Thumbnail({
+    super.key,
+    required this.path,
+    required this.number,
+    required this.width,
+    required this.icon,
+    required this.cover,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String path;
+  final int number;
+  final double width;
+  final IconData icon;
+  final bool cover;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final ring = selected ? (c.isDark ? c.lime : c.text) : c.border;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Fotoğraf $number${cover ? ', kapak' : ''}',
+      child: SizedBox(
+        width: width,
+        height: width * 3 / 4,
+        child: Material(
+          color: c.raised,
+          shape: RoundedRectangleBorder(
+            borderRadius: FlowRadius.controlAll,
+            side: BorderSide(color: ring, width: selected ? 2 : 1),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: ExcludeSemantics(
+              child: CatalogPhotoImage(
+                path: path,
+                cacheWidth: 240,
+                placeholder: CatalogPhotoPlaceholder(icon: icon, iconSize: 18),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
+}
+
+class _AddTile extends StatelessWidget {
+  const _AddTile({required this.width, required this.busy, required this.onTap});
+
+  final double width;
+  final bool busy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = FlowColors.of(context);
+    final color = onTap == null ? c.faint : c.text;
+    return Tooltip(
+      message: 'Fotoğraf ekle',
+      child: SizedBox(
+        width: width,
+        height: width * 3 / 4,
+        child: CustomPaint(
+          painter: _DashedBorderPainter(onTap == null ? c.border : c.borderStrong),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: FlowRadius.controlAll,
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                busy ? const CatalogSpinner() : Icon(Icons.add, size: 18, color: color),
+                const SizedBox(height: 2),
+                Text('Ekle', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color)),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final outline = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Offset.zero & size,
+        const Radius.circular(FlowRadius.control),
+      ).deflate(0.75));
+    for (final metric in outline.computeMetrics()) {
+      for (var distance = 0.0; distance < metric.length; distance += 9) {
+        canvas.drawPath(metric.extractPath(distance, distance + 5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) => old.color != color;
 }

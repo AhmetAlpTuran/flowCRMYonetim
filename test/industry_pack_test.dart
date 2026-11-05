@@ -63,7 +63,7 @@ void main() {
     expect(applied.single.$2, 'auto_dealer');
     expect(applied.single.$3, {'test_drive': 'Ehliyetle, randevulu.'}, reason: 'empty answers are not sent');
     expect(find.text('Paket kuruldu'), findsOneWidget);
-    expect(find.textContaining('Bot ayarlarından botu etkinleştirin'), findsOneWidget);
+    expect(find.textContaining('asistanı açın'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

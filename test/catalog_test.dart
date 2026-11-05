@@ -10,6 +10,7 @@ import 'package:wpapp/features/shell/app_shell.dart';
 import 'package:wpapp/features/shell/shell_providers.dart';
 import 'package:wpapp/features/tenancy/models/tenant.dart';
 import 'package:wpapp/features/tenancy/providers/tenant_providers.dart';
+import 'package:wpapp/ui/ui.dart' show StatusBadge;
 
 const tenant = Tenant(
   id: 'tenant-a',
@@ -56,6 +57,8 @@ class FakeCatalogRepository extends CatalogRepository {
     });
   }
 }
+
+Finder badge(String label) => find.byWidgetPredicate((w) => w is StatusBadge && w.label == label);
 
 Widget scope(Widget child, {List<Override> overrides = const []}) => ProviderScope(
       overrides: [selectedTenantProvider.overrideWithValue(tenant), ...overrides],
@@ -141,7 +144,7 @@ void main() {
     ]));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextFormField, 'Ad'), '2021 Toyota Corolla');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Fiyat (₺)'), '1150000');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Fiyat'), '1150000');
     await tester.enterText(find.widgetWithText(TextFormField, 'Marka'), 'Toyota');
     await tester.enterText(find.widgetWithText(TextFormField, 'Yıl'), '2021');
     await tester.enterText(find.widgetWithText(TextFormField, 'Kilometre'), 'kırk bin');
@@ -192,12 +195,13 @@ void main() {
           ]),
     ]));
     await tester.pumpAndSettle();
-    expect(find.text('Ön rezervasyon'), findsOneWidget);
-    expect(find.text('Süresi doldu'), findsOneWidget);
-    expect(find.text('Onaylı'), findsOneWidget);
+    expect(badge('Ön rezervasyon'), findsOneWidget);
+    expect(badge('Süresi doldu'), findsOneWidget);
+    expect(badge('Onaylı'), findsOneWidget);
     expect(find.text('Onayla'), findsOneWidget);
-    expect(find.textContaining('+905551112233'), findsNWidgets(3));
-    expect(find.text('Bot tarafından oluşturuldu'), findsNWidgets(3));
+    expect(find.textContaining('+90\u00A0555\u00A0111\u00A022\u00A033'), findsNWidgets(3),
+        reason: 'phone numbers stay on one line');
+    expect(badge('Asistandan'), findsNWidgets(3));
     expect(find.textContaining('önce Oda veya Hizmet'), findsOneWidget);
   });
 
@@ -219,8 +223,9 @@ void main() {
           ]),
     ]));
     await tester.pumpAndSettle();
-    expect(find.text('Test sürüşü'), findsOneWidget);
-    expect(find.text('Yeni'), findsOneWidget);
+    expect(badge('Test sürüşü'), findsOneWidget);
+    expect(badge('Asistandan'), findsOneWidget);
+    expect(find.text('Yeni'), findsOneWidget, reason: 'the board column of new leads');
     expect(find.text('2021 Toyota Corolla'), findsOneWidget);
     expect(find.text('Cumartesi öğleden sonra'), findsOneWidget);
   });
